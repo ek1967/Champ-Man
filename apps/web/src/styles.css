@@ -53,8 +53,38 @@
   }
 }
 
+/* Same dark palette when the viewer explicitly picks dark. */
+:root[data-theme='dark'] {
+  --bg: #111513;
+  --panel: #1a201d;
+  --panel-alt: #212824;
+  --ink: #e4e9e5;
+  --muted: #94a199;
+  --line: #2e3833;
+  --brand: #0b2219;
+  --brand-ink: #e4efe8;
+  --brand-muted: #86a395;
+  --link: #79b8e6;
+  --mine: #3a3418;
+  --attr-poor: #ef7a6c;
+  --attr-fair: #9aa39e;
+  --attr-good: #e4e9e5;
+  --attr-excellent: #5fd394;
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
+}
+
+/* Paints the phone's status-bar band in the top bar's colour. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--brand);
 }
 
 html,
@@ -229,7 +259,7 @@ select {
 .topbar {
   grid-area: top;
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 10;
   display: flex;
   align-items: center;

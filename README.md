@@ -17,8 +17,11 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
 - Continue loop, inbox, squad, player, club, fixtures and league screens
 - Autosave in the browser, plus downloadable save files
 
-Matches are decided by a quick strength-based simulation for now. The text match engine
-with commentary comes next.
+- **Tactics and team selection**: seven formations, seven team instructions, nine substitutes,
+  captain and set-piece takers
+- **Text match engine** with live commentary, speed control, substitutions, in-match instructions,
+  live stats and other scores; every Premier League match uses the same engine
+- Fitness, injuries and suspensions
 
 ## Real-player data (personal use only)
 

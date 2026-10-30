@@ -63,3 +63,20 @@ generated players. The relegated clubs (Burnley, West Ham, Wolves) use last seas
 ## 007 — Computer picks the best of three formations
 *Phase 6.* Until tactics arrive (Phase 5), each club's XI is the strongest of 4-4-2, 4-3-3 and
 4-2-3-1. A fixed 4-4-2 left squads built around attacking midfielders playing out of position.
+
+## 008 — Match engine: minute by minute, calibrated, one engine for every match
+*Phases 4–5.* Each minute: possession from the sides' midfield control, an attack (sometimes),
+then chance creation from attack against defence and the shot from shooter against keeper, all
+from attributes, position fit, fitness, form and tactics. Fouls, cards, penalties, corners, free
+kicks, injuries and substitutions are events in the same loop. The manager's match runs with
+commentary; every other Premier League match runs the same code silently, so results and player
+stats are consistent. Shadow leagues still use the quick strength model.
+
+Constants live in `MATCH` (`packages/engine/src/match.ts`) and were tuned against real Premier
+League averages with `npm run calibrate -- --pack …` and `packages/harness/src/tune.ts`. Tests
+check that tactics change outcomes (attacking football means more goals at both ends) and that
+no extreme setting gives a decisive edge over balanced play.
+
+Fitness (`condition`) drops during matches and recovers daily; injuries and bans (a red card, or
+every fifth booking) make players unavailable. The manager's tactics are saved with the game and
+"readied" before each match, replacing anyone who has since become unavailable.

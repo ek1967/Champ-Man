@@ -6,6 +6,7 @@ import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
 import { type Column, SortableTable } from '../components/SortableTable.tsx';
+import { Condition, statusOf } from './TacticsScreen.tsx';
 import { Tabs } from '../components/Tabs.tsx';
 
 type View = 'general' | 'attributes' | 'contracts';
@@ -24,7 +25,12 @@ function seasonStats(game: GameState, player: Player) {
   const seasonId = club ? game.currentSeason[club.leagueId] : undefined;
   const label = seasonId ? game.seasons[seasonId]?.label : undefined;
   const entry = player.stats.find((s) => s.season === label && s.competitionId === club?.leagueId);
-  return entry ?? { apps: 0, goals: 0, assists: 0 };
+  return entry ?? { apps: 0, goals: 0, assists: 0, ratingTotal: 0 };
+}
+
+function averageRating(game: GameState, player: Player): number {
+  const s = seasonStats(game, player);
+  return s.apps > 0 ? s.ratingTotal / s.apps : 0;
 }
 
 export function SquadScreen({ game, clubId }: { game: GameState; clubId: string }) {
@@ -68,9 +74,27 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
         ),
         sortValue: (p) => game.world.nations[p.nationId]?.code ?? '',
       },
+      { id: 'cond', label: 'Cond', title: 'Match fitness', render: (p) => <Condition value={p.condition} />, sortValue: (p) => p.condition, align: 'right' },
+      {
+        id: 'status',
+        label: 'Status',
+        render: (p) => {
+          const status = statusOf(p, game.date);
+          return status ? <span className="tag danger" title={status}>{status.startsWith('Injured') ? 'Inj' : 'Sus'}</span> : '';
+        },
+        sortValue: (p) => (statusOf(p, game.date) ? 1 : 0),
+      },
       { id: 'apps', label: 'Apps', render: (p) => seasonStats(game, p).apps, sortValue: (p) => seasonStats(game, p).apps, align: 'right' },
       { id: 'gls', label: 'Gls', render: (p) => seasonStats(game, p).goals, sortValue: (p) => seasonStats(game, p).goals, align: 'right' },
       { id: 'ast', label: 'Ast', render: (p) => seasonStats(game, p).assists, sortValue: (p) => seasonStats(game, p).assists, align: 'right' },
+      {
+        id: 'rating',
+        label: 'Av Rat',
+        title: 'Average match rating this season',
+        render: (p) => (averageRating(game, p) > 0 ? averageRating(game, p).toFixed(2) : '–'),
+        sortValue: (p) => averageRating(game, p),
+        align: 'right',
+      },
       { id: 'value', label: 'Value', render: (p) => money(p.value), sortValue: (p) => p.value, align: 'right' },
     ],
     attributes: [

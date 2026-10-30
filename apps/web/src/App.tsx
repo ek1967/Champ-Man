@@ -8,12 +8,14 @@ import { EntityLink } from './components/EntityLink.tsx';
 import { ordinal } from './components/format.ts';
 import { back, forward, navigate, type Route, useRoute } from './state/nav.ts';
 import { exportCareer, saveCareer } from './state/persistence.ts';
-import { continueOnce, setGame, useGame } from './state/store.ts';
+import { continueOnce, getLiveMatch, setGame, useGame } from './state/store.ts';
 import { ClubScreen, FixturesScreen, NationScreen } from './screens/ClubScreen.tsx';
 import { CompetitionScreen } from './screens/CompetitionScreen.tsx';
 import { InboxScreen } from './screens/InboxScreen.tsx';
 import { PlayerScreen } from './screens/PlayerScreen.tsx';
+import { MatchScreen } from './screens/MatchScreen.tsx';
 import { SquadScreen } from './screens/SquadScreen.tsx';
+import { TacticsScreen } from './screens/TacticsScreen.tsx';
 import { StartScreen } from './screens/StartScreen.tsx';
 
 export function App() {
@@ -22,6 +24,11 @@ export function App() {
 }
 
 function handleContinue(game: GameState): void {
+  // On match day (or mid-match) Continue goes to the match instead of moving time on.
+  if (getLiveMatch() || humanFixtureOn(game, game.date)) {
+    navigate({ screen: 'match' });
+    return;
+  }
   const reason = continueOnce();
   if ((reason === 'matchPlayed' || reason === 'news') && game.news[0]) {
     navigate({ screen: 'inbox', newsId: game.news[0].id });
@@ -36,7 +43,7 @@ function Career({ game }: { game: GameState }) {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
-      if (e.code === 'Space' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      if (e.code === 'Space' && !e.altKey && !e.ctrlKey && !e.metaKey && route.screen !== 'match') {
         e.preventDefault();
         handleContinue(game);
       } else if (e.altKey && e.key === 'ArrowLeft') {
@@ -49,7 +56,7 @@ function Career({ game }: { game: GameState }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [game]);
+  }, [game, route.screen]);
 
   // Close the mobile menu whenever the screen changes.
   useEffect(() => setMenuOpen(false), [route]);
@@ -115,7 +122,7 @@ function TopBar({ game, onMenu }: { game: GameState; onMenu: () => void }) {
         )}
       </div>
       <button className="continue" onClick={() => handleContinue(game)} title="Continue (Space)">
-        {today ? 'Play match' : 'Continue'} <span aria-hidden="true">▶</span>
+        {getLiveMatch() ? 'Back to match' : today ? 'Match day' : 'Continue'} <span aria-hidden="true">▶</span>
       </button>
     </header>
   );
@@ -154,6 +161,9 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
           <>
             <NavItem to={{ screen: 'squad', clubId: club.id }} active={route.screen === 'squad' && route.clubId === club.id}>
               Squad
+            </NavItem>
+            <NavItem to={{ screen: 'tactics' }} active={route.screen === 'tactics'}>
+              Tactics
             </NavItem>
             <NavItem to={{ screen: 'fixtures', clubId: club.id }} active={route.screen === 'fixtures' && route.clubId === club.id}>
               Fixtures
@@ -215,5 +225,9 @@ function Screen({ game, route }: { game: GameState; route: Route }) {
       return <FixturesScreen game={game} clubId={route.clubId} />;
     case 'nation':
       return <NationScreen game={game} id={route.id} />;
+    case 'tactics':
+      return <TacticsScreen game={game} />;
+    case 'match':
+      return <MatchScreen game={game} />;
   }
 }

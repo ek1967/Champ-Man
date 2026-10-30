@@ -18,6 +18,10 @@ real players across 11 countries. Web first; downloadable desktop app later.
 | Countries | England, Scotland, Spain, Italy, Germany, Netherlands, Portugal, Czech Republic, Argentina, Brazil, USA |
 | Platform | **Web first** (installable PWA); desktop wrapper later |
 | Start date | **15 June 2026** |
+| Squads | **Current real squads** (after the 2026 summer window) |
+| World Cup 2026 | **Runs in the background with real results** |
+| League depth | **Top tier only is playable.** Second tiers run as background "shadow leagues" for promotion and relegation (§3.1) |
+| Who codes | **Claude writes the code**; you playtest, review and make design calls |
 
 ---
 
@@ -102,19 +106,19 @@ Adds, on top of the MVP:
 - **Leagues.** Players choose which nations to "load" at game start.
   *Verify every format against the 2026-27 (or 2026) regulations when encoding it.*
 
-  | Country | Leagues | Season calendar | Format notes |
-  |---|---|---|---|
-  | England | Premier League, Championship, League One, League Two | Aug–May | Play-offs; National League later |
-  | Scotland | Premiership, Championship | Aug–May | Premiership splits into top/bottom six; relegation play-off |
-  | Spain | LaLiga, LaLiga 2 | Aug–May | Head-to-head tie-breaks; LaLiga 2 play-offs |
-  | Italy | Serie A, Serie B | Aug–May | Head-to-head tie-breaks; Serie B play-offs |
-  | Germany | Bundesliga, 2. Bundesliga | Aug–May | Relegation play-off between tiers |
-  | Netherlands | Eredivisie, Eerste Divisie | Aug–May | European play-offs; promotion/relegation play-offs |
-  | Portugal | Liga Portugal, Liga Portugal 2 | Aug–May | Promotion/relegation play-off |
-  | Czech Republic | Czech First League | Jul–May | Splits into groups after the regular season |
-  | Argentina | Liga Profesional | **Calendar year** | Apertura + Clausura (zones + knockout play-offs); relegation by points average over seasons |
-  | Brazil | Série A, Série B | **Calendar year** | Straight double round-robin; 4 up / 4 down |
-  | USA | MLS | **Calendar year** (MLS has announced a move to an Aug–May calendar from 2027-28, verify) | Two conferences, MLS Cup play-offs, no promotion/relegation, salary cap + Designated Players (simplified) |
+  | Country | Playable league | Shadow league (background) | Season calendar | Format notes |
+  |---|---|---|---|---|
+  | England | Premier League | Championship | Aug–May | 3 down; 2 up + play-off winner |
+  | Scotland | Premiership | Championship | Aug–May | Top/bottom-six split; relegation play-off against shadow clubs |
+  | Spain | LaLiga | LaLiga 2 | Aug–May | Head-to-head tie-breaks |
+  | Italy | Serie A | Serie B | Aug–May | Head-to-head tie-breaks |
+  | Germany | Bundesliga | 2. Bundesliga | Aug–May | Relegation play-off against a shadow club |
+  | Netherlands | Eredivisie | Eerste Divisie | Aug–May | European play-offs; promotion/relegation play-offs |
+  | Portugal | Liga Portugal | Liga Portugal 2 | Aug–May | Relegation play-off against a shadow club |
+  | Czech Republic | Czech First League | Czech National League | Jul–May | Splits into groups after the regular season |
+  | Argentina | Liga Profesional | Primera Nacional | **Calendar year** | Apertura + Clausura (zones + knockout play-offs); relegation by points average over seasons |
+  | Brazil | Série A | Série B | **Calendar year** | Straight double round-robin; 4 up / 4 down |
+  | USA | MLS | None needed | **Calendar year** (MLS has announced a move to an Aug–May calendar from 2027-28, verify) | Two conferences, MLS Cup play-offs, no promotion/relegation, salary cap + Designated Players (simplified) |
 
 - **Domestic cups:** FA Cup, EFL Cup, Scottish Cup, Scottish League Cup,
   Copa del Rey, Coppa Italia, DFB-Pokal, KNVB Cup, Taça de Portugal,
@@ -126,6 +130,33 @@ Adds, on top of the MVP:
 - **Players from countries not in the list** (e.g. France, Belgium, Saudi
   Arabia) are left out of v1. A "background pool" of transferable players from
   other countries is a later option.
+
+### 3.1 Shadow leagues (promotion and relegation without a playable second tier)
+A shadow league is a real second division that runs in the background. You
+can't manage in it, and its matches have no commentary, but it produces real
+promotion and relegation.
+
+- **Clubs:** real second-tier clubs, each with a **team strength** number
+  (from last season's finish and, in Europe, ClubElo).
+- **Thin squads:** each shadow club has a squad of about 22, with real names
+  where Wikidata has them, topped up with generated players. Ratings are
+  estimated from team strength, with no hand-checking. This means a shadow club
+  can always play a real match when needed.
+- **League results:** simulated from team strength alone, which costs almost
+  nothing. Tables, play-offs and champions are produced as normal, and news
+  reports who went up.
+- **Play-offs and cup ties against playable clubs** (e.g. the Bundesliga
+  relegation play-off, or a cup tie against a second-tier club) use the full
+  match engine with the thin squad.
+- **On promotion:** the club joins the top tier with its squad, and its players
+  start developing properly from then on. **On relegation:** the club drops into
+  the shadow league, its strength is recalculated from its squad, and its
+  players stay available to buy.
+- **Domestic cups** start at the round where top-tier clubs enter. The other
+  entrants are drawn from the shadow league plus a list of lower-league club
+  names with generated squads.
+- Any shadow league can be upgraded to a playable league later without
+  changing saves.
 - Full transfer market with AI clubs buying and selling, loans, free transfers
   and Bosmans, transfer windows, and work-permit / non-EU rules (simplified).
 - Scouting, attribute masking (unscouted players show ranges), and a player
@@ -155,15 +186,14 @@ different calendars, that date means different things in different places:
 | Argentina | Between the Apertura and the Clausura | Clausura 2026 starts fresh, which fits neatly. Apertura results are loaded only for the relegation averages |
 | Brazil, MLS | Mid-season, paused for the World Cup | Load a **standings snapshot** at the World Cup break (points, played, goal difference) and generate the remaining fixtures |
 
-**The 2026 World Cup (11 June – 19 July) is in progress on day one.**
-Recommendation: run it in the background using the real results (entered as
-data). Players at the tournament return late, tired, and with reputation or
-morale changes. Simulating it live is a later option.
+**The 2026 World Cup (11 June – 19 July) is in progress on day one.** It runs in
+the background using the real results (entered as data). Players at the
+tournament return late, tired, and with reputation or morale changes. Simulating
+it live is a later option.
 
-**Squads:** recommendation is to use the *current* real squads (after the 2026
-summer window), even though the game date is 15 June. The world then matches the
-real 2026-27 season, and the summer window is yours to shape. The alternative,
-true 15 June squads, is more authentic but much harder to source from free data.
+**Squads:** the *current* real squads (after the 2026 summer window) are used,
+even though the game date is 15 June. The world matches the real 2026-27 season,
+and the summer window is yours to shape.
 
 **What a "season" means:** there is no single global season. Each competition
 has its own cycle. The game calendar simply runs continuously, and "end of
@@ -520,13 +550,15 @@ low-priority columns. The game must be fully playable on a phone.
 
 ## 10. Roadmap
 
-**How to read the sizes:** S, M and L are effort estimates for building each
-phase. They assume one person writing the code part-time (roughly 10–15 hours a
-week): S ≈ 1–2 weeks, M ≈ 3–4 weeks, L ≈ 6–8 weeks. If Claude writes most of the
-code, the coding gets much faster. The parts that don't speed up are the ones
-that need a human: playtesting, tuning the match engine until it *feels* right,
-checking player ratings, and making design calls. Each phase ends with something
-playable or measurable.
+**How to read the sizes:** S, M and L show how big each phase is relative to the
+others, measured as if one person coded it part-time (roughly 10–15 hours a
+week): S ≈ 1–2 weeks, M ≈ 3–4 weeks, L ≈ 6–8 weeks.
+
+**Claude writes the code**, so actual calendar time depends mostly on review and
+playtesting, not typing. Each phase ends with something you can open, play or
+check, and the next phase starts once you're happy with it. Expect the slowest
+parts to be the ones that need human judgement: tuning the match engine until it
+*feels* right (Phases 4–5) and checking star players' ratings (Phase 9).
 
 | # | Phase | Size | Exit criteria |
 |---|---|---|---|
@@ -540,8 +572,8 @@ playable or measurable.
 | — | **🎯 MVP milestone** | — | One full PL season playable end-to-end with real squads |
 | 7 | **Transfers, contracts, finances, board** | L | AI clubs trade sensibly; you can be sacked; budgets matter |
 | 8 | **Development, youth, regens, season rollover** | M | 10-season headless run stays stable (no rating inflation, squads stay full) |
-| 9 | **Data pipeline v1 + curation editor**, European leagues | L | All European v1 leagues loaded; top 1,500 players hand-checked |
-| 10 | **Cups + UEFA competitions + promotion/relegation across tiers** | M | Correct formats; European qualification flows from league finishes |
+| 9 | **Data pipeline v1 + curation editor**, European top tiers | L | All European top tiers loaded; top 1,500 players hand-checked |
+| 10 | **Shadow leagues (§3.1), cups, UEFA competitions** | M | Clubs go up and down correctly over 10 simulated seasons; European qualification flows from league finishes |
 | 11 | **Americas:** calendar-year seasons, Apertura/Clausura, relegation averages, MLS conferences and play-offs, mid-season standings snapshot, Libertadores / Sudamericana / CONCACAF Champions Cup, Argentina/Brazil/MLS data | L | Brazil, Argentina and MLS seasons run correctly alongside Europe; players move between continents |
 | 12 | **World Cup 2026 background results + scouting, attribute masking, player search** | M | World Cup players return late; the wonderkid hunt works; masked ranges narrow with scouting |
 | 13 | **International management** | S–M | National team selection and international breaks |
@@ -550,9 +582,14 @@ playable or measurable.
 | 16 | **January 2027 data update** (process test) | S | New pack generated and diffed; old saves unaffected |
 | 17 | **Desktop build (Tauri)**, if wanted | S | Installable on Windows, macOS and Linux |
 
-Rough total: about 10–14 months part-time for one person coding alone. The MVP
-(phases 0–6) is about 3–4 months part-time. Both shrink considerably if Claude
-does most of the coding.
+For comparison, one person coding this alone part-time would need roughly 10–14
+months, with the MVP (Phases 0–6) at 3–4 months. With Claude coding, these
+shrink considerably, but how much depends on how quickly each phase gets
+playtested and approved.
+
+**Your role in each phase:** play the build, say what feels wrong, and answer
+design questions. The ratings check in Phase 9 is the biggest chunk of your
+time: skimming star players' attributes and flagging the ones that look off.
 
 ---
 
@@ -601,13 +638,9 @@ Any of these can be reconsidered after v1.0, but only if it passes pillar #5.
 
 ## 14. Open questions (need your input)
 
-The earlier questions are answered in §0. These remain:
+All earlier questions are answered in §0. Nothing is blocking Phase 0.
 
-1. **Squads on 15 June:** use the current real squads, after the summer window
-   (recommended), or the squads as they actually stood on 15 June 2026?
-2. **World Cup 2026:** run it in the background with real results
-   (recommended), or simulate it live?
-3. **Who writes the code:** you, Claude, or both? This changes how long the
-   roadmap takes (§10).
-4. **League depth:** is the tier list in §3 right? For example, do you want
-   England down to League Two and Brazil's Série B?
+Decisions that can wait until their phase:
+- **Look and feel** (Phase 3): plain modern, retro-inspired theme, or both?
+- **Match speed defaults** (Phase 4): how fast commentary runs by default.
+- **Which star players to hand-check first** (Phase 9).

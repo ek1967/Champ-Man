@@ -511,7 +511,7 @@ low-priority columns. The game must be fully playable on a phone.
 | UI | **React** (or Svelte) + Vite | Mature, fast iteration, great table libraries |
 | Tables | TanStack Table + virtualisation | Thousands of rows, instant sorting |
 | Engine | Pure TS module, no UI dependencies, runs in a **Web Worker** | Keeps the UI at 60 fps during Continue; easy headless tests |
-| Storage | **SQLite in WASM** (wa-sqlite / sql.js) persisted via OPFS, or IndexedDB (Dexie) | Relational world data, fast queries, single-file saves |
+| Storage | In-memory game state, saved as JSON in **IndexedDB** (see `docs/decisions.md` #002) | Simple and fast; SQLite in WASM stays an option if saves get too big |
 | Desktop | **Tauri** wrapping the same web build | Small download (~10 MB), native file saves |
 | Offline | PWA (service worker) | Installable web app that works offline |
 | Tests | Vitest (unit), Playwright (UI), custom headless sim harness | Calibration and regression |

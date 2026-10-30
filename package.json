@@ -1,0 +1,25 @@
+{
+  "name": "manager-of-champions",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @moc/web",
+    "build": "npm run build -w @moc/web",
+    "typecheck": "tsc -p packages/engine && tsc -p packages/harness && tsc -p apps/web",
+    "test": "vitest run",
+    "calibrate": "node packages/harness/src/calibrate.ts",
+    "check": "npm run typecheck && npm test && npm run calibrate -- --check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

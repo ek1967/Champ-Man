@@ -45,6 +45,7 @@ let pointsSpread = 0;
 let topScorerGoals = 0;
 let mostLikelyChampionWins = 0;
 let favouriteRelegated = 0;
+const team = { shots: 0, onTarget: 0, corners: 0, fouls: 0, yellow: 0, red: 0, sides: 0 };
 const started = performance.now();
 
 for (let i = 0; i < seasonCount; i++) {
@@ -59,6 +60,15 @@ for (let i = 0; i < seasonCount; i++) {
     if (!r) throw new Error(`Unplayed fixture ${fixture.id}`);
     matches++;
     goals += r.homeGoals + r.awayGoals;
+    for (const t of r.stats ? [r.stats.home, r.stats.away] : []) {
+      team.sides++;
+      team.shots += t.shots;
+      team.onTarget += t.onTarget;
+      team.corners += t.corners;
+      team.fouls += t.fouls;
+      team.yellow += t.yellow;
+      team.red += t.red;
+    }
     if (r.homeGoals > r.awayGoals) homeWins++;
     else if (r.homeGoals === r.awayGoals) {
       draws++;
@@ -94,6 +104,17 @@ const metrics: Metric[] = [
   { label: 'Bottom club points', value: bottomPoints / seasonCount, min: 15, max: 35, format: int },
   { label: 'Points spread (1st-20th)', value: pointsSpread / seasonCount, min: 50, max: 78, format: int },
   { label: 'Top scorer goals', value: topScorerGoals / seasonCount, min: 20, max: 34, format: int },
+  // Match-engine detail (real-world Premier League averages per team per match).
+  ...(team.sides > 0
+    ? [
+        { label: 'Shots per team', value: team.shots / team.sides, min: 10.5, max: 14.5, format: num },
+        { label: 'On target per team', value: team.onTarget / team.sides, min: 3.6, max: 5.2, format: num },
+        { label: 'Corners per team', value: team.corners / team.sides, min: 4, max: 6.5, format: num },
+        { label: 'Fouls per team', value: team.fouls / team.sides, min: 8.5, max: 12.5, format: num },
+        { label: 'Yellows per team', value: team.yellow / team.sides, min: 1.3, max: 2.3, format: num },
+        { label: 'Reds per match', value: (team.red / team.sides) * 2, min: 0.05, max: 0.2, format: num },
+      ]
+    : []),
   // Club size only predicts strength in the generated demo world.
   ...(pack
     ? []

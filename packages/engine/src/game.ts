@@ -4,14 +4,18 @@ import { addNews, clubLink, competitionLink, playerLink } from './news.ts';
 import {
   currentSeasonOf, getClub, getCompetition, seasonFixtures, seasonTable, squadIndex,
 } from './queries.ts';
-import { simulateMatch, simulateScore } from './quicksim.ts';
+import { simulateScore } from './quicksim.ts';
+import { injuryEnd, kickOff, type LiveMatch, type MatchContext, playToEnd } from './match.ts';
+import { autoTactics, bestLineup, readyTactics, type Tactics } from './tactics.ts';
 import { chance, createRng, forkRng } from './rng.ts';
-import { type Lineup, pickBestLineup } from './selection.ts';
-import type { CompetitionSeason, Fixture, GameState, Id, MatchResult, World } from './types.ts';
+import { pickBestLineup } from './selection.ts';
+import type {
+  CompetitionSeason, Fixture, GameState, Id, MatchResult, Player, PlayerSeasonStats, World,
+} from './types.ts';
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { createDemoWorld } from './worldgen.ts';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const GAME_START_DATE: ISODate = '2026-06-15';
 
 export interface NewGameOptions {
@@ -38,7 +42,7 @@ export function createGame(options: NewGameOptions): GameState {
     fixtures: {},
     fixturesByDate: {},
     news: [],
-    manager: { name: options.managerName, clubId: null },
+    manager: { name: options.managerName, clubId: null, tactics: null },
     counters: { fixture: 0, news: 0, season: 0 },
   };
   for (const competition of Object.values(world.competitions)) {
@@ -138,42 +142,108 @@ export function humanFixtureOn(state: GameState, date: ISODate): Fixture | null 
   return null;
 }
 
-function recordStats(state: GameState, fixture: Fixture, result: MatchResult): void {
-  const season = state.seasons[fixture.seasonId];
-  if (!season || !result.lineups) return;
-  const statsFor = (playerId: Id, clubId: Id) => {
-    const player = state.world.players[playerId];
-    if (!player) return null;
-    let entry = player.stats.find(
-      (s) => s.season === season.label && s.competitionId === fixture.competitionId && s.clubId === clubId,
-    );
-    if (!entry) {
-      entry = { season: season.label, competitionId: fixture.competitionId, clubId, apps: 0, goals: 0, assists: 0 };
-      player.stats.push(entry);
-    }
-    return entry;
-  };
-  for (const id of result.lineups.home) {
-    const s = statsFor(id, fixture.homeId);
-    if (s) s.apps++;
-  }
-  for (const id of result.lineups.away) {
-    const s = statsFor(id, fixture.awayId);
-    if (s) s.apps++;
-  }
-  for (const goal of result.goals) {
-    if (goal.scorerId) {
-      const s = statsFor(goal.scorerId, goal.clubId);
-      if (s) s.goals++;
-    }
-    if (goal.assistId) {
-      const s = statsFor(goal.assistId, goal.clubId);
-      if (s) s.assists++;
-    }
-  }
+export function matchContext(state: GameState): MatchContext {
+  return { players: state.world.players, clubs: state.world.clubs };
 }
 
-function reportHumanResult(state: GameState, fixture: Fixture, result: MatchResult): void {
+/**
+ * The tactics a club takes into a match. The manager's saved selection is used (with
+ * unavailable players replaced); computer clubs pick their strongest formation and set their
+ * mentality by how strong they are compared with the opposition.
+ */
+export function matchTactics(state: GameState, clubId: Id, opponentId: Id, home: boolean, squads = squadIndex(state)): Tactics {
+  const squad = squads.get(clubId) ?? [];
+  if (clubId === state.manager.clubId) {
+    const saved = state.manager.tactics ?? autoTactics(squad, state.date);
+    return readyTactics(saved, squad, state.date);
+  }
+  const tactics = autoTactics(squad, state.date);
+  const opponent = autoTactics(squads.get(opponentId) ?? [], state.date);
+  const strength = (t: Tactics, players: readonly Player[]) => bestLineup(players.filter((p) => t.lineup.includes(p.id)), t.formation).strength;
+  const ratio = strength(tactics, squad) / Math.max(1, strength(opponent, squads.get(opponentId) ?? []));
+  const edge = ratio + (home ? 0.03 : -0.03);
+  tactics.instructions.mentality = edge > 1.08 ? 'positive' : edge < 0.9 ? 'cautious' : 'balanced';
+  return tactics;
+}
+
+/** Starts a fixture in the match engine. */
+export function startMatch(state: GameState, fixture: Fixture, commentary: boolean): LiveMatch {
+  const squads = squadIndex(state);
+  return kickOff(matchContext(state), {
+    fixtureId: fixture.id,
+    date: state.date,
+    home: { clubId: fixture.homeId, tactics: matchTactics(state, fixture.homeId, fixture.awayId, true, squads), human: fixture.homeId === state.manager.clubId },
+    away: { clubId: fixture.awayId, tactics: matchTactics(state, fixture.awayId, fixture.homeId, false, squads), human: fixture.awayId === state.manager.clubId },
+    rng: state.rng,
+    commentary,
+  });
+}
+
+function statsEntry(state: GameState, player: Player, fixture: Fixture, clubId: Id): PlayerSeasonStats | null {
+  const season = state.seasons[fixture.seasonId];
+  if (!season) return null;
+  let entry = player.stats.find((s) => s.season === season.label && s.competitionId === fixture.competitionId && s.clubId === clubId);
+  if (!entry) {
+    entry = {
+      season: season.label, competitionId: fixture.competitionId, clubId, apps: 0, goals: 0, assists: 0, ratingTotal: 0, yellow: 0, red: 0,
+    };
+    player.stats.push(entry);
+  }
+  return entry;
+}
+
+/** Suspensions: a red card is a one-match ban, as is every fifth booking of the season. */
+const YELLOWS_FOR_BAN = 5;
+
+/** Writes a finished match into the game: result, player stats, fitness, injuries, bans and news. */
+export function completeMatch(state: GameState, fixture: Fixture, live: LiveMatch): MatchResult {
+  const human = involvesHuman(state, fixture);
+  const result: MatchResult = {
+    homeGoals: live.score[0],
+    awayGoals: live.score[1],
+    goals: live.goals,
+    stats: { home: live.home.stats, away: live.away.stats },
+  };
+  if (human) {
+    result.lineups = {
+      home: live.home.tactics.lineup.filter((id): id is Id => id !== null),
+      away: live.away.tactics.lineup.filter((id): id is Id => id !== null),
+    };
+    result.ratings = Object.fromEntries(Object.values(live.players).map((lp) => [lp.id, lp.rating]));
+  }
+  fixture.result = result;
+
+  // Bans served: anyone suspended at either club sat this one out.
+  for (const player of Object.values(state.world.players)) {
+    if (player.suspension > 0 && (player.clubId === fixture.homeId || player.clubId === fixture.awayId)) player.suspension--;
+  }
+
+  for (const lp of Object.values(live.players)) {
+    const player = state.world.players[lp.id];
+    if (!player) continue;
+    const clubId = lp.side === 'home' ? fixture.homeId : fixture.awayId;
+    const entry = statsEntry(state, player, fixture, clubId);
+    if (entry) {
+      entry.apps++;
+      entry.goals += lp.goals;
+      entry.assists += lp.assists;
+      entry.ratingTotal += lp.rating;
+      if (lp.yellow > 0 && !lp.sentOff) entry.yellow++;
+      if (lp.sentOff) entry.red++;
+      if (lp.sentOff) player.suspension += 1;
+      else if (lp.yellow > 0 && entry.yellow % YELLOWS_FOR_BAN === 0) player.suspension += 1;
+    }
+    player.condition = Math.max(30, Math.round(lp.energy * 100));
+    const injury = live.injuries[lp.id];
+    if (injury) player.injury = { name: injury.name, until: injuryEnd(state.date, injury.days) };
+  }
+
+  if (human) reportHumanResult(state, fixture, result, live);
+  afterResults(state, [fixture.seasonId]);
+  return result;
+}
+
+function reportHumanResult(state: GameState, fixture: Fixture, result: MatchResult, live: LiveMatch): void {
   const home = getClub(state, fixture.homeId);
   const away = getClub(state, fixture.awayId);
   const competition = getCompetition(state, fixture.competitionId);
@@ -185,8 +255,24 @@ function reportHumanResult(state: GameState, fixture: Fixture, result: MatchResu
     const helper = assist ? ` (assist ${playerLink(assist)})` : '';
     return `${g.minute}' ${who}${helper} — ${club.shortName}`;
   });
-  const ours = fixture.homeId === state.manager.clubId ? result.homeGoals - result.awayGoals : result.awayGoals - result.homeGoals;
+  const mySide = fixture.homeId === state.manager.clubId ? 'home' : 'away';
+  const ours = mySide === 'home' ? result.homeGoals - result.awayGoals : result.awayGoals - result.homeGoals;
   const verdict = ours > 0 ? 'A win for your side.' : ours === 0 ? 'The points are shared.' : 'A defeat for your side.';
+  const s = result.stats;
+  const statsLine = s
+    ? `Possession ${s.home.possession}%–${s.away.possession}% · Shots ${s.home.shots}–${s.away.shots} · On target ${s.home.onTarget}–${s.away.onTarget} · Corners ${s.home.corners}–${s.away.corners}`
+    : '';
+  const mine = Object.values(live.players).filter((lp) => lp.side === mySide);
+  const best = [...mine].sort((a, b) => b.rating - a.rating)[0];
+  const bestPlayer = best ? state.world.players[best.id] : undefined;
+  const news: string[] = [];
+  for (const lp of mine) {
+    const player = state.world.players[lp.id];
+    if (!player) continue;
+    const injury = live.injuries[lp.id];
+    if (injury) news.push(`${playerLink(player)} picked up an injury (${injury.name.toLowerCase()}) and is out for about ${Math.max(1, Math.round(injury.days / 7))} week(s).`);
+    if (player.suspension > 0) news.push(`${playerLink(player)} is suspended for the next match.`);
+  }
   addNews(state, {
     category: 'result',
     title: `${home.shortName} ${result.homeGoals}-${result.awayGoals} ${away.shortName}`,
@@ -194,57 +280,57 @@ function reportHumanResult(state: GameState, fixture: Fixture, result: MatchResu
       `${clubLink(home)} ${result.homeGoals}-${result.awayGoals} ${clubLink(away)}`,
       `${competitionLink(competition)}, round ${fixture.round}. ${verdict}`,
       lines.length > 0 ? `Goals:\n${lines.join('\n')}` : 'No goals.',
-    ].join('\n\n'),
+      statsLine,
+      bestPlayer && best ? `Your best player: ${playerLink(bestPlayer)} (${best.rating.toFixed(1)}).` : '',
+      ...news,
+    ].filter(Boolean).join('\n\n'),
   });
 }
 
-/** Plays every unplayed fixture scheduled for `date`. */
-export function playFixtures(state: GameState, date: ISODate): Fixture[] {
-  const ids = state.fixturesByDate[date];
-  if (!ids || ids.length === 0) return [];
-  const squads = squadIndex(state);
-  const lineups = new Map<Id, Lineup>();
-  const lineupFor = (clubId: Id): Lineup => {
-    let lineup = lineups.get(clubId);
-    if (!lineup) lineups.set(clubId, (lineup = pickBestLineup(squads.get(clubId) ?? [])));
-    return lineup;
-  };
-
-  const played: Fixture[] = [];
-  const touched = new Set<Id>();
-  for (const id of ids) {
-    const fixture = state.fixtures[id];
-    if (!fixture || fixture.result) continue;
-    const competition = getCompetition(state, fixture.competitionId);
-    const home = lineupFor(fixture.homeId);
-    const away = lineupFor(fixture.awayId);
-    let result: MatchResult;
-    if (competition.mode === 'playable') {
-      result = simulateMatch(
-        state.rng,
-        { clubId: fixture.homeId, lineup: home },
-        { clubId: fixture.awayId, lineup: away },
-        state.world.players,
-      );
-      recordStats(state, fixture, result);
-      // Line-ups are only kept for the human's matches, to keep saves small.
-      if (!involvesHuman(state, fixture)) delete result.lineups;
-    } else {
-      const [homeGoals, awayGoals] = simulateScore(state.rng, home.strength, away.strength);
-      result = { homeGoals, awayGoals, goals: [] };
-    }
-    fixture.result = result;
-    played.push(fixture);
-    touched.add(fixture.seasonId);
-    if (involvesHuman(state, fixture)) reportHumanResult(state, fixture, result);
-  }
-
-  for (const seasonId of touched) {
+/** Marks seasons as started and finishes any whose last fixture has been played. */
+function afterResults(state: GameState, seasonIds: Iterable<Id>): void {
+  for (const seasonId of new Set(seasonIds)) {
     const season = state.seasons[seasonId];
-    if (!season) continue;
+    if (!season || season.status === 'finished') continue;
     if (season.status === 'scheduled') season.status = 'inProgress';
     if (seasonFixtures(state, season).every((f) => f.result !== null)) finishSeason(state, season);
   }
+}
+
+/**
+ * Plays every unplayed fixture scheduled for `date`, except `exceptId` (the manager's match
+ * when it is being watched live). Playable leagues use the full match engine; shadow leagues
+ * get a result from team strength alone.
+ */
+export function playFixtures(state: GameState, date: ISODate, exceptId?: Id): Fixture[] {
+  const ids = state.fixturesByDate[date];
+  if (!ids || ids.length === 0) return [];
+  const squads = squadIndex(state);
+  const strength = new Map<Id, number>();
+  const strengthOf = (clubId: Id): number => {
+    let value = strength.get(clubId);
+    if (value === undefined) strength.set(clubId, (value = pickBestLineup(squads.get(clubId) ?? []).strength));
+    return value;
+  };
+
+  const played: Fixture[] = [];
+  const touched: Id[] = [];
+  for (const id of ids) {
+    const fixture = state.fixtures[id];
+    if (!fixture || fixture.result || fixture.id === exceptId) continue;
+    const competition = getCompetition(state, fixture.competitionId);
+    if (competition.mode === 'playable') {
+      const live = startMatch(state, fixture, false);
+      playToEnd(matchContext(state), live);
+      completeMatch(state, fixture, live);
+    } else {
+      const [homeGoals, awayGoals] = simulateScore(state.rng, strengthOf(fixture.homeId), strengthOf(fixture.awayId));
+      fixture.result = { homeGoals, awayGoals, goals: [] };
+      touched.push(fixture.seasonId);
+    }
+    played.push(fixture);
+  }
+  afterResults(state, touched);
   return played;
 }
 
@@ -383,7 +469,19 @@ function rolloverNation(state: GameState, nationId: Id): void {
 }
 
 /** Once-a-day jobs that don't depend on matches. */
+/** Players recover fitness every day: quicker for the naturally fit, slower for older players. */
+function recoverFitness(state: GameState): void {
+  for (const player of Object.values(state.world.players)) {
+    if (player.injury && player.injury.until <= state.date) player.injury = null;
+    if (player.condition >= 100) continue;
+    const age = yearOf(state.date) - yearOf(player.dateOfBirth);
+    const rate = 4 + (player.attributes.fitness / 20) * 6 - Math.max(0, age - 30) * 0.4;
+    player.condition = Math.min(100, Math.round(player.condition + rate));
+  }
+}
+
 function dailyTasks(state: GameState): void {
+  recoverFitness(state);
   const md = monthDay(state.date);
   const nations = new Set<Id>();
   for (const competition of Object.values(state.world.competitions)) {

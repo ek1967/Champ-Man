@@ -6,13 +6,33 @@ export function serializeGame(state: GameState): string {
   return JSON.stringify(state);
 }
 
+/** Brings older saves up to date. */
+function migrate(state: GameState): GameState {
+  if (state.version === 1) {
+    // v2: fitness, injuries, suspensions, richer stats and the manager's tactics.
+    for (const player of Object.values(state.world.players)) {
+      player.condition ??= 100;
+      player.injury ??= null;
+      player.suspension ??= 0;
+      for (const s of player.stats) {
+        s.ratingTotal ??= s.apps * 6.5;
+        s.yellow ??= 0;
+        s.red ??= 0;
+      }
+    }
+    state.manager.tactics ??= null;
+    state.version = 2;
+  }
+  return state;
+}
+
 export function deserializeGame(json: string): GameState {
   const state = JSON.parse(json) as GameState;
   if (typeof state !== 'object' || state === null || !state.world || !state.rng) {
     throw new Error('Not a Manager of Champions save file');
   }
-  if (state.version !== SAVE_VERSION) {
-    throw new Error(`Save version ${state.version} is not supported (expected ${SAVE_VERSION})`);
+  if (typeof state.version !== 'number' || state.version > SAVE_VERSION) {
+    throw new Error(`Save version ${state.version} is not supported (this game reads up to ${SAVE_VERSION})`);
   }
-  return state;
+  return migrate(state);
 }

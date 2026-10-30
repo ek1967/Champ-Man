@@ -95,6 +95,9 @@ export function worldFromPack(pack: WorldPack, seed: string, today: ISODate): Wo
       value: estimateValue(source.ca, pa, age),
       squadNumber: source.squadNumber,
       stats: [],
+      condition: 100,
+      injury: null,
+      suspension: 0,
     };
     if (source.knownAs) player.knownAs = source.knownAs;
     world.players[player.id] = player;

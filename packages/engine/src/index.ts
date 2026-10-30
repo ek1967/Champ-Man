@@ -16,3 +16,6 @@ export * from './standings.ts';
 export * from './types.ts';
 export * from './worldgen.ts';
 export * from './pack.ts';
+export * from './commentary.ts';
+export * from './match.ts';
+export * from './tactics.ts';

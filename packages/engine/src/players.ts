@@ -142,6 +142,9 @@ export function generatePlayer(rng: Rng, spec: NewPlayerSpec): Player {
     value: estimateValue(ca, pa, age),
     squadNumber: null,
     stats: [],
+    condition: 100,
+    injury: null,
+    suspension: 0,
   };
   if (knownAs) player.knownAs = knownAs;
   return player;

@@ -11,7 +11,7 @@
     "build": "npm run build -w @moc/web",
     "typecheck": "tsc -p packages/engine && tsc -p packages/harness && tsc -p packages/pipeline && tsc -p apps/web",
     "test": "vitest run",
-    "calibrate": "node packages/harness/src/calibrate.ts",
+    "calibrate": "node packages/harness/src/calibrate.ts --seasons 25",
     "check": "npm run typecheck && npm test && npm run calibrate -- --check",
     "data:england": "node packages/pipeline/src/build-england.ts"
   },

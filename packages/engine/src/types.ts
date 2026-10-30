@@ -2,6 +2,7 @@ import type { Attributes, HiddenAttributes, Position } from './attributes.ts';
 import type { ISODate } from './dates.ts';
 import type { LeagueRules } from './rules.ts';
 import type { Rng } from './rng.ts';
+import type { Tactics } from './tactics.ts';
 
 export type Id = string;
 
@@ -41,6 +42,16 @@ export interface PlayerSeasonStats {
   apps: number;
   goals: number;
   assists: number;
+  /** Sum of match ratings; average = ratingTotal / apps. */
+  ratingTotal: number;
+  yellow: number;
+  red: number;
+}
+
+export interface Injury {
+  name: string;
+  /** First day the player is fit again. */
+  until: ISODate;
 }
 
 export interface Player {
@@ -66,6 +77,11 @@ export interface Player {
   value: number;
   squadNumber: number | null;
   stats: PlayerSeasonStats[];
+  /** Match fitness, 0–100. Drops after matches and recovers day by day. */
+  condition: number;
+  injury: Injury | null;
+  /** Matches still to sit out through suspension. */
+  suspension: number;
 }
 
 export interface Competition {
@@ -98,12 +114,26 @@ export interface GoalEvent {
   assistId: Id | null;
 }
 
+export interface TeamMatchStats {
+  /** Share of possession, 0–100. */
+  possession: number;
+  shots: number;
+  onTarget: number;
+  corners: number;
+  fouls: number;
+  yellow: number;
+  red: number;
+}
+
 export interface MatchResult {
   homeGoals: number;
   awayGoals: number;
   goals: GoalEvent[];
-  /** Starting XIs, kept only for playable competitions. */
+  /** Starting XIs, kept only for the human's matches. */
   lineups?: { home: Id[]; away: Id[] };
+  stats?: { home: TeamMatchStats; away: TeamMatchStats };
+  /** Match ratings (1–10) of everyone who played, kept only for the human's matches. */
+  ratings?: Record<Id, number>;
 }
 
 export interface Fixture {
@@ -155,6 +185,8 @@ export interface NewsItem {
 export interface Manager {
   name: string;
   clubId: Id | null;
+  /** The manager's team selection and instructions; created when they first need one. */
+  tactics: Tactics | null;
 }
 
 export interface GameState {

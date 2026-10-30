@@ -1,11 +1,23 @@
-# Champ-Man — Project Plan
+# Manager of Champions — Project Plan
 
 A fast, text-first football management game in the spirit of the classic
 Championship Manager era (CM2 → CM 01/02), set in the **2026-27 season** with
-real players across multiple leagues. Runs in the browser and as a downloadable
-desktop app.
+real players across 11 countries. Web first; downloadable desktop app later.
 
 > Status: **planning only**. Nothing here is built yet.
+
+---
+
+## 0. Decisions so far
+
+| Topic | Decision |
+|---|---|
+| Name | **Manager of Champions** (run a trademark search before going paid, see §5.3) |
+| Distribution path | **Personal → free public release → paid** if it succeeds |
+| Data budget | **No paid data for now.** Free and open sources only (§6.1) |
+| Countries | England, Scotland, Spain, Italy, Germany, Netherlands, Portugal, Czech Republic, Argentina, Brazil, USA |
+| Platform | **Web first** (installable PWA); desktop wrapper later |
+| Start date | **15 June 2026** |
 
 ---
 
@@ -87,14 +99,33 @@ screens, artwork, name, data or formulas.
 
 ### v1.0 ("the classic experience")
 Adds, on top of the MVP:
-- **Leagues (top two tiers where noted):** England (PL → National League),
-  Spain (LaLiga, LaLiga 2), Italy (Serie A, B), Germany (Bundesliga, 2.
-  Bundesliga), France (Ligue 1, Ligue 2), Netherlands, Portugal, Scotland,
-  Belgium, Turkey. Players choose which nations to "load" at game start.
-- Domestic cups (FA Cup, EFL Cup, Copa del Rey, DFB-Pokal, Coppa Italia,
-  Coupe de France, and others).
-- UEFA Champions League / Europa League / Conference League in the current
-  league-phase format (36 teams; knockout play-off for 9th–24th).
+- **Leagues.** Players choose which nations to "load" at game start.
+  *Verify every format against the 2026-27 (or 2026) regulations when encoding it.*
+
+  | Country | Leagues | Season calendar | Format notes |
+  |---|---|---|---|
+  | England | Premier League, Championship, League One, League Two | Aug–May | Play-offs; National League later |
+  | Scotland | Premiership, Championship | Aug–May | Premiership splits into top/bottom six; relegation play-off |
+  | Spain | LaLiga, LaLiga 2 | Aug–May | Head-to-head tie-breaks; LaLiga 2 play-offs |
+  | Italy | Serie A, Serie B | Aug–May | Head-to-head tie-breaks; Serie B play-offs |
+  | Germany | Bundesliga, 2. Bundesliga | Aug–May | Relegation play-off between tiers |
+  | Netherlands | Eredivisie, Eerste Divisie | Aug–May | European play-offs; promotion/relegation play-offs |
+  | Portugal | Liga Portugal, Liga Portugal 2 | Aug–May | Promotion/relegation play-off |
+  | Czech Republic | Czech First League | Jul–May | Splits into groups after the regular season |
+  | Argentina | Liga Profesional | **Calendar year** | Apertura + Clausura (zones + knockout play-offs); relegation by points average over seasons |
+  | Brazil | Série A, Série B | **Calendar year** | Straight double round-robin; 4 up / 4 down |
+  | USA | MLS | **Calendar year** (MLS has announced a move to an Aug–May calendar from 2027-28, verify) | Two conferences, MLS Cup play-offs, no promotion/relegation, salary cap + Designated Players (simplified) |
+
+- **Domestic cups:** FA Cup, EFL Cup, Scottish Cup, Scottish League Cup,
+  Copa del Rey, Coppa Italia, DFB-Pokal, KNVB Cup, Taça de Portugal,
+  Czech Cup, Copa Argentina, Copa do Brasil, US Open Cup.
+  Brazil's state championships (Paulistão and others) are skipped in v1.
+- **Continental:** UEFA Champions League / Europa League / Conference League
+  (current league-phase format), CONMEBOL Libertadores and Sudamericana,
+  CONCACAF Champions Cup.
+- **Players from countries not in the list** (e.g. France, Belgium, Saudi
+  Arabia) are left out of v1. A "background pool" of transferable players from
+  other countries is a later option.
 - Full transfer market with AI clubs buying and selling, loans, free transfers
   and Bosmans, transfer windows, and work-permit / non-EU rules (simplified).
 - Scouting, attribute masking (unscouted players show ranges), and a player
@@ -106,8 +137,7 @@ Adds, on top of the MVP:
 - "Go on holiday" until a given date.
 
 ### Later / optional
-- Other calendars (MLS, Brazil, Argentina, Japan): calendar-year seasons need a
-  scheduler that handles them.
+- More countries (France, Belgium, Turkey, Mexico, Japan, and others).
 - A mod/editor tool for the community to maintain data.
 - Online leagues or hot-seat multiplayer (the classic games supported multiple
   human managers on one PC; hot-seat is cheap to add).
@@ -116,12 +146,28 @@ Adds, on top of the MVP:
 
 ## 4. Season & start point
 
-The current date is late October 2026, so the 2026-27 season is already under way.
+**The game starts on 15 June 2026.** Because the chosen countries run on two
+different calendars, that date means different things in different places:
 
-**Recommended:** start on **1 July 2026** with squads as they stood **after the
-summer window closed** (1 Sep 2026). You get the real post-window squads and a
-full season to play. This is a deliberate fiction, the same one the classic data
-updates used.
+| Countries | Where they are on 15 June 2026 | How the game handles it |
+|---|---|---|
+| European leagues + Czech Republic | Off-season; the 2026-27 season starts in July/August | Pre-season. You get the whole summer window and a full season |
+| Argentina | Between the Apertura and the Clausura | Clausura 2026 starts fresh, which fits neatly. Apertura results are loaded only for the relegation averages |
+| Brazil, MLS | Mid-season, paused for the World Cup | Load a **standings snapshot** at the World Cup break (points, played, goal difference) and generate the remaining fixtures |
+
+**The 2026 World Cup (11 June – 19 July) is in progress on day one.**
+Recommendation: run it in the background using the real results (entered as
+data). Players at the tournament return late, tired, and with reputation or
+morale changes. Simulating it live is a later option.
+
+**Squads:** recommendation is to use the *current* real squads (after the 2026
+summer window), even though the game date is 15 June. The world then matches the
+real 2026-27 season, and the summer window is yours to shape. The alternative,
+true 15 June squads, is more authentic but much harder to source from free data.
+
+**What a "season" means:** there is no single global season. Each competition
+has its own cycle. The game calendar simply runs continuously, and "end of
+season" events (promotion, awards, contracts expiring) fire per competition.
 
 **Optional later mode:** "Start today", which loads real results and tables up to
 a cut-off date and takes over mid-season.
@@ -165,12 +211,24 @@ Sources: [Lewis Silkin on image rights](https://sportsinsights.lewissilkin.com/p
 4. **Plain-text competition names** with an alias layer, so names can be
    swapped without touching saves.
 
-### 5.3 Distribution tiers (decide early, see open questions)
-| Tier | Real names in shipped build? | Risk |
-|---|---|---|
-| Personal/private use | Yes, via local data pack | Low |
-| Free public release | Engine + fictional world; data pack separate or community-made | Medium |
-| Commercial release | Needs licensing (FIFPRO, leagues) or fictional data | High without licences |
+### 5.3 Distribution path: personal → free → paid
+| Stage | Real names in shipped build? | Risk | What must be true |
+|---|---|---|---|
+| 1. Personal | Yes, via local data pack | Low | Nothing extra |
+| 2. Free public release | Engine + fictional world ship publicly; real-name pack separate (community-maintained, editable) | Medium | Take advice on the data pack. No crests, kits or photos |
+| 3. Paid release | Fictional names by default, with an in-game name editor (the FM approach), or licences (FIFPRO, leagues) | High without licences | Legal review; trademark search; licences if real names ship |
+
+**Keep it "commercial-clean" from day one**, so moving to stage 3 doesn't mean
+rebuilding everything:
+- Use only sources whose terms allow commercial reuse in anything that ends up
+  in a shipped pack (Wikidata is CC0). Sources with non-commercial or
+  no-redistribution terms may be used to *check* our data, never copied into it.
+- Record the **source of every field** in the pipeline, so a clean pack can be
+  rebuilt automatically if a source becomes unusable.
+- Player ratings are our own work (§6.2), so they are ours to sell.
+- **Name check:** "Manager of Champions" is fine for personal use. Before
+  selling, have it checked against existing trademarks. "Championship Manager"
+  and UEFA's "Champions League" are both protected marks in the same space.
 
 ---
 
@@ -179,14 +237,23 @@ Sources: [Lewis Silkin on image rights](https://sportsinsights.lewissilkin.com/p
 Football Manager's real advantage is its network of human researchers. We
 replace that with **algorithmic ratings plus a focused human curation pass**.
 
-### 6.1 Sources (verify current terms and 2026-27 coverage before committing)
-| Need | Candidate sources | Notes |
-|---|---|---|
-| Identity (name, DOB, nationality, position, club) | **Wikidata** (CC0) | Licence-clean backbone. Coverage is good for top leagues and patchier lower down. |
-| Squads, fixtures, results, basic stats | **API-Football**, **Sportmonks**, **football-data.org** | Paid tiers. Free tiers are rate-limited (e.g. API-Football 100 req/day). Check that redistribution and derived-data clauses allow this use. |
-| Team strength | **ClubElo** (free CSV API) | Calibrates league and club strength. |
-| Market values / transfer history | transfermarkt-datasets (GitHub, scraped) | **Avoid for anything distributed.** Transfermarkt's terms are restrictive. |
-| Competition rules | Official league / UEFA regulations | Encoded by hand as data (§7.4). |
+### 6.1 Sources: free only (verify current terms and 2026-27 coverage before relying on any)
+| Need | Free source | Role | Notes |
+|---|---|---|---|
+| Identity (name, DOB, nationality, position, current club) | **Wikidata** (CC0) | **Backbone**, safe to ship | Good for top leagues. Patchier for Czech, Argentine and lower-tier squads |
+| Squads, fixtures, results | **football-data.org free tier** | Cross-check | Free tier covers a fixed set of top competitions (including several of ours and Brazil's Série A) but not all. Check its terms on commercial use |
+| Squads, fixtures, results | **API-Football free tier** (100 requests/day) | Cross-check | The free tier may not include the current season; verify before relying on it |
+| Fixture lists | **openfootball** (public domain) | Fixtures | Coverage varies by league |
+| Team strength (Europe) | **ClubElo** | Calibration only | Not shipped. Doesn't cover Argentina, Brazil or MLS |
+| Team strength (Americas) | Hand-set league strength + last season's table | Calibration | Small, one-off manual job |
+| Competition rules | Official league / UEFA / CONMEBOL / MLS regulations | Hand-encoded | §7.4 |
+| Gaps | **Manual entry + an in-game editor** | Fill-in | Expect manual work for missing squad members, especially in Czech, Argentina and lower tiers |
+| Market values / transfer history | transfermarkt-datasets (scraped) | **Don't use** | Transfermarkt's terms are restrictive |
+
+**What "free only" costs us:** more manual squad checking and slower updates.
+Paying for a data API remains an option later, if the free sources prove too
+thin. The pipeline puts each source behind an adapter, so adding one later is
+easy.
 
 Sources: [football-data.org overview](https://getbruin.com/docs/ingestr/supported-sources/football-data-org.html),
 [API-Football notes](https://getbruin.com/docs/ingestr/soccer-sources/api-football.html),
@@ -195,7 +262,8 @@ Sources: [football-data.org overview](https://getbruin.com/docs/ingestr/supporte
 
 ### 6.2 Rating generation (the hardest and most important part)
 1. **Estimate Current Ability (CA, 1–200)** for each player from:
-   - Club strength (Elo) × league strength coefficient
+   - Club strength (Elo in Europe; league strength + table position in the Americas)
+     × league strength coefficient
    - Share of minutes played last season and this season
    - International caps and level of national team
    - Age (a teenager starting at a top club scores higher than an old squad player)
@@ -294,16 +362,22 @@ thousands of seasons):
 
 ### 7.4 Competitions as data
 Every competition is defined in a rules file, not in code:
+- Calendar: its own season cycle (Aug–May, Jul–May or calendar year) and
+  window dates. There is no global season
 - Format: league / cup / group + knockout / league phase (Swiss-style) +
-  knockout
+  knockout / split-season (Apertura + Clausura) / conference + play-offs (MLS)
+- Relegation methods: by table, by play-off, or by points average over
+  several seasons (Argentina)
 - Teams, rounds, legs, extra time / penalties, replays (e.g. FA Cup rules for
   2026-27)
 - Tie-breakers (PL: goal difference first; LaLiga/Serie A: head-to-head first)
 - Promotion/relegation, play-offs, splits (Scotland), and qualification slots
   into Europe
 - Squad rules: registration limits, homegrown quotas, UEFA A/B lists, non-EU
-  limits
-- Transfer window dates per nation
+  limits, foreign-player limits (Brazil, Argentina), MLS salary cap and
+  Designated Player slots (simplified; no draft or allocation money)
+- Transfer window dates per nation (European and South American windows
+  differ, and players can move between them)
 
 *Verify each league's 2026-27 regulations when encoding them. Formats change
 (e.g. Belgium, the Scottish split, UEFA access list).*
@@ -446,8 +520,13 @@ low-priority columns. The game must be fully playable on a phone.
 
 ## 10. Roadmap
 
-Sizes are relative (S ≈ 1–2 weeks, M ≈ 3–4 weeks, L ≈ 6–8 weeks for one
-focused developer). Each phase ends with something playable or measurable.
+**How to read the sizes:** S, M and L are effort estimates for building each
+phase. They assume one person writing the code part-time (roughly 10–15 hours a
+week): S ≈ 1–2 weeks, M ≈ 3–4 weeks, L ≈ 6–8 weeks. If Claude writes most of the
+code, the coding gets much faster. The parts that don't speed up are the ones
+that need a human: playtesting, tuning the match engine until it *feels* right,
+checking player ratings, and making design calls. Each phase ends with something
+playable or measurable.
 
 | # | Phase | Size | Exit criteria |
 |---|---|---|---|
@@ -461,16 +540,19 @@ focused developer). Each phase ends with something playable or measurable.
 | — | **🎯 MVP milestone** | — | One full PL season playable end-to-end with real squads |
 | 7 | **Transfers, contracts, finances, board** | L | AI clubs trade sensibly; you can be sacked; budgets matter |
 | 8 | **Development, youth, regens, season rollover** | M | 10-season headless run stays stable (no rating inflation, squads stay full) |
-| 9 | **Data pipeline v1 + curation editor**, all v1 leagues | L | All v1 leagues loaded; top 1,500 players hand-checked |
+| 9 | **Data pipeline v1 + curation editor**, European leagues | L | All European v1 leagues loaded; top 1,500 players hand-checked |
 | 10 | **Cups + UEFA competitions + promotion/relegation across tiers** | M | Correct formats; European qualification flows from league finishes |
-| 11 | **Scouting, attribute masking, player search** | M | The wonderkid hunt works; masked ranges narrow with scouting |
-| 12 | **International management** | S–M | National team selection and international breaks |
-| 13 | **Polish:** performance budgets, keyboard shortcuts, mobile layout, themes, holiday mode | M | All §7.6 budgets met on a mid-range laptop and phone |
-| 14 | **Packaging:** PWA + Tauri desktop builds, save import/export | S | Installable on web, Windows, macOS, Linux |
-| 15 | **January 2027 data update** (process test) | S | New pack generated and diffed; old saves unaffected |
+| 11 | **Americas:** calendar-year seasons, Apertura/Clausura, relegation averages, MLS conferences and play-offs, mid-season standings snapshot, Libertadores / Sudamericana / CONCACAF Champions Cup, Argentina/Brazil/MLS data | L | Brazil, Argentina and MLS seasons run correctly alongside Europe; players move between continents |
+| 12 | **World Cup 2026 background results + scouting, attribute masking, player search** | M | World Cup players return late; the wonderkid hunt works; masked ranges narrow with scouting |
+| 13 | **International management** | S–M | National team selection and international breaks |
+| 14 | **Polish:** performance budgets, keyboard shortcuts, mobile layout, themes, holiday mode | M | All §7.6 budgets met on a mid-range laptop and phone |
+| 15 | **Release as a web app (PWA)**, save import/export | S | Installable from the browser and works offline |
+| 16 | **January 2027 data update** (process test) | S | New pack generated and diffed; old saves unaffected |
+| 17 | **Desktop build (Tauri)**, if wanted | S | Installable on Windows, macOS and Linux |
 
-Rough total: about 9–12 months part-time for one developer, shorter with help
-or AI-assisted coding. The MVP (phases 0–6) is about 3–4 months part-time.
+Rough total: about 10–14 months part-time for one person coding alone. The MVP
+(phases 0–6) is about 3–4 months part-time. Both shrink considerably if Claude
+does most of the coding.
 
 ---
 
@@ -510,6 +592,8 @@ Any of these can be reconsidered after v1.0, but only if it passes pillar #5.
 | Match engine feels random or exploitable | Core fun | Calibration harness, exploit tests, tune before adding features |
 | Scope creep toward modern FM | Loses speed and charm | Pillars + "not doing" list; performance budgets in CI |
 | Data provider terms or costs change | Pipeline breaks | Wikidata backbone; providers behind adapters; cache raw snapshots |
+| Free data has gaps (Czech, Argentina, lower tiers) | Incomplete squads | In-game editor + manual fill-in; paying for data stays an option |
+| Two calendars (Europe vs Americas) | Complex scheduling bugs | Per-competition seasons from day one (§4); harness runs multi-year worlds |
 | Data goes stale mid-season | Less real | Repeatable pipeline; January update process (Phase 15) |
 | Browser storage limits / data loss | Lost saves | OPFS + export/import saves; desktop build writes to disk |
 
@@ -517,13 +601,13 @@ Any of these can be reconsidered after v1.0, but only if it passes pillar #5.
 
 ## 14. Open questions (need your input)
 
-1. **Name** for the game (it can't be "Championship Manager").
-2. **Distribution:** personal use only, free public release, or commercial?
-   This decides how real data is handled.
-3. **Leagues for v1:** is the list in §3 right? Any must-haves (e.g. MLS,
-   Brazil) or cuts?
-4. **Start point:** 1 July 2026 with post-window squads (recommended), or
-   "start today" mid-season?
-5. **Platform priority:** web first and desktop second (recommended), or the reverse?
-6. **Budget for data APIs:** willing to pay for a provider tier (~€20–50/month)
-   during the pipeline build?
+The earlier questions are answered in §0. These remain:
+
+1. **Squads on 15 June:** use the current real squads, after the summer window
+   (recommended), or the squads as they actually stood on 15 June 2026?
+2. **World Cup 2026:** run it in the background with real results
+   (recommended), or simulate it live?
+3. **Who writes the code:** you, Claude, or both? This changes how long the
+   roadmap takes (§10).
+4. **League depth:** is the tier list in §3 right? For example, do you want
+   England down to League Two and Brazil's Série B?

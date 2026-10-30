@@ -130,6 +130,8 @@ export interface CompetitionSeason {
   final: {
     order: Id[];
     championId: Id;
+    /** Winner of the promotion play-off, if the league has one. */
+    playoffWinnerId?: Id;
   } | null;
 }
 

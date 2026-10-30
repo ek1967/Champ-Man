@@ -39,3 +39,27 @@ that drifts out of range fails the build.
 *Phase 1.* A made-up country with a 20-club playable Premier Division and a 20-club shadow
 First Division (PLAN §3.1). Clubs and players are generated from a seed. Players have real
 nationalities and name pools so the same generator can create youth intakes later.
+
+## 006 — Real Premier League data from FPL, kept out of git
+*Phase 6, brought forward.* This cloud environment blocks Wikidata and Wikipedia, so squads
+come from Fantasy Premier League data (via the `vaastav/Fantasy-Premier-League` GitHub mirror)
+and fixtures from openfootball (public domain). FPL data is the Premier League's and its terms
+allow personal use only, so:
+
+- raw downloads (`data/raw`), the built pack (`data/packs`, `apps/web/public/packs`) and the
+  review report (`data/reports`) are git-ignored, and are rebuilt with `npm run data:england`;
+- only the pipeline code, club details and our own rating model are committed;
+- before any public release, names and ages move to Wikidata and FPL is used only to check.
+
+Ratings: each player is ranked within their role on FPL price, share of minutes (weighted by
+club strength) and bonus points per 90 minutes, then given CA = 88 + 92 × score plus a small
+position offset. Per-90 stats nudge individual attributes. Hand corrections go in
+`packages/pipeline/src/england/overrides.ts`.
+
+Known gaps: FPL has no left/right for full-backs and wingers (sides are assigned at random),
+no contracts (estimated from age), and no Championship squads, so 21 Championship clubs have
+generated players. The relegated clubs (Burnley, West Ham, Wolves) use last season's FPL squads.
+
+## 007 — Computer picks the best of three formations
+*Phase 6.* Until tactics arrive (Phase 5), each club's XI is the strongest of 4-4-2, 4-3-3 and
+4-2-3-1. A fixed 4-4-2 left squads built around attacking midfielders playing out of position.

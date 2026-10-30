@@ -46,6 +46,11 @@ export interface LeagueRules {
   relegation?: { places: number; to: string };
   /** Top N go up to `to`. */
   promotion?: { places: number; to: string };
+  /**
+   * Positions `from`–`to` play off for one more promotion place (e.g. 3rd–6th in the Championship):
+   * two-legged semi-finals, then a one-off final.
+   */
+  promotionPlayoff?: { from: number; to: number };
   zones: TableZone[];
 }
 

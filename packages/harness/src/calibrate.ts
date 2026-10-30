@@ -3,8 +3,9 @@
  * results look like real football. Run `npm run calibrate` for a report, add `--check` to fail
  * when a metric is out of range (used in CI), and `--seasons N` to change the sample size.
  */
+import { readFileSync } from 'node:fs';
 import {
-  advanceDay, createGame, DEMO_TOP_DIVISION, type GameState, seasonFixtures, seasonTable, seasonsOf, topScorers,
+  advanceDay, createGame, type GameState, seasonFixtures, seasonTable, seasonsOf, topScorers, type WorldPack,
 } from '@moc/engine';
 
 interface Metric {
@@ -27,6 +28,11 @@ function argValue(name: string, fallback: number): number {
 
 const seasonCount = argValue('--seasons', 40);
 const check = process.argv.includes('--check');
+// `--pack data/packs/england-2026-27.json` calibrates against a real-world pack instead of the demo world.
+const packIndex = process.argv.indexOf('--pack');
+const packPath = packIndex >= 0 ? process.argv[packIndex + 1] : undefined;
+const pack = packPath ? (JSON.parse(readFileSync(packPath, 'utf8')) as WorldPack) : undefined;
+const champions = new Map<string, number>();
 
 let matches = 0;
 let goals = 0;
@@ -42,9 +48,10 @@ let favouriteRelegated = 0;
 const started = performance.now();
 
 for (let i = 0; i < seasonCount; i++) {
-  const state: GameState = createGame({ seed: `calibrate-${i}`, managerName: 'Harness' });
+  const state: GameState = createGame({ seed: `calibrate-${i}`, managerName: 'Harness', pack });
   while (state.date < '2027-06-01') advanceDay(state);
-  const season = seasonsOf(state, DEMO_TOP_DIVISION).find((s) => s.label === '2026-27');
+  const top = Object.values(state.world.competitions).find((c) => c.tier === 1 && c.mode === 'playable');
+  const season = top ? seasonsOf(state, top.id).find((s) => s.label === '2026-27') : undefined;
   if (!season) throw new Error('Season missing');
 
   for (const fixture of seasonFixtures(state, season)) {
@@ -60,6 +67,8 @@ for (let i = 0; i < seasonCount; i++) {
   }
 
   const table = seasonTable(state, season);
+  const winner = state.world.clubs[table[0]?.clubId ?? '']?.name ?? '?';
+  champions.set(winner, (champions.get(winner) ?? 0) + 1);
   const points = table.map((row) => row.points);
   championPoints += points[0] ?? 0;
   bottomPoints += points[points.length - 1] ?? 0;
@@ -85,8 +94,13 @@ const metrics: Metric[] = [
   { label: 'Bottom club points', value: bottomPoints / seasonCount, min: 15, max: 35, format: int },
   { label: 'Points spread (1st-20th)', value: pointsSpread / seasonCount, min: 50, max: 78, format: int },
   { label: 'Top scorer goals', value: topScorerGoals / seasonCount, min: 20, max: 34, format: int },
-  { label: 'Biggest club wins title', value: mostLikelyChampionWins / seasonCount, min: 0.25, max: 0.7, format: pct },
-  { label: 'Top-half club relegated', value: favouriteRelegated / seasonCount, min: 0, max: 0.25, format: pct },
+  // Club size only predicts strength in the generated demo world.
+  ...(pack
+    ? []
+    : [
+        { label: 'Biggest club wins title', value: mostLikelyChampionWins / seasonCount, min: 0.25, max: 0.7, format: pct },
+        { label: 'Top-half club relegated', value: favouriteRelegated / seasonCount, min: 0, max: 0.25, format: pct },
+      ]),
 ];
 
 const elapsed = (performance.now() - started) / 1000;
@@ -100,4 +114,5 @@ for (const m of metrics) {
   );
 }
 console.log(`\n${failures === 0 ? 'All metrics in range.' : `${failures} metric(s) out of range.`}`);
+if (pack) console.log(`Champions: ${[...champions.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(', ')}`);
 if (check && failures > 0) process.exit(1);

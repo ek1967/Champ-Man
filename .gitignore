@@ -4,3 +4,9 @@ dist/
 .DS_Store
 .vite/
 coverage/
+
+# Real-world data. FPL-derived data is for personal use only (PLAN §5.3), so it never goes in git.
+data/raw/
+data/packs/
+data/reports/
+apps/web/public/packs/

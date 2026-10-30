@@ -3,6 +3,11 @@ import { positionRating } from './players.ts';
 import type { Id, Player } from './types.ts';
 
 export const FORMATION_442: readonly Position[] = ['GK', 'DR', 'DC', 'DC', 'DL', 'MR', 'MC', 'MC', 'ML', 'ST', 'ST'];
+export const FORMATION_433: readonly Position[] = ['GK', 'DR', 'DC', 'DC', 'DL', 'DM', 'MC', 'MC', 'AMR', 'AML', 'ST'];
+export const FORMATION_4231: readonly Position[] = ['GK', 'DR', 'DC', 'DC', 'DL', 'DM', 'MC', 'AMR', 'AMC', 'AML', 'ST'];
+
+/** Formations the computer chooses between until managers set tactics (Phase 5). */
+export const AUTO_FORMATIONS: ReadonlyArray<readonly Position[]> = [FORMATION_442, FORMATION_433, FORMATION_4231];
 
 export interface Lineup {
   /** Player ids in the same order as the formation's slots. */
@@ -38,4 +43,14 @@ export function pickStartingXI(players: readonly Player[], formation: readonly P
     positions: [...formation],
     strength,
   };
+}
+
+/** The strongest XI across the standard formations, so a squad isn't forced out of position. */
+export function pickBestLineup(players: readonly Player[]): Lineup {
+  let best: Lineup | null = null;
+  for (const formation of AUTO_FORMATIONS) {
+    const lineup = pickStartingXI(players, formation);
+    if (!best || lineup.strength > best.strength) best = lineup;
+  }
+  return best as Lineup;
 }

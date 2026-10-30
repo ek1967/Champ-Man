@@ -204,6 +204,41 @@ select {
 
 /* ---------- Start screen ---------- */
 
+.choices {
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+.choices legend {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.choice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.choice:has(input:checked) {
+  border-color: var(--go);
+  background: var(--panel-alt);
+}
+.choice.is-disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.choice span {
+  display: flex;
+  flex-direction: column;
+}
+.choice small {
+  color: var(--muted);
+}
+
 .start {
   min-height: 100vh;
   display: flex;

@@ -5,9 +5,10 @@ import {
   currentSeasonOf, getClub, getCompetition, seasonFixtures, seasonTable, squadIndex,
 } from './queries.ts';
 import { simulateMatch, simulateScore } from './quicksim.ts';
-import { createRng, forkRng } from './rng.ts';
-import { type Lineup, pickStartingXI } from './selection.ts';
+import { chance, createRng, forkRng } from './rng.ts';
+import { type Lineup, pickBestLineup } from './selection.ts';
 import type { CompetitionSeason, Fixture, GameState, Id, MatchResult, World } from './types.ts';
+import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { createDemoWorld } from './worldgen.ts';
 
 export const SAVE_VERSION = 1;
@@ -16,11 +17,16 @@ export const GAME_START_DATE: ISODate = '2026-06-15';
 export interface NewGameOptions {
   seed: string;
   managerName: string;
+  /** Real-world database; the made-up demo world is used when absent. */
+  pack?: WorldPack;
 }
 
 export function createGame(options: NewGameOptions): GameState {
   const rng = createRng(options.seed);
-  const world = createDemoWorld(forkRng(rng), GAME_START_DATE);
+  const demoRng = forkRng(rng);
+  const world = options.pack
+    ? worldFromPack(options.pack, options.seed, GAME_START_DATE)
+    : createDemoWorld(demoRng, GAME_START_DATE);
   const state: GameState = {
     version: SAVE_VERSION,
     seed: options.seed,
@@ -36,7 +42,14 @@ export function createGame(options: NewGameOptions): GameState {
     counters: { fixture: 0, news: 0, season: 0 },
   };
   for (const competition of Object.values(world.competitions)) {
-    createSeason(state, competition.id, yearOf(GAME_START_DATE), clubsInLeague(world, competition.id));
+    const fixtures = options.pack?.fixtures.filter((f) => f.competitionId === competition.id);
+    createSeason(
+      state,
+      competition.id,
+      yearOf(GAME_START_DATE),
+      clubsInLeague(world, competition.id),
+      fixtures && fixtures.length > 0 ? fixtures : undefined,
+    );
   }
   return state;
 }
@@ -49,39 +62,59 @@ function seasonLabel(calendar: 'aug-may' | 'calendar', startYear: number): strin
   return calendar === 'aug-may' ? `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}` : `${startYear}`;
 }
 
-export function createSeason(state: GameState, competitionId: Id, startYear: number, clubIds: Id[]): CompetitionSeason {
-  const competition = getCompetition(state, competitionId);
-  const { season: calendar, rounds: legs } = competition.rules;
+/** Fixture list for a generated season: a shuffled round-robin spread across the season window. */
+function generateFixtures(state: GameState, competitionId: Id, startYear: number, clubIds: Id[]): PackFixture[] {
+  const { season: calendar, rounds: legs } = getCompetition(state, competitionId).rules;
   const endYear = calendar.calendar === 'aug-may' ? startYear + 1 : startYear;
   const startDate = nextWeekday(onYear(calendar.start, startYear), 6);
   const endDate = previousWeekday(onYear(calendar.end, endYear), 6);
-  const label = seasonLabel(calendar.calendar, startYear);
-  const id = `${competitionId}:${label}`;
-
   const rounds = roundRobin(state.rng, clubIds, legs);
   const blocked = blockedRangesForSeason(calendar.blocked, startYear, calendar.calendar);
   const dates = scheduleRoundDates(startDate, endDate, rounds.length, blocked);
+  return rounds.flatMap((pairings, roundIndex) =>
+    pairings.map(([homeId, awayId]) => ({
+      competitionId, round: roundIndex + 1, date: dates[roundIndex] as ISODate, homeId, awayId,
+    })),
+  );
+}
+
+/**
+ * Sets up a competition's season. Uses the real fixture list when one is supplied
+ * (the first season of a real-world pack), otherwise generates one.
+ */
+export function createSeason(
+  state: GameState,
+  competitionId: Id,
+  startYear: number,
+  clubIds: Id[],
+  realFixtures?: readonly PackFixture[],
+): CompetitionSeason {
+  const competition = getCompetition(state, competitionId);
+  const label = seasonLabel(competition.rules.season.calendar, startYear);
+  const id = `${competitionId}:${label}`;
+  const planned = realFixtures ?? generateFixtures(state, competitionId, startYear, clubIds);
 
   const fixtureIds: Id[] = [];
-  rounds.forEach((pairings, roundIndex) => {
-    const date = dates[roundIndex] as ISODate;
-    for (const [homeId, awayId] of pairings) {
-      state.counters.fixture++;
-      const fixture: Fixture = {
-        id: `f${state.counters.fixture}`,
-        competitionId,
-        seasonId: id,
-        round: roundIndex + 1,
-        date,
-        homeId,
-        awayId,
-        result: null,
-      };
-      state.fixtures[fixture.id] = fixture;
-      (state.fixturesByDate[date] ??= []).push(fixture.id);
-      fixtureIds.push(fixture.id);
-    }
-  });
+  let startDate = planned[0]?.date ?? state.date;
+  let endDate = startDate;
+  for (const plan of planned) {
+    state.counters.fixture++;
+    const fixture: Fixture = {
+      id: `f${state.counters.fixture}`,
+      competitionId,
+      seasonId: id,
+      round: plan.round,
+      date: plan.date,
+      homeId: plan.homeId,
+      awayId: plan.awayId,
+      result: null,
+    };
+    state.fixtures[fixture.id] = fixture;
+    (state.fixturesByDate[fixture.date] ??= []).push(fixture.id);
+    fixtureIds.push(fixture.id);
+    if (fixture.date < startDate) startDate = fixture.date;
+    if (fixture.date > endDate) endDate = fixture.date;
+  }
 
   const season: CompetitionSeason = {
     id, competitionId, label, startDate, endDate, clubIds: [...clubIds], fixtureIds, status: 'scheduled', final: null,
@@ -173,7 +206,7 @@ export function playFixtures(state: GameState, date: ISODate): Fixture[] {
   const lineups = new Map<Id, Lineup>();
   const lineupFor = (clubId: Id): Lineup => {
     let lineup = lineups.get(clubId);
-    if (!lineup) lineups.set(clubId, (lineup = pickStartingXI(squads.get(clubId) ?? [])));
+    if (!lineup) lineups.set(clubId, (lineup = pickBestLineup(squads.get(clubId) ?? [])));
     return lineup;
   };
 
@@ -219,6 +252,48 @@ function listClubs(state: GameState, ids: readonly Id[]): string {
   return ids.map((id) => clubLink(getClub(state, id))).join(', ');
 }
 
+/** Strength of a club's best XI, used for matches outside the full simulation. */
+function clubStrength(state: GameState, clubId: Id): number {
+  return pickBestLineup(squadIndex(state).get(clubId) ?? []).strength;
+}
+
+/** One tie decided by strength alone; level ties go to penalties (a coin weighted slightly by strength). */
+function playTie(state: GameState, homeId: Id, awayId: Id, legs: 1 | 2): Id {
+  const home = clubStrength(state, homeId);
+  const away = clubStrength(state, awayId);
+  let homeGoals = 0;
+  let awayGoals = 0;
+  const [h1, a1] = simulateScore(state.rng, home, away);
+  homeGoals += h1;
+  awayGoals += a1;
+  if (legs === 2) {
+    const [h2, a2] = simulateScore(state.rng, away, home);
+    homeGoals += a2;
+    awayGoals += h2;
+  }
+  if (homeGoals !== awayGoals) return homeGoals > awayGoals ? homeId : awayId;
+  return chance(state.rng, 0.5 + (home - away) / 400) ? homeId : awayId;
+}
+
+/** Semi-finals (best-placed club at home second) then a final, e.g. 3rd v 6th and 4th v 5th. */
+function runPlayoff(state: GameState, order: readonly Id[], from: number, to: number): { winnerId: Id; lines: string[] } {
+  const seeds = order.slice(from - 1, to);
+  const names = (id: Id) => clubLink(getClub(state, id));
+  const finalists: Id[] = [];
+  const lines: string[] = [];
+  for (let i = 0; i < seeds.length / 2; i++) {
+    const higher = seeds[i] as Id;
+    const lower = seeds[seeds.length - 1 - i] as Id;
+    const winner = playTie(state, lower, higher, 2);
+    finalists.push(winner);
+    lines.push(`Semi-final: ${names(higher)} v ${names(lower)} — ${names(winner)} go through.`);
+  }
+  const [a, b] = finalists as [Id, Id];
+  const winnerId = playTie(state, a, b, 1);
+  lines.push(`Final: ${names(a)} v ${names(b)} — ${names(winnerId)} win promotion.`);
+  return { winnerId, lines };
+}
+
 function finishSeason(state: GameState, season: CompetitionSeason): void {
   const competition = getCompetition(state, season.competitionId);
   const table = seasonTable(state, season);
@@ -226,12 +301,17 @@ function finishSeason(state: GameState, season: CompetitionSeason): void {
   const championId = order[0] as Id;
   season.final = { order, championId };
   season.status = 'finished';
+  const playoff = competition.rules.promotionPlayoff
+    ? runPlayoff(state, order, competition.rules.promotionPlayoff.from, competition.rules.promotionPlayoff.to)
+    : null;
+  if (playoff) season.final.playoffWinnerId = playoff.winnerId;
 
   const champion = getClub(state, championId);
   const humanHere = state.manager.clubId !== null && order.includes(state.manager.clubId);
   const lines = [`${clubLink(champion)} finish top of the ${competitionLink(competition)} with ${table[0]?.points ?? 0} points.`];
   const { promotion, relegation } = competition.rules;
   if (promotion) lines.push(`Promoted: ${listClubs(state, order.slice(0, promotion.places))}.`);
+  if (playoff) lines.push(`Promotion play-offs:\n${playoff.lines.join('\n')}`);
   if (relegation) lines.push(`Relegated: ${listClubs(state, order.slice(-relegation.places))}.`);
   if (humanHere) {
     const position = order.indexOf(state.manager.clubId as Id) + 1;
@@ -270,7 +350,10 @@ function rolloverNation(state: GameState, nationId: Id): void {
       for (const clubId of order.slice(-relegation.places)) moves.push({ clubId, from: competition.id, to: relegation.to });
     }
     if (promotion && membership.has(promotion.to)) {
-      for (const clubId of order.slice(0, promotion.places)) moves.push({ clubId, from: competition.id, to: promotion.to });
+      const promoted = order.slice(0, promotion.places);
+      const playoffWinner = currentSeasonOf(state, competition.id)?.final?.playoffWinnerId;
+      if (playoffWinner) promoted.push(playoffWinner);
+      for (const clubId of promoted) moves.push({ clubId, from: competition.id, to: promotion.to });
     }
   }
   for (const move of moves) {

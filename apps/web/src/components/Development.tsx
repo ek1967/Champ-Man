@@ -1,4 +1,5 @@
-import { abilityStars, ageOn, developmentTrend, type GameState, type Player } from '@moc/engine';
+import { ageOn, developmentTrend, type GameState, knowledgeOf, type Player } from '@moc/engine';
+import { AbilityEstimate, PotentialEstimate } from './Scouting.tsx';
 
 /** Trend over the last six months as an arrow, a number and a word, so it never relies on colour. */
 export function Trend({ player, months = 6 }: { player: Player; months?: number }) {
@@ -28,12 +29,17 @@ export function DevelopmentSummary({ game, player }: { game: GameState; player: 
             : age <= 21
               ? 'Needs games to develop.'
               : 'Not progressing at the moment.';
+  const own = player.clubId === game.manager.clubId;
+  const known = own || knowledgeOf(game, player) >= 60;
   return (
     <dl className="dev-facts">
       <div><dt>Last 6 months</dt><dd><Trend player={player} /></dd></div>
-      <div><dt>Now</dt><dd>{abilityStars(player.ca)}★</dd></div>
-      <div><dt>Potential</dt><dd>{abilityStars(player.pa)}★</dd></div>
-      <div><dt>Coaches' view</dt><dd>{outlook}</dd></div>
+      <div><dt>Now</dt><dd><AbilityEstimate game={game} player={player} /></dd></div>
+      <div><dt>Potential</dt><dd><PotentialEstimate game={game} player={player} /></dd></div>
+      <div>
+        <dt>{own ? "Coaches' view" : "Scouts' view"}</dt>
+        <dd>{known ? outlook : <span className="muted">Scout the player to find out.</span>}</dd>
+      </div>
     </dl>
   );
 }

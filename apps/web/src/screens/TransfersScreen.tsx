@@ -1,17 +1,17 @@
 import {
-  abilityStars, ageOn, answerIncomingBid, type Bid, financesOf, formatMoney, formatShort, type GameState,
+  ageOn, estimatedAbility, answerIncomingBid, type Bid, financesOf, formatMoney, formatShort, type GameState,
   mainPosition, type Player, POSITION_GROUP, recentTransfers, shortName, wageBill,
 } from '@moc/engine';
 import { useMemo, useState } from 'react';
 import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
-import { Stars } from '../components/Ratings.tsx';
+import { AbilityEstimate, PotentialEstimate, ScoutingTab, sortableAbility, sortablePotential } from '../components/Scouting.tsx';
 import { type Column, SortableTable } from '../components/SortableTable.tsx';
 import { Tabs } from '../components/Tabs.tsx';
 import { BID_STATUS_LABEL, windowLine } from '../components/TransferPanel.tsx';
 import { act } from '../state/store.ts';
 
-type Tab = 'search' | 'bids' | 'deals';
+type Tab = 'search' | 'bids' | 'scouting' | 'deals';
 
 interface Filters {
   text: string;
@@ -55,6 +55,7 @@ export function TransfersScreen({ game }: { game: GameState }) {
         tabs={[
           { id: 'search', label: 'Find players' },
           { id: 'bids', label: `Offers${pendingIncoming ? ` (${pendingIncoming} to answer)` : ''}` },
+          { id: 'scouting', label: 'Scouting' },
           { id: 'deals', label: 'Latest deals' },
         ]}
         active={tab}
@@ -62,6 +63,7 @@ export function TransfersScreen({ game }: { game: GameState }) {
       />
       {tab === 'search' && <Search game={game} />}
       {tab === 'bids' && <Bids game={game} />}
+      {tab === 'scouting' && <ScoutingTab game={game} />}
       {tab === 'deals' && <Deals game={game} />}
     </div>
   );
@@ -85,13 +87,13 @@ function Search({ game }: { game: GameState }) {
         const age = ageOn(p.dateOfBirth, game.date);
         if (age < filters.minAge || age > filters.maxAge) return false;
         if (filters.maxValue && p.value > filters.maxValue) return false;
-        if (filters.minStars && abilityStars(p.ca) < filters.minStars) return false;
+        if (filters.minStars && estimatedAbility(game, p).stars < filters.minStars) return false;
         if (filters.listedOnly && !p.transferListed) return false;
         if (filters.expiringOnly && !(p.contract && p.contract.expires <= seasonEnd)) return false;
         if (text && !`${p.firstName} ${p.lastName} ${p.knownAs ?? ''}`.toLowerCase().includes(text)) return false;
         return true;
       })
-      .sort((a, b) => b.ca - a.ca)
+      .sort((a, b) => estimatedAbility(game, b).stars - estimatedAbility(game, a).stars || b.value - a.value)
       .slice(0, 150);
   }, [game, filters, clubId, seasonEnd]);
 
@@ -108,8 +110,8 @@ function Search({ game }: { game: GameState }) {
     },
     { id: 'pos', label: 'Pos', render: (p) => mainPosition(p), sortValue: (p) => mainPosition(p) },
     { id: 'age', label: 'Age', render: (p) => ageOn(p.dateOfBirth, game.date), sortValue: (p) => ageOn(p.dateOfBirth, game.date), align: 'right' },
-    { id: 'ability', label: 'Ability', render: (p) => <Stars value={abilityStars(p.ca)} />, sortValue: (p) => p.ca },
-    { id: 'potential', label: 'Potential', render: (p) => <Stars value={abilityStars(p.pa)} label="Potential" />, sortValue: (p) => p.pa },
+    { id: 'ability', label: 'Ability', render: (p) => <AbilityEstimate game={game} player={p} />, sortValue: (p) => sortableAbility(game, p) },
+    { id: 'potential', label: 'Potential', render: (p) => <PotentialEstimate game={game} player={p} />, sortValue: (p) => sortablePotential(game, p) },
     { id: 'value', label: 'Value', render: (p) => formatMoney(p.value), sortValue: (p) => p.value, align: 'right' },
     { id: 'contract', label: 'Contract', render: (p) => (p.contract ? p.contract.expires.slice(0, 4) : '—'), sortValue: (p) => p.contract?.expires ?? '', align: 'right' },
     {

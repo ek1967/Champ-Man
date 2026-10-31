@@ -51,7 +51,7 @@ export function movementNote(game: GameState, player: Player): string | null {
 function LoanLengthPicker(props: { id: string; value: LoanLength; onChange: (v: LoanLength) => void }) {
   return (
     <label className="money-field" htmlFor={props.id}>
-      <span>Until</span>
+      <span>Loan until</span>
       <select id={props.id} value={props.value} onChange={(e) => props.onChange(e.target.value as LoanLength)}>
         <option value="january">31 December</option>
         <option value="season">End of the season</option>

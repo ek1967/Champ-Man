@@ -3,6 +3,7 @@ import { ClubSwatch } from '../components/ClubName.tsx';
 import { EntityLink, RouteLink } from '../components/EntityLink.tsx';
 import { money, ordinal, reputationLabel } from '../components/format.ts';
 import { ClubFixtureList } from './FixtureList.tsx';
+import { ScoutClubButton } from '../components/Scouting.tsx';
 
 export function ClubScreen({ game, id }: { game: GameState; id: string }) {
   const club = game.world.clubs[id];
@@ -22,6 +23,7 @@ export function ClubScreen({ game, id }: { game: GameState; id: string }) {
           <ClubSwatch club={club} /> {club.name}
           {club.id === game.manager.clubId && <span className="tag">Your club</span>}
         </h1>
+        <ScoutClubButton game={game} clubId={club.id} />
         <p className="muted">
           {competition && (
             <EntityLink type="competition" id={competition.id}>

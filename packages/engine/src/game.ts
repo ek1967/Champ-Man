@@ -14,6 +14,7 @@ import type {
 } from './types.ts';
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { developmentDay } from './development.ts';
+import { learnFromMatch, scoutingDay } from './scouting.ts';
 import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
 
@@ -245,7 +246,11 @@ export function completeMatch(state: GameState, fixture: Fixture, live: LiveMatc
     if (injury) player.injury = { name: injury.name, until: injuryEnd(state.date, injury.days) };
   }
 
-  if (human) reportHumanResult(state, fixture, result, live);
+  if (human) {
+    reportHumanResult(state, fixture, result, live);
+    const theirSide = fixture.homeId === state.manager.clubId ? 'away' : 'home';
+    learnFromMatch(state, Object.values(live.players).filter((lp) => lp.side === theirSide).map((lp) => lp.id));
+  }
   afterResults(state, [fixture.seasonId]);
   return result;
 }
@@ -491,6 +496,7 @@ function dailyTasks(state: GameState): void {
   recoverFitness(state);
   developmentDay(state);
   transferDay(state);
+  scoutingDay(state);
   const md = monthDay(state.date);
   const nations = new Set<Id>();
   for (const competition of Object.values(state.world.competitions)) {

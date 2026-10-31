@@ -1,10 +1,11 @@
 import {
-  abilityStars, ageOn, ATTRIBUTE_LABELS, type AttributeKey, attributeBand, formatLong, type GameState, GOALKEEPING,
-  mainPosition, MENTAL, PHYSICAL, TECHNICAL,
+  abilityStars, attributeView, type Player, ageOn, ATTRIBUTE_LABELS, type AttributeKey, attributeBand, formatLong, type GameState, GOALKEEPING,
+  knowledgeOf, mainPosition, MENTAL, PHYSICAL, TECHNICAL,
 } from '@moc/engine';
 import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
 import { statusOf } from './TacticsScreen.tsx';
 import { TransferPanel } from '../components/TransferPanel.tsx';
+import { AbilityEstimate, PotentialEstimate, ScoutPanel } from '../components/Scouting.tsx';
 import { AbilityChart } from '../components/AbilityChart.tsx';
 import { DevelopmentSummary } from '../components/Development.tsx';
 import { ClubName } from '../components/ClubName.tsx';
@@ -12,17 +13,23 @@ import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
 import { positionsLabel } from './SquadScreen.tsx';
 
-function AttributeBlock({ title, keys, values }: { title: string; keys: readonly AttributeKey[]; values: Record<AttributeKey, number> }) {
+/** Attributes as the manager knows them: exact for scouted players, a range otherwise. */
+function AttributeBlock({ title, keys, game, player }: { title: string; keys: readonly AttributeKey[]; game: GameState; player: Player }) {
   return (
     <section className="attr-block">
       <h3>{title}</h3>
       <dl>
-        {keys.map((key) => (
-          <div key={key} className="attr-row">
-            <dt>{ATTRIBUTE_LABELS[key]}</dt>
-            <dd className={`attr ${attributeBand(values[key])}`}>{values[key]}</dd>
-          </div>
-        ))}
+        {keys.map((key) => {
+          const { low, high } = attributeView(game, player, key);
+          return (
+            <div key={key} className="attr-row">
+              <dt>{ATTRIBUTE_LABELS[key]}</dt>
+              <dd className={`attr ${attributeBand(Math.round((low + high) / 2))} ${low === high ? '' : 'is-range'}`}>
+                {low === high ? low : `${low}–${high}`}
+              </dd>
+            </div>
+          );
+        })}
       </dl>
     </section>
   );
@@ -59,8 +66,8 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
       </header>
 
       <div className="facts">
-        <div><span>Ability</span><Stars value={abilityStars(player.ca)} /></div>
-        <div><span>Potential</span><Stars value={abilityStars(player.pa)} label="Potential" /></div>
+        <div><span>Ability</span><AbilityEstimate game={game} player={player} /></div>
+        <div><span>Potential</span><PotentialEstimate game={game} player={player} /></div>
         <div><span>Fitness</span><ConditionBar value={player.condition} /></div>
         <div><span>Form (last 5)</span><FormChips form={player.form} /></div>
         <div><span>Status</span>{statusOf(player, game.date) ?? 'Available'}</div>
@@ -76,22 +83,24 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
 
       {player.retired ? <p className="warning">Retired.</p> : <TransferPanel game={game} player={player} />}
 
+      <ScoutPanel game={game} player={player} />
+
       <section className="development">
         <h2>Development</h2>
         <div className="development-grid">
-          <AbilityChart player={player} />
+          {(player.clubId === game.manager.clubId || knowledgeOf(game, player) >= 60) && <AbilityChart player={player} />}
           <DevelopmentSummary game={game} player={player} />
         </div>
       </section>
 
       <div className="attributes">
         {isKeeper ? (
-          <AttributeBlock title="Goalkeeping" keys={GOALKEEPING} values={player.attributes} />
+          <AttributeBlock title="Goalkeeping" keys={GOALKEEPING} game={game} player={player} />
         ) : (
-          <AttributeBlock title="Technical" keys={TECHNICAL} values={player.attributes} />
+          <AttributeBlock title="Technical" keys={TECHNICAL} game={game} player={player} />
         )}
-        <AttributeBlock title="Mental" keys={MENTAL} values={player.attributes} />
-        <AttributeBlock title="Physical" keys={PHYSICAL} values={player.attributes} />
+        <AttributeBlock title="Mental" keys={MENTAL} game={game} player={player} />
+        <AttributeBlock title="Physical" keys={PHYSICAL} game={game} player={player} />
       </div>
 
       <section>

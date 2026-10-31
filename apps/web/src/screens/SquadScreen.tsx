@@ -1,7 +1,8 @@
 import {
-  abilityStars, ageOn, attributeBand, developmentTrend, type GameState, mainPosition, type Player, type Position, POSITIONS, squadOf,
+  ageOn, attributeBand, attributeView, developmentTrend, type GameState, mainPosition, type Player, type Position, POSITIONS, squadOf,
 } from '@moc/engine';
-import { FormChips, Stars } from '../components/Ratings.tsx';
+import { FormChips } from '../components/Ratings.tsx';
+import { AbilityEstimate, PotentialEstimate, sortableAbility, sortablePotential } from '../components/Scouting.tsx';
 import { Trend } from '../components/Development.tsx';
 import { useState } from 'react';
 import { ClubName } from '../components/ClubName.tsx';
@@ -60,13 +61,13 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
       render: positionsLabel,
       sortValue: (p) => POSITION_INDEX.get(mainPosition(p)) ?? 0,
     },
-    { id: 'ability', label: 'Ability', render: (p) => <Stars value={abilityStars(p.ca)} />, sortValue: (p) => p.ca },
+    { id: 'ability', label: 'Ability', render: (p) => <AbilityEstimate game={game} player={p} />, sortValue: (p) => sortableAbility(game, p) },
   ];
 
   const views: Record<View, Column<Player>[]> = {
     general: [
       ...base,
-      { id: 'potential', label: 'Potential', render: (p) => <Stars value={abilityStars(p.pa)} label="Potential" />, sortValue: (p) => p.pa },
+      { id: 'potential', label: 'Potential', render: (p) => <PotentialEstimate game={game} player={p} />, sortValue: (p) => sortablePotential(game, p) },
       { id: 'trend', label: 'Trend', title: 'Change in ability over the last six months', render: (p) => <Trend player={p} />, sortValue: (p) => developmentTrend(p, 6), align: 'right' },
       { id: 'form', label: 'Form', render: (p) => <FormChips form={p.form} />, sortValue: (p) => (p.form.length ? p.form.reduce((a, b) => a + b, 0) / p.form.length : 0) },
       { id: 'age', label: 'Age', render: (p) => ageOn(p.dateOfBirth, game.date), sortValue: (p) => ageOn(p.dateOfBirth, game.date), align: 'right' },
@@ -116,7 +117,10 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
           id: key,
           label: key === 'workRate' ? 'Wrk' : key.slice(0, 3).replace(/^./, (c) => c.toUpperCase()),
           title: key,
-          render: (p) => <span className={`attr ${attributeBand(p.attributes[key])}`}>{p.attributes[key]}</span>,
+          render: (p) => {
+            const { low, high } = attributeView(game, p, key);
+            return <span className={`attr ${attributeBand(Math.round((low + high) / 2))}`}>{low === high ? low : `${low}–${high}`}</span>;
+          },
           sortValue: (p) => p.attributes[key],
           align: 'center',
         }),

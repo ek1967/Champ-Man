@@ -10,6 +10,7 @@ import { EntityLink } from '../components/EntityLink.tsx';
 import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
 import { type Column, SortableTable } from '../components/SortableTable.tsx';
 import { ensureTactics, saveTactics } from '../state/store.ts';
+import { PotentialEstimate, sortablePotential } from '../components/Scouting.tsx';
 
 export const INSTRUCTION_LABELS: Record<keyof TeamInstructions, string> = {
   mentality: 'Mentality',
@@ -240,7 +241,7 @@ function PlayerCard(props: { game: GameState; player: Player; position: Position
       {status && <p className="warning small">{status}</p>}
       <dl className="card-facts">
         <div><dt>Ability</dt><dd><Stars value={abilityStars(player.ca)} /></dd></div>
-        <div><dt>Potential</dt><dd><Stars value={abilityStars(player.pa)} label="Potential" /></dd></div>
+        <div><dt>Potential</dt><dd><PotentialEstimate game={game} player={player} /></dd></div>
         <div><dt>In this position</dt><dd><Stars value={positionStars(player, position)} label="Ability in this position" /></dd></div>
         <div><dt>Fitness</dt><dd><ConditionBar value={player.condition} /></dd></div>
         <div><dt>Form</dt><dd><FormChips form={player.form} /></dd></div>
@@ -386,7 +387,7 @@ export function TacticsScreen({ game }: { game: GameState }) {
     },
     { id: 'pos', label: 'Pos', render: positionsLabel, sortValue: (p) => POSITIONS.indexOf(mainPosition(p)) },
     { id: 'ability', label: 'Ability', render: (p) => <Stars value={abilityStars(p.ca)} />, sortValue: (p) => p.ca },
-    { id: 'potential', label: 'Potential', render: (p) => <Stars value={abilityStars(p.pa)} label="Potential" />, sortValue: (p) => p.pa },
+    { id: 'potential', label: 'Potential', render: (p) => <PotentialEstimate game={game} player={p} />, sortValue: (p) => sortablePotential(game, p) },
     {
       id: 'fit',
       label: selectedPosition ? `As ${selectedPosition}` : 'In role',

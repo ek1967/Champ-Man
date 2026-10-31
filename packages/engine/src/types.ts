@@ -2,6 +2,7 @@ import type { Attributes, HiddenAttributes, Position } from './attributes.ts';
 import type { ISODate } from './dates.ts';
 import type { LeagueRules } from './rules.ts';
 import type { Rng } from './rng.ts';
+import type { ScoutingState } from './scouting.ts';
 import type { Tactics } from './tactics.ts';
 
 export type Id = string;
@@ -220,6 +221,8 @@ export interface GameState {
   counters: { fixture: number; news: number; season: number };
   finances: Record<Id, ClubFinances>;
   transfers: TransferMarket;
+  /** What the manager knows about other clubs' players; created when first needed. */
+  scouting?: ScoutingState;
 }
 
 export interface ClubFinances {

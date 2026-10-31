@@ -1,10 +1,10 @@
 import {
-  ageOn, estimatedAbility, answerIncomingBid, type Bid, financesOf, formatMoney, formatShort, type GameState,
+  ageOn, awaitingManager, estimatedAbility, answerIncomingBid, type Bid, financesOf, formatMoney, formatShort, type GameState,
   mainPosition, type Player, POSITION_GROUP, recentTransfers, shortName, wageBill,
 } from '@moc/engine';
 import { useMemo, useState } from 'react';
 import { ClubName, PlayerClub } from '../components/ClubName.tsx';
-import { EntityLink } from '../components/EntityLink.tsx';
+import { EntityLink, RouteLink } from '../components/EntityLink.tsx';
 import { AbilityEstimate, PotentialEstimate, ScoutingTab, sortableAbility, sortablePotential } from '../components/Scouting.tsx';
 import { type Column, SortableTable } from '../components/SortableTable.tsx';
 import { Tabs } from '../components/Tabs.tsx';
@@ -38,7 +38,7 @@ export function TransfersScreen({ game }: { game: GameState }) {
   if (!clubId) return <p>You need a club to buy and sell players.</p>;
   const finances = financesOf(game, clubId);
   const bill = wageBill(game, clubId);
-  const pendingIncoming = game.transfers.bids.filter((b) => b.sellerId === clubId && b.status === 'pending').length;
+  const pendingIncoming = game.transfers.bids.filter((b) => awaitingManager(game, b)).length;
 
   return (
     <div className="screen">
@@ -237,15 +237,23 @@ function Bids({ game }: { game: GameState }) {
                   <td>{clubCell(b.buyerId)}</td>
                   <td className="right">{formatMoney(b.fee)}</td>
                   <td>
-                    {b.kind === 'loan' ? 'Loan · ' : ''}
-                    {b.status === 'pending' ? (b.kind === 'loan' ? 'Waiting for an answer' : `Answer by ${formatShort(b.respondOn)}`) : BID_STATUS_LABEL[b.status]}
+                    {b.kind === 'loan' ? (b.initiator === 'buyer' ? 'Loan request · ' : 'Offered out on loan · ') : ''}
+                    {awaitingManager(game, b)
+                      ? `Answer by ${formatShort(b.respondOn)}`
+                      : b.status === 'pending'
+                        ? 'Waiting for the club to confirm'
+                        : b.status === 'countered'
+                          ? `You asked for ${formatMoney(b.asking ?? 0)}: waiting for their reply`
+                          : BID_STATUS_LABEL[b.status]}
                     {b.status === 'agreed' && b.moveOn ? ` (${formatShort(b.moveOn)})` : ''}
+                    {b.note && !awaitingManager(game, b) && <span className="muted small"> · {b.note}</span>}
                   </td>
                   <td className="right">
-                    {b.status === 'pending' && b.kind !== 'loan' && (
+                    {awaitingManager(game, b) && (
                       <span className="button-row">
                         <button className="btn small primary" onClick={() => act((g) => answerIncomingBid(g, b.id, true))}>Accept</button>
                         <button className="btn small" onClick={() => act((g) => answerIncomingBid(g, b.id, false))}>Reject</button>
+                        {b.kind !== 'loan' && <RouteLink to={{ screen: 'player', id: b.playerId }}>Name your price →</RouteLink>}
                       </span>
                     )}
                   </td>

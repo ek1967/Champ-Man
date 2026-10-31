@@ -29,7 +29,8 @@ function target(state: GameState, clubId: string): Player {
   for (const id of smaller) {
     const squad = squadOf(state, id).sort((a, b) => b.ca - a.ca);
     // Not one of their five best (they won't sell those to a smaller club), but good enough to play for us.
-    const p = squad.slice(5, 14).find((x) => x.ca > (myBest[16] ?? 0) && (x.positions.GK ?? 0) < 18);
+    // Young enough not to retire during the test.
+    const p = squad.slice(5, 14).find((x) => x.ca > (myBest[16] ?? 0) && (x.positions.GK ?? 0) < 18 && x.dateOfBirth > '1996-07-01');
     if (p) return p;
   }
   throw new Error('no target');

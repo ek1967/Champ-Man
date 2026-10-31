@@ -285,6 +285,17 @@ export interface Bid {
   loanUntil?: ISODate;
   /** Option or obligation to buy at the end of a loan. */
   option?: LoanOption;
+  /** Who opened the talks; a loan the manager offered out is 'seller'. */
+  initiator?: 'buyer' | 'seller';
+  /**
+   * Hidden limit of the computer club in the talks: the least a seller will really take, or the
+   * most a buyer will pay. The asking price or opening offer is only their starting position.
+   */
+  limit?: number;
+  /** Rounds of offers and counter-offers so far. */
+  round?: number;
+  /** The seller's last counter-offer, which their next counter comes down from. */
+  lastAsk?: number;
   /** Agreed terms, and the day the player moves. */
   wage?: number;
   years?: number;

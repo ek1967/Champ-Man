@@ -8,7 +8,7 @@ import { addDays, ageOn, formatShort, type ISODate, makeDate, monthDay, yearOf }
 import { addNews, clubLink, playerLink } from './news.ts';
 import { estimateWage, generatePlayer, positionRating, roundMoney } from './players.ts';
 import { getClub, squadIndex, squadOf } from './queries.ts';
-import { chance, poisson, random, randInt, weightedPick } from './rng.ts';
+import { chance, createRng, hashString, poisson, random, randInt, weightedPick } from './rng.ts';
 import { autoTactics, FORMATIONS } from './tactics.ts';
 import type { Bid, Club, ClubFinances, GameState, Id, LoanOption, Player, TransferRecord } from './types.ts';
 
@@ -277,10 +277,48 @@ export function makeBid(state: GameState, playerId: Id, fee: number): ActionResu
   if (fee > availableBudget(state, buyerId)) return { ok: false, message: 'That is more than you have left to spend.' };
   const existing = activeBidFor(state, playerId, buyerId);
   if (existing && existing.status === 'pending') return { ok: false, message: 'You are already waiting for an answer on this player.' };
+  if (existing?.status === 'accepted') return { ok: false, message: 'The fee is already agreed: agree terms with the player.' };
+  const talks = talksSoFar(existing);
   if (existing) existing.status = 'withdrawn';
-  newBid(state, { playerId, buyerId, sellerId: player.clubId, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)) });
+  newBid(state, {
+    playerId, buyerId, sellerId: player.clubId, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)),
+    initiator: 'buyer', ...talks,
+  });
   const when = openWindow(state.date) ? '' : ` If you agree a deal, the player joins when the window opens on ${formatShort(nextWindowOpens(state.date))}.`;
   return { ok: true, message: `Offer of ${formatMoney(fee)} sent to ${getClub(state, player.clubId).shortName}. Expect an answer in a day or two.${when}` };
+}
+
+/** What carries over from a countered offer into the next one: the seller's limit, their last price, the round. */
+function talksSoFar(previous: Bid | undefined): Partial<Bid> {
+  if (!previous || previous.status !== 'countered') return {};
+  return {
+    ...(previous.limit !== undefined ? { limit: previous.limit } : {}),
+    ...(previous.asking !== undefined ? { lastAsk: previous.asking } : {}),
+    round: (previous.round ?? 1) + 1,
+  };
+}
+
+/** A number from 0 to 1 that stays the same for this player for the rest of the season. */
+function seasonNoise(state: GameState, player: Player, purpose: string): number {
+  return random(createRng(hashString(`${state.seed}:${player.id}:${purpose}:${seasonStartYear(state.date)}`)));
+}
+
+function seasonStartYear(date: ISODate): number {
+  return monthDay(date) >= '07-01' ? yearOf(date) : yearOf(date) - 1;
+}
+
+/**
+ * The least a selling club will really take: their asking price is an opening position. Less for
+ * listed players and short contracts, more for their key players.
+ */
+export function sellerMinimum(state: GameState, player: Player): number {
+  const asking = askingPrice(state, player);
+  if (player.abroad) return roundMoney(asking * (0.8 + 0.1 * seasonNoise(state, player, 'sell')));
+  let f = 0.8 + 0.12 * seasonNoise(state, player, 'sell');
+  if (player.transferListed) f -= 0.1;
+  if (contractYearsLeft(player, state.date) < 1) f -= 0.08;
+  if (squadRank(state, player) <= 3) f += 0.08;
+  return roundMoney(asking * Math.max(0.6, Math.min(1, f)));
 }
 
 /** An offer to a club abroad for a player the scouts found. */
@@ -289,29 +327,50 @@ function bidAbroad(state: GameState, player: Player, buyerId: Id, fee: number): 
   if (fee > availableBudget(state, buyerId)) return { ok: false, message: 'That is more than you have left to spend.' };
   const existing = activeBidFor(state, player.id, buyerId);
   if (existing && existing.status === 'pending') return { ok: false, message: 'You are already waiting for an answer on this player.' };
+  if (existing?.status === 'accepted') return { ok: false, message: 'The fee is already agreed: agree terms with the player.' };
+  const talks = talksSoFar(existing);
   if (existing) existing.status = 'withdrawn';
-  newBid(state, { playerId: player.id, buyerId, sellerId: ABROAD, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 2, 3)) });
+  newBid(state, {
+    playerId: player.id, buyerId, sellerId: ABROAD, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 2, 3)),
+    initiator: 'buyer', ...talks,
+  });
   const when = openWindow(state.date) ? '' : ` If you agree a deal, the player joins when the window opens on ${formatShort(nextWindowOpens(state.date))}.`;
   return { ok: true, message: `Offer of ${formatMoney(fee)} sent to ${sellerName(state, ABROAD, player.id)}. Expect an answer in two or three days.${when}` };
 }
 
-/** How a selling club answers a bid. */
+/**
+ * How a selling club answers a bid. Their asking price is an opening position: below it they
+ * counter, coming down towards the bid each round but never below their real limit; a bid at or
+ * above that limit is accepted after a round of haggling (or straight away if it's close to their
+ * price). Bids far below the asking price are turned down, and talks end after five rounds.
+ */
 function sellerVerdict(state: GameState, bid: Bid): { status: 'accepted' | 'countered' | 'rejected'; asking: number; note: string } {
   const player = state.world.players[bid.playerId]!;
   const asking = askingPrice(state, player);
   if (bid.sellerId === ABROAD) {
     if (!player.abroad) return { status: 'rejected', asking, note: 'The player has already moved.' };
-    if (bid.fee >= asking) return { status: 'accepted', asking, note: 'The fee is agreed.' };
-    if (bid.fee >= asking * 0.75) return { status: 'countered', asking, note: `They would sell for ${formatMoney(asking)}.` };
-    return { status: 'rejected', asking, note: 'The offer is well short of what they want.' };
+  } else {
+    const squad = squadOf(state, bid.sellerId);
+    if (squad.length <= 18) return { status: 'rejected', asking, note: 'They are short of players and will not sell.' };
+    const blocked = sellerBlocks(state, player, bid.buyerId, bid.fee);
+    if (blocked) return { status: 'rejected', asking, note: blocked };
   }
-  const squad = squadOf(state, bid.sellerId);
-  if (squad.length <= 18) return { status: 'rejected', asking, note: 'They are short of players and will not sell.' };
-  const blocked = sellerBlocks(state, player, bid.buyerId, bid.fee);
-  if (blocked) return { status: 'rejected', asking, note: blocked };
-  if (bid.fee >= asking) return { status: 'accepted', asking, note: 'The fee is agreed.' };
-  if (bid.fee >= asking * 0.7) return { status: 'countered', asking, note: `They would sell for ${formatMoney(asking)}.` };
-  return { status: 'rejected', asking, note: 'The offer is well short of what they want.' };
+  const limit = (bid.limit ??= sellerMinimum(state, player));
+  const lastAsk = bid.lastAsk ?? asking;
+  const round = bid.round ?? 1;
+  if (bid.fee >= lastAsk) return { status: 'accepted', asking: bid.fee, note: 'The fee is agreed.' };
+  if (bid.fee >= limit && (round >= 2 || bid.fee >= lastAsk * 0.95)) {
+    return { status: 'accepted', asking: bid.fee, note: 'After some haggling, the fee is agreed.' };
+  }
+  if (bid.fee < asking * 0.55) return { status: 'rejected', asking, note: 'The offer is so far short that they did not take it seriously.' };
+  if (round >= 5) return { status: 'rejected', asking: lastAsk, note: `Talks have broken down: they will not go below ${formatMoney(lastAsk)}.` };
+  const counter = Math.max(limit, roundMoney((bid.fee + lastAsk) / 2));
+  const final = counter <= limit;
+  return {
+    status: 'countered',
+    asking: counter,
+    note: final ? `${formatMoney(counter)} is their final price.` : `They have come down to ${formatMoney(counter)}.`,
+  };
 }
 
 function bidNews(state: GameState, bid: Bid): void {
@@ -403,10 +462,10 @@ export function offerContract(state: GameState, playerId: Id, offer: ContractOff
     }
     return { ok: false, message: `${name} ${willing.reason}.` };
   }
-  const demand = wageDemand(state, player, buyerId);
-  if (offer.wage < demand * 0.97) return { ok: false, message: `${name} wants at least ${formatMoney(demand)} a week.` };
   const age = ageOn(player.dateOfBirth, state.date);
   if (age >= 32 && offer.years > 2) return { ok: false, message: `At ${age}, the club would not offer more than two years.` };
+  const terms = termsVerdict(state, player, buyerId, offer);
+  if (!terms.ok) return terms;
 
   bid ??= newBid(state, {
     playerId, buyerId, sellerId: player.clubId ?? buyerId, fee: 0, status: 'accepted', created: state.date, respondOn: state.date,
@@ -432,14 +491,42 @@ export function offerContract(state: GameState, playerId: Id, offer: ContractOff
   return { ok: true, message: `Agreed! ${name} joins on ${formatShort(result)}.` };
 }
 
+/**
+ * The lowest wage a player would really sign for: their demand is where they start. Players with
+ * less ambition settle for less. Contract length matters too: older players want security, young
+ * ones don't want to be tied down too long.
+ */
+export function wageMinimum(state: GameState, player: Player, clubId: Id, years: number): number {
+  const demand = wageDemand(state, player, clubId);
+  const age = ageOn(player.dateOfBirth, state.date);
+  let f = 0.84 + 0.08 * seasonNoise(state, player, `wage:${clubId}`) + (player.hidden.ambition - 10) * 0.006;
+  if (age >= 30 && years <= 1) f += 0.08;
+  else if (age >= 30 && years >= 2) f -= 0.03;
+  if (age <= 23 && years >= 5) f += 0.05;
+  return roundMoney(demand * Math.max(0.75, Math.min(1, f)));
+}
+
+/** A player's answer to a contract offer: yes, or the wage they would sign for. */
+export function termsVerdict(state: GameState, player: Player, clubId: Id, offer: ContractOffer): ActionResult {
+  const name = player.knownAs ?? player.lastName;
+  const demand = wageDemand(state, player, clubId);
+  const minimum = wageMinimum(state, player, clubId, offer.years);
+  if (offer.wage >= minimum) return { ok: true, message: `${name} accepts.` };
+  if (offer.wage < demand * 0.5) return { ok: false, message: `${name} won't discuss an offer that low. They are looking for around ${formatMoney(demand)} a week.` };
+  const counter = Math.max(minimum, roundMoney((offer.wage + demand) / 2));
+  const age = ageOn(player.dateOfBirth, state.date);
+  const length = age >= 30 && offer.years <= 1 ? ' A longer contract would help.' : age <= 23 && offer.years >= 5 ? ' A shorter contract would help.' : '';
+  return { ok: false, message: `${name} would sign for ${formatMoney(counter)} a week.${length}` };
+}
+
 /** New contract for one of the manager's own players. */
 export function renewContract(state: GameState, playerId: Id, offer: ContractOffer): ActionResult {
   const player = state.world.players[playerId];
   const clubId = state.manager.clubId;
   if (!player || !clubId || player.clubId !== clubId) return { ok: false, message: 'Only your own players can be offered a new contract.' };
-  const demand = wageDemand(state, player, clubId);
   const name = player.knownAs ?? player.lastName;
-  if (offer.wage < demand * 0.97) return { ok: false, message: `${name} wants at least ${formatMoney(demand)} a week to stay.` };
+  const terms = termsVerdict(state, player, clubId, offer);
+  if (!terms.ok) return { ok: false, message: `${terms.message.replace(' would sign', ' would stay')}` };
   const finances = financesOf(state, clubId);
   if (wageBill(state, clubId) - (player.contract?.wage ?? 0) + offer.wage > finances.wageBudget) {
     return { ok: false, message: `That would take your wage bill over the budget of ${formatMoney(finances.wageBudget)} a week.` };
@@ -469,36 +556,144 @@ function aiBidForHumanPlayer(state: GameState): void {
   });
   if (buyers.length === 0) return;
   const buyer = weightedPick(state.rng, buyers, (c) => c.reputation);
-  const fee = roundMoney(Math.min(financesOf(state, buyer.id).transferBudget, askingPrice(state, target) * (0.7 + 0.45 * random(state.rng))));
-  const bid = newBid(state, { playerId: target.id, buyerId: buyer.id, sellerId: humanId, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, 5) });
+  const budget = financesOf(state, buyer.id).transferBudget;
+  const asking = askingPrice(state, target);
+  const fee = roundMoney(Math.min(budget, asking * (0.7 + 0.45 * random(state.rng))));
+  // The most they would go to, if pushed; never more than they have.
+  const limit = Math.max(fee, roundMoney(Math.min(budget, asking * (0.95 + 0.35 * random(state.rng)))));
+  const bid = newBid(state, {
+    playerId: target.id, buyerId: buyer.id, sellerId: humanId, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, 5),
+    initiator: 'buyer', limit, round: 1,
+  });
   const n = addNews(state, {
     category: 'transfer',
     title: `${buyer.shortName} bid ${formatMoney(fee)} for ${target.knownAs ?? target.lastName}`,
     body: [
       `${clubLink(buyer)} have offered ${formatMoney(fee)} for ${playerLink(target)}.`,
-      `Your board values the player at around ${formatMoney(askingPrice(state, target))}. The offer stands for five days.`,
+      `Your board values the player at around ${formatMoney(asking)}. You can accept, reject, or name your price. The offer stands for five days.`,
     ].join('\n\n'),
     important: true,
   });
   n.bidId = bid.id;
 }
 
+/** True for an offer from another club that is waiting for the manager's answer. */
+export function awaitingManager(state: GameState, bid: Bid): boolean {
+  // Older saves have no initiator: loans then were always offered out by the manager.
+  const fromOtherClub = bid.initiator === 'buyer' || (bid.initiator === undefined && bid.kind !== 'loan');
+  return bid.sellerId === state.manager.clubId && bid.status === 'pending' && fromOtherClub;
+}
+
 /** The manager accepts or turns down an offer for one of their players. */
 export function answerIncomingBid(state: GameState, bidId: Id, accept: boolean): ActionResult {
   const bid = state.transfers.bids.find((b) => b.id === bidId);
-  if (!bid || bid.sellerId !== state.manager.clubId || bid.status !== 'pending') return { ok: false, message: 'That offer is no longer open.' };
+  if (!bid || !awaitingManager(state, bid)) return { ok: false, message: 'That offer is no longer open.' };
   const player = state.world.players[bid.playerId];
   if (!player) return { ok: false, message: 'Player not found.' };
+  const name = player.knownAs ?? player.lastName;
+  const buyer = getClub(state, bid.buyerId);
   if (!accept) {
     bid.status = 'rejected';
-    return { ok: true, message: 'Offer rejected.' };
+    return { ok: true, message: bid.kind === 'loan' ? `You have turned down ${buyer.shortName}'s loan request.` : 'Offer rejected.' };
   }
+  if (bid.kind === 'loan') {
+    const when = settleAgreed(state, bid, player);
+    const until = `${formatShort(bid.loanUntil ?? state.date)} ${yearOf(bid.loanUntil ?? state.date)}`;
+    return { ok: true, message: when === 'now' ? `${name} has joined ${buyer.shortName} on loan until ${until}.` : `Agreed: ${name} joins ${buyer.shortName} on loan on ${formatShort(when)}, until ${until}.` };
+  }
+  return acceptSale(state, bid, player);
+}
+
+/** Completes (or agrees, outside a window) the sale of one of the manager's players. */
+function acceptSale(state: GameState, bid: Bid, player: Player): ActionResult {
   bid.wage = wageDemand(state, player, bid.buyerId);
   bid.years = randInt(state.rng, 2, 5);
   const result = settleAgreed(state, bid, player);
   const name = player.knownAs ?? player.lastName;
   if (result === 'now') return { ok: true, message: `${name} has joined ${getClub(state, bid.buyerId).shortName} for ${formatMoney(bid.fee)}.` };
   return { ok: true, message: `Agreed: ${name} joins ${getClub(state, bid.buyerId).shortName} for ${formatMoney(bid.fee)} on ${formatShort(result)}.` };
+}
+
+/** The manager answers an offer with their own price. The other club replies in a day or two. */
+export function counterIncomingBid(state: GameState, bidId: Id, fee: number): ActionResult {
+  const bid = state.transfers.bids.find((b) => b.id === bidId);
+  if (!bid || !awaitingManager(state, bid) || bid.kind === 'loan') return { ok: false, message: 'That offer is no longer open.' };
+  if (fee <= bid.fee) return { ok: false, message: `Ask for more than their ${formatMoney(bid.fee)}, or just accept it.` };
+  bid.status = 'countered';
+  bid.asking = fee;
+  bid.respondOn = addDays(state.date, randInt(state.rng, 1, 2));
+  return { ok: true, message: `You've told ${getClub(state, bid.buyerId).shortName} they can have the player for ${formatMoney(fee)}. Expect a reply in a day or two.` };
+}
+
+/**
+ * A computer club's reply to the manager's price: yes if it's within what they'd pay, a better
+ * offer if it's not far off, otherwise they walk away.
+ */
+function buyerReply(state: GameState, bid: Bid): void {
+  const player = state.world.players[bid.playerId];
+  const humanId = state.manager.clubId;
+  if (!player || player.clubId !== humanId || bid.asking === undefined) {
+    bid.status = 'collapsed';
+    return;
+  }
+  const buyer = getClub(state, bid.buyerId);
+  const name = player.knownAs ?? player.lastName;
+  const limit = Math.min(bid.limit ?? bid.fee * 1.1, financesOf(state, buyer.id).transferBudget);
+  const round = bid.round ?? 1;
+  let title: string;
+  let body: string;
+  if (bid.asking <= limit) {
+    bid.fee = bid.asking;
+    bid.status = 'pending';
+    const result = acceptSale(state, bid, player);
+    title = `${buyer.shortName} agree to pay ${formatMoney(bid.fee)} for ${name}`;
+    body = `${clubLink(buyer)} have met your price for ${playerLink(player)}. ${result.message}`;
+  } else if (bid.asking <= limit * 1.25 && round < 4 && bid.fee < limit) {
+    const offer = Math.min(limit, roundMoney((bid.fee + bid.asking) / 2));
+    const final = offer >= limit;
+    bid.fee = offer;
+    bid.status = 'pending';
+    bid.round = round + 1;
+    bid.respondOn = addDays(state.date, 4);
+    title = `${buyer.shortName} raise their offer for ${name} to ${formatMoney(offer)}`;
+    body = `${clubLink(buyer)} won't pay ${formatMoney(bid.asking)} for ${playerLink(player)}, but have improved their offer to ${formatMoney(offer)}.${final ? ' They say this is their final offer.' : ''} It stands for four days.`;
+  } else {
+    bid.status = 'withdrawn';
+    bid.note = 'They walked away: your price was too high.';
+    title = `${buyer.shortName} pull out of the deal for ${name}`;
+    body = `${clubLink(buyer)} say ${formatMoney(bid.asking)} is too much for ${playerLink(player)} and have ended talks.`;
+  }
+  const n = addNews(state, { category: 'transfer', title, body, important: true });
+  n.bidId = bid.id;
+}
+
+/** Computer clubs ask to borrow the manager's young fringe players. */
+function aiLoanRequestForHuman(state: GameState): void {
+  const humanId = state.manager.clubId;
+  if (!humanId) return;
+  const ranked = squadOf(state, humanId).sort((a, b) => b.ca - a.ca);
+  const humanRep = getClub(state, humanId).reputation;
+  const keepers = keeperCount(state, humanId);
+  const candidates = ranked.filter((p, i) => i >= 15 && !p.loan && ageOn(p.dateOfBirth, state.date) <= 23 && !(isKeeper(p) && keepers <= 2)
+    && !state.transfers.bids.some((b) => b.playerId === p.id && ['pending', 'countered', 'accepted', 'agreed'].includes(b.status)));
+  if (candidates.length === 0) return;
+  const player = weightedPick(state.rng, candidates, (p) => 1 + Math.max(0, p.pa - p.ca) / 10);
+  const clubs = Object.values(state.world.clubs).filter((c) => c.id !== humanId && c.reputation <= humanRep + 5
+    && squadOf(state, c.id).length < MAX_SQUAD && rankIfJoined(state, player, c.id) <= 13);
+  if (clubs.length === 0) return;
+  const club = weightedPick(state.rng, clubs, (c) => c.reputation);
+  const until = loanEnd(state.date, 'season');
+  const bid = newBid(state, {
+    playerId: player.id, buyerId: club.id, sellerId: humanId, fee: 0, status: 'pending', created: state.date, respondOn: addDays(state.date, 5),
+    kind: 'loan', loanUntil: until, wage: player.contract?.wage ?? 0, initiator: 'buyer',
+  });
+  const n = addNews(state, {
+    category: 'transfer',
+    title: `${club.shortName} ask to borrow ${player.knownAs ?? player.lastName}`,
+    body: `${clubLink(club)} would like ${playerLink(player)} on loan until ${formatShort(until)} ${yearOf(until)}. They would pay the wages and expect to play the player regularly. The request stands for five days.`,
+    important: true,
+  });
+  n.bidId = bid.id;
 }
 
 // ---------- Computer clubs ----------
@@ -755,9 +950,16 @@ export function transferDay(state: GameState): void {
   if (md === '01-02' || md === '05-01') contractReminder(state);
 
   // Answers to the manager's offers, and offers for their players left unanswered.
-  for (const bid of state.transfers.bids) {
+  for (const bid of [...state.transfers.bids]) {
+    if (bid.status === 'countered' && bid.sellerId === state.manager.clubId && bid.respondOn <= state.date) {
+      buyerReply(state, bid);
+      continue;
+    }
     if (bid.status !== 'pending' || bid.respondOn > state.date) continue;
-    if (bid.kind === 'loan') {
+    if (awaitingManager(state, bid)) {
+      bid.status = 'withdrawn';
+      bid.note = 'No answer in time; the offer lapsed.';
+    } else if (bid.kind === 'loan') {
       answerLoan(state, bid);
     } else if (bid.buyerId === state.manager.clubId) {
       const verdict = sellerVerdict(state, bid);
@@ -792,6 +994,7 @@ export function transferDay(state: GameState): void {
   for (let loans = (summer ? 0.6 : 0.3) * scale; loans > 0; loans--) {
     if (chance(state.rng, Math.min(1, loans))) aiLoan(state);
   }
+  if (state.manager.clubId && chance(state.rng, summer ? 0.035 : 0.025)) aiLoanRequestForHuman(state);
   if (state.manager.clubId) {
     // Listing players draws more interest.
     const listed = squadOf(state, state.manager.clubId).some((p) => p.transferListed);
@@ -976,7 +1179,7 @@ export function offerLoanOut(state: GameState, playerId: Id, length: LoanLength,
   const club = [...takers].sort((a, b) => b.reputation - a.reputation)[0]!;
   newBid(state, {
     playerId, buyerId: club.id, sellerId: humanId, fee: 0, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)),
-    kind: 'loan', loanUntil: loanEnd(moveDate(state.date), length), wage: player.contract?.wage ?? 0, ...(option ? { option } : {}),
+    kind: 'loan', loanUntil: loanEnd(moveDate(state.date), length), wage: player.contract?.wage ?? 0, initiator: 'seller', ...(option ? { option } : {}),
   });
   return { ok: true, message: `Offered to clubs. ${club.shortName} are interested; expect an answer in a day or two.` };
 }

@@ -1,5 +1,6 @@
 import {
-  ABROAD, activeBidFor, ageOn, agreedMoveFor, answerIncomingBid, askingPrice, availableBudget, type Bid, type ContractOffer,
+  ABROAD, activeBidFor, ageOn, agreedMoveFor, answerIncomingBid, askingPrice, availableBudget, awaitingManager, type Bid, type ContractOffer,
+  counterIncomingBid,
   exerciseLoanOption, formatLong, formatMoney, formatShort, type GameState, type LoanLength, type LoanOption, makeBid, nextWindowOpens,
   offerContract, offerLoanOut, openWindow, type Player, preContractAllowed, releaseByManager, releaseCost, renewContract, requestLoan,
   sellerName, setTransferListed, wageDemand, willingToJoin,
@@ -102,7 +103,8 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
   }
 
   if (mine) {
-    const incoming = game.transfers.bids.filter((b) => b.playerId === player.id && b.sellerId === clubId && b.status === 'pending' && b.kind !== 'loan');
+    const incoming = game.transfers.bids.filter((b) => b.playerId === player.id && awaitingManager(game, b));
+    const waiting = game.transfers.bids.filter((b) => b.playerId === player.id && b.sellerId === clubId && b.status === 'countered');
     return (
       <section className="transfer-panel">
         <h2>Contract and transfers</h2>
@@ -123,6 +125,11 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
         </label>
         {incoming.map((bid) => (
           <IncomingBid key={bid.id} game={game} bid={bid} onDone={setFeedback} />
+        ))}
+        {waiting.map((bid) => (
+          <p key={bid.id} className="muted">
+            You asked {clubName(game, bid.buyerId)} for {formatMoney(bid.asking ?? 0)}; waiting for their reply.
+          </p>
         ))}
         <LoanOutControl game={game} player={player} onDone={setFeedback} />
         <ReleaseControl game={game} player={player} onDone={setFeedback} />
@@ -214,10 +221,11 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
       {!agreedHere && (!bid || bid.status === 'countered') && (
         <BidForm
           idPrefix="bid"
-          suggested={bid?.asking ?? (player.abroad ? askingPrice(game, player) : player.value)}
+          suggested={bid?.asking ? Math.round((bid.fee + bid.asking) / 2) : player.abroad ? askingPrice(game, player) : player.value}
           quick={[
             { label: 'Value', amount: player.value },
             ...(bid?.asking || player.abroad ? [{ label: 'Their price', amount: bid?.asking ?? askingPrice(game, player) }] : []),
+            ...(bid?.asking ? [{ label: 'Meet halfway', amount: Math.round((bid.fee + bid.asking) / 2) }] : []),
           ]}
           submitLabel={bid ? 'Improve offer' : 'Make offer'}
           onSubmit={(fee) => setFeedback(act((g) => makeBid(g, player.id, fee)))}
@@ -316,16 +324,23 @@ function LoanOutControl({ game, player, onDone }: { game: GameState; player: Pla
   );
 }
 
-function IncomingBid({ game, bid, onDone }: { game: GameState; bid: Bid; onDone: (f: Feedback) => void }) {
+/** An offer or loan request from another club for one of your players: accept, reject or name your price. */
+export function IncomingBid({ game, bid, onDone }: { game: GameState; bid: Bid; onDone: (f: Feedback) => void }) {
+  const [countering, setCountering] = useState(false);
   const buyer = game.world.clubs[bid.buyerId];
+  const player = game.world.players[bid.playerId];
+  const loan = bid.kind === 'loan';
   return (
     <div className="bid-status">
       <p>
         <strong>
-          {buyer?.shortName} offer {formatMoney(bid.fee)}
+          {loan
+            ? `${buyer?.shortName} want to borrow ${player ? player.knownAs ?? player.lastName : 'the player'} until ${formatShort(bid.loanUntil ?? game.date)}`
+            : `${buyer?.shortName} offer ${formatMoney(bid.fee)}`}
         </strong>{' '}
         <span className="muted">(answer by {formatShort(bid.respondOn)})</span>
       </p>
+      {!loan && player && <p className="muted small">Your board values the player at about {formatMoney(askingPrice(game, player))}.</p>}
       <div className="button-row">
         <button className="btn primary" onClick={() => onDone(act((g) => answerIncomingBid(g, bid.id, true)))}>
           Accept
@@ -333,7 +348,21 @@ function IncomingBid({ game, bid, onDone }: { game: GameState; bid: Bid; onDone:
         <button className="btn" onClick={() => onDone(act((g) => answerIncomingBid(g, bid.id, false)))}>
           Reject
         </button>
+        {!loan && !countering && (
+          <button className="btn ghost" onClick={() => setCountering(true)}>
+            Name your price…
+          </button>
+        )}
       </div>
+      {countering && player && (
+        <BidForm
+          idPrefix={`counter-${bid.id}`}
+          suggested={Math.max(askingPrice(game, player), Math.round(bid.fee * 1.25))}
+          quick={[{ label: 'Board valuation', amount: askingPrice(game, player) }]}
+          submitLabel="Ask for this"
+          onSubmit={(fee) => onDone(act((g) => counterIncomingBid(g, bid.id, fee)))}
+        />
+      )}
     </div>
   );
 }
@@ -348,8 +377,10 @@ export function BidActions({ game, bidId }: { game: GameState; bidId: string }) 
   if (!player) return null;
 
   let body: ReactNode = <p className="muted">Status: {BID_STATUS_LABEL[bid.status]}{bid.note ? ` · ${bid.note}` : ''}</p>;
-  if (bid.sellerId === clubId && bid.status === 'pending') {
+  if (awaitingManager(game, bid)) {
     body = <IncomingBid game={game} bid={bid} onDone={setFeedback} />;
+  } else if (bid.sellerId === clubId && bid.status === 'countered') {
+    body = <p className="muted">You asked for {formatMoney(bid.asking ?? 0)}; waiting for their reply.</p>;
   } else if (bid.buyerId === clubId && bid.status === 'accepted') {
     body = (
       <>
@@ -365,11 +396,19 @@ export function BidActions({ game, bidId }: { game: GameState; bidId: string }) 
   } else if (bid.buyerId === clubId && bid.status === 'countered' && bid.asking) {
     const asking = bid.asking;
     body = (
-      <div className="button-row">
-        <button className="btn primary" onClick={() => setFeedback(act((g) => makeBid(g, player.id, asking)))}>
-          Offer {formatMoney(asking)}
-        </button>
-      </div>
+      <>
+        <p className="muted">{bid.note}</p>
+        <BidForm
+          idPrefix={`rebid-${bid.id}`}
+          suggested={Math.round((bid.fee + asking) / 2)}
+          quick={[
+            { label: 'Their price', amount: asking },
+            { label: 'Meet halfway', amount: Math.round((bid.fee + asking) / 2) },
+          ]}
+          submitLabel="Make new offer"
+          onSubmit={(fee) => setFeedback(act((g) => makeBid(g, player.id, fee)))}
+        />
+      </>
     );
   }
   return (

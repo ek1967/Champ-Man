@@ -1,5 +1,5 @@
 import {
-  currentSeasonOf, formatLong, formatShort, type GameState, humanFixtureOn, leaguePosition, nextFixture,
+  awaitingManager, currentSeasonOf, formatLong, formatShort, type GameState, humanFixtureOn, leaguePosition, nextFixture,
   openWindow, unreadNewsCount,
 } from '@moc/engine';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
@@ -176,7 +176,7 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
   const clubId = game.manager.clubId;
   const club = clubId ? game.world.clubs[clubId] : undefined;
   const unread = unreadNewsCount(game);
-  const incomingOffers = game.transfers.bids.filter((b) => b.sellerId === clubId && b.status === 'pending').length;
+  const incomingOffers = game.transfers.bids.filter((b) => awaitingManager(game, b)).length;
   // Grouped by country (the manager's first), top division first.
   const home = club?.nationId;
   const competitions = Object.values(game.world.competitions).sort(

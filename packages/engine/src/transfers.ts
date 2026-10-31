@@ -6,7 +6,7 @@
 import type { Position } from './attributes.ts';
 import { addDays, ageOn, formatShort, type ISODate, makeDate, monthDay, yearOf } from './dates.ts';
 import { addNews, clubLink, playerLink } from './news.ts';
-import { estimateWage, positionRating, roundMoney } from './players.ts';
+import { estimateWage, generatePlayer, positionRating, roundMoney } from './players.ts';
 import { getClub, squadIndex, squadOf } from './queries.ts';
 import { chance, poisson, random, randInt, weightedPick } from './rng.ts';
 import { autoTactics, FORMATIONS } from './tactics.ts';
@@ -87,6 +87,12 @@ export function askingPrice(state: GameState, player: Player, rank = squadRank(s
   return Math.max(50_000, roundMoney(player.value * contract * importance * listed));
 }
 
+const isKeeper = (p: Player): boolean => (p.positions.GK ?? 0) >= 18;
+
+export function keeperCount(state: GameState, clubId: Id): number {
+  return squadOf(state, clubId).filter(isKeeper).length;
+}
+
 /** Players who joined in the last ten months aren't sold on. */
 export function recentlySigned(state: GameState, playerId: Id): boolean {
   const since = addDays(state.date, -300);
@@ -100,6 +106,7 @@ export function recentlySigned(state: GameState, playerId: Id): boolean {
 export function sellerBlocks(state: GameState, player: Player, buyerId: Id, fee: number, rank = squadRank(state, player)): string | null {
   if (!player.clubId) return null;
   if (recentlySigned(state, player.id)) return 'They only signed the player recently and will not sell.';
+  if (isKeeper(player) && keeperCount(state, player.clubId) <= 2) return 'They cannot spare a goalkeeper.';
   const seller = getClub(state, player.clubId);
   const buyer = getClub(state, buyerId);
   if (rank <= 5 && buyer.reputation < seller.reputation + 5 && fee < askingPrice(state, player, rank) * 1.6) {
@@ -139,14 +146,14 @@ export function contractEnd(date: ISODate, years: number): ISODate {
 
 // ---------- Moving players ----------
 
-function nextSquadNumber(state: GameState, clubId: Id): number {
+export function nextSquadNumber(state: GameState, clubId: Id, from = 2): number {
   const used = new Set(squadOf(state, clubId).map((p) => p.squadNumber));
-  let n = 2;
+  let n = from;
   while (used.has(n)) n++;
   return n;
 }
 
-function removeFromTactics(state: GameState, playerId: Id): void {
+export function removeFromTactics(state: GameState, playerId: Id): void {
   const t = state.manager.tactics;
   if (!t) return;
   t.lineup = t.lineup.map((id) => (id === playerId ? null : id));
@@ -177,7 +184,7 @@ export function completeTransfer(state: GameState, player: Player, toId: Id, fee
   return record;
 }
 
-function releasePlayer(state: GameState, player: Player): void {
+export function releasePlayer(state: GameState, player: Player): void {
   const fromId = player.clubId;
   if (fromId === state.manager.clubId) removeFromTactics(state, player.id);
   player.clubId = null;
@@ -326,6 +333,7 @@ function aiBidForHumanPlayer(state: GameState): void {
   const humanId = state.manager.clubId;
   if (!humanId) return;
   const squad = squadOf(state, humanId);
+  if (squad.length === 0) return;
   const target = weightedPick(state.rng, squad, (p) => (p.transferListed ? 8 : 1) * (p.ca / 100) ** 2);
   if (!target || state.transfers.bids.some((b) => b.playerId === target.id && b.status === 'pending')) return;
   const buyers = Object.values(state.world.clubs).filter((c) => {
@@ -370,14 +378,15 @@ export function answerIncomingBid(state: GameState, bidId: Id, accept: boolean):
 
 // ---------- Computer clubs ----------
 
-const MIN_SQUAD = 20;
-const MAX_SQUAD = 30;
+export const MIN_SQUAD = 20;
+export const MAX_SQUAD = 30;
 
 /** One computer-club signing: strengthen the weakest position in their best XI. */
 function aiSigning(state: GameState): void {
   const humanId = state.manager.clubId;
   const squads = squadIndex(state);
   const clubs = Object.values(state.world.clubs).filter((c) => c.id !== humanId && (squads.get(c.id)?.length ?? 0) < MAX_SQUAD);
+  if (clubs.length === 0) return;
   const buyer = weightedPick(state.rng, clubs, (c) => Math.sqrt(Math.max(0, financesOf(state, c.id).transferBudget) / 1_000_000) * c.reputation);
   if (!buyer) return;
   const budget = financesOf(state, buyer.id).transferBudget;
@@ -389,7 +398,7 @@ function aiSigning(state: GameState): void {
     const p = squad.find((x) => x.id === id);
     const position = slots[i]!.position;
     const rating = p ? positionRating(p, position) : 0;
-    if (position !== 'GK' && (!weakest || rating < weakest.rating)) weakest = { position, rating };
+    if (!weakest || rating < weakest.rating) weakest = { position, rating };
   });
   if (!weakest) return;
   const need = weakest as { position: Position; rating: number };
@@ -401,24 +410,95 @@ function aiSigning(state: GameState): void {
   const price = (p: Player) => (p.clubId ? askingPrice(state, p, ranks.get(p.id)) : 0);
 
   const candidates = Object.values(state.world.players).filter((p) => {
-    if (p.clubId === buyer.id || p.clubId === humanId) return false;
+    if (p.clubId === buyer.id || p.clubId === humanId || p.retired) return false;
     if (ageOn(p.dateOfBirth, state.date) > 31) return false;
     if (positionRating(p, need.position) < need.rating + 5) return false;
     if (p.clubId && (squads.get(p.clubId)?.length ?? 0) <= MIN_SQUAD) return false;
+    if (p.clubId && isKeeper(p) && (squads.get(p.clubId) ?? []).filter(isKeeper).length <= 2) return false;
     if (!willingToJoin(state, p, buyer.id).ok) return false;
     if (price(p) > budget) return false;
     return !sellerBlocks(state, p, buyer.id, price(p), ranks.get(p.id));
   });
-  if (candidates.length === 0) return;
+  // About half of real Premier League signings come from abroad; the rest of the world isn't
+  // simulated, so those players are created when they're signed.
+  if (candidates.length === 0 || chance(state.rng, IMPORT_SHARE)) {
+    signFromAbroad(state, buyer, need.position, need.rating);
+    return;
+  }
   const target = weightedPick(state.rng, candidates, (p) => (positionRating(p, need.position) - need.rating) / Math.sqrt(1 + price(p) / 1_000_000));
   const fee = price(target);
   completeTransfer(state, target, buyer.id, fee, wageDemand(state, target, buyer.id), randInt(state.rng, 2, 5));
 }
 
+const IMPORT_SHARE = 0.45;
+
+/** Countries clubs sign from abroad, weighted roughly by how often Premier League clubs do. */
+const IMPORT_NATIONS: Array<[string, number]> = [
+  ['fra', 12], ['esp', 8], ['por', 8], ['bra', 9], ['ned', 7], ['ger', 7], ['ita', 4], ['arg', 5], ['bel', 5],
+  ['den', 3], ['nor', 2], ['swe', 3], ['sui', 2], ['cro', 2], ['srb', 2], ['usa', 2], ['col', 2], ['uru', 2],
+  ['civ', 3], ['sen', 3], ['nga', 2], ['gha', 2], ['mar', 2], ['jpn', 2], ['kor', 1], ['aut', 1], ['pol', 2], ['cze', 1],
+];
+
+/** A computer club signs a player from a league outside the game, created to fit the need. */
+function signFromAbroad(state: GameState, buyer: Club, position: Position, current: number, backup = false): void {
+  const budget = financesOf(state, buyer.id).transferBudget;
+  const nations = IMPORT_NATIONS.filter(([id]) => state.world.nations[id]);
+  if (nations.length === 0) return;
+  const nation = state.world.nations[weightedPick(state.rng, nations, ([, w]) => w)[0]]!;
+  const age = randInt(state.rng, 20, 29);
+  // An upgrade on the current starter, as good as the budget allows, and rarely far better
+  // than the best player already at the club.
+  const squadCa = squadOf(state, buyer.id).map((p) => p.ca).sort((a, b) => b - a);
+  const best = squadCa[0] ?? 100;
+  // A first-team signing is pitched at the level of the club's best XI, not at a stand-in.
+  const level = squadCa.slice(0, 11).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(11, squadCa.length));
+  let ca = Math.round(Math.max(current, level - 4) + randInt(state.rng, 3, 12));
+  ca = Math.min(ca, best + randInt(state.rng, -4, 6), 185);
+  if (backup) ca = Math.round(level - randInt(state.rng, 12, 25));
+  state.transfers.counter++;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const player = generatePlayer(state.rng, {
+      id: `imp-${state.transfers.counter}-${attempt}`,
+      position, ca, age, nationId: nation.id, namePool: nation.namePool, clubId: buyer.id, today: state.date,
+    });
+    const fee = roundMoney(player.value * (1 + 0.3 * random(state.rng)));
+    if (fee > budget) {
+      ca -= 6;
+      continue;
+    }
+    player.contract = { wage: wageDemand(state, player, buyer.id), expires: contractEnd(state.date, randInt(state.rng, 3, 5)) };
+    player.squadNumber = nextSquadNumber(state, buyer.id);
+    state.world.players[player.id] = player;
+    financesOf(state, buyer.id).transferBudget -= fee;
+    state.transfers.history.push({ date: state.date, playerId: player.id, fromId: null, toId: buyer.id, fee, kind: 'import' });
+    return;
+  }
+}
+
+/** Every computer club keeps two goalkeepers: a free agent if one is good enough, otherwise from abroad. */
+function ensureKeepers(state: GameState): void {
+  const humanId = state.manager.clubId;
+  for (const club of Object.values(state.world.clubs)) {
+    if (club.id === humanId) continue;
+    let keepers = keeperCount(state, club.id);
+    while (keepers < 2) {
+      const squadCa = squadOf(state, club.id).map((p) => p.ca).sort((a, b) => b - a);
+      const level = squadCa.slice(0, 11).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(11, squadCa.length));
+      const wanted = keepers === 0 ? level - 5 : level - 20;
+      const free = Object.values(state.world.players)
+        .filter((p) => !p.clubId && !p.retired && isKeeper(p) && p.ca >= wanted)
+        .sort((a, b) => b.ca - a.ca)[0];
+      if (free) completeTransfer(state, free, club.id, 0, wageDemand(state, free, club.id), randInt(state.rng, 1, 3));
+      else signFromAbroad(state, club, 'GK', wanted, keepers > 0);
+      keepers++;
+    }
+  }
+}
+
 /** Computer clubs pick up free agents when their squads are thin. */
 function aiFreeAgents(state: GameState): void {
   const humanId = state.manager.clubId;
-  const free = Object.values(state.world.players).filter((p) => !p.clubId && ageOn(p.dateOfBirth, state.date) <= 34);
+  const free = Object.values(state.world.players).filter((p) => !p.clubId && !p.retired && ageOn(p.dateOfBirth, state.date) <= 34);
   if (free.length === 0) return;
   const squads = squadIndex(state);
   for (const club of Object.values(state.world.clubs)) {
@@ -529,6 +609,7 @@ export function transferDay(state: GameState): void {
   const deals = poisson(state.rng, summer ? 1.2 : 0.6);
   for (let i = 0; i < deals; i++) aiSigning(state);
   if (md === '07-15' || md === '08-20' || md === '01-25') aiFreeAgents(state);
+  if (md === '07-03' || md === '08-25' || md === '01-05') ensureKeepers(state);
   if (state.manager.clubId && chance(state.rng, summer ? 0.05 : 0.035)) aiBidForHumanPlayer(state);
   if (state.manager.clubId && new Date(`${state.date}T00:00:00Z`).getUTCDay() === 1) weeklyRoundUp(state);
 }

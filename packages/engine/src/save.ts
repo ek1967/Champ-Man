@@ -35,6 +35,14 @@ function migrate(state: GameState): GameState {
     state.transfers ??= { bids: [], history: [], counter: 0 };
     state.version = 4;
   }
+  if (state.version === 4) {
+    // v5: development history.
+    for (const player of Object.values(state.world.players)) {
+      player.abilityHistory ??= [];
+      player.growthCarry ??= 0;
+    }
+    state.version = 5;
+  }
   return state;
 }
 

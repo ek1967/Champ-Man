@@ -13,10 +13,11 @@ import type {
   CompetitionSeason, Fixture, GameState, Id, MatchResult, Player, PlayerSeasonStats, World,
 } from './types.ts';
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
+import { developmentDay } from './development.ts';
 import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const GAME_START_DATE: ISODate = '2026-06-15';
 
 export interface NewGameOptions {
@@ -488,6 +489,7 @@ function recoverFitness(state: GameState): void {
 
 function dailyTasks(state: GameState): void {
   recoverFitness(state);
+  developmentDay(state);
   transferDay(state);
   const md = monthDay(state.date);
   const nations = new Set<Id>();

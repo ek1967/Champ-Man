@@ -100,6 +100,8 @@ export function worldFromPack(pack: WorldPack, seed: string, today: ISODate): Wo
       suspension: 0,
       form: [],
       transferListed: false,
+      abilityHistory: [],
+      growthCarry: 0,
     };
     if (source.knownAs) player.knownAs = source.knownAs;
     world.players[player.id] = player;

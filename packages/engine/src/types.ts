@@ -86,6 +86,12 @@ export interface Player {
   form: number[];
   /** Put up for sale by their club. */
   transferListed: boolean;
+  /** Retired players stay in the world for history but play no further part. */
+  retired?: boolean;
+  /** Current Ability at the start of each month, oldest first (last three years). */
+  abilityHistory: Array<[ISODate, number]>;
+  /** Fraction of an ability point carried between monthly updates. */
+  growthCarry: number;
 }
 
 export interface Competition {
@@ -252,7 +258,8 @@ export interface TransferRecord {
   fromId: Id | null;
   toId: Id | null;
   fee: number;
-  kind: 'transfer' | 'free' | 'released';
+  /** 'import': signed from a club outside the simulated leagues. */
+  kind: 'transfer' | 'free' | 'released' | 'import';
 }
 
 export interface TransferMarket {

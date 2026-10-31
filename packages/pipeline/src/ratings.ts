@@ -151,7 +151,9 @@ export function potentialHeadroom(age: number, ca: number): number {
   const base = HEADROOM_BY_AGE[Math.max(16, Math.min(28, age))] ?? 0;
   // Young players already good for their age have the most room.
   const precocity = age <= 22 ? Math.max(0, (ca - 110) / 60) : 0;
-  return Math.round(Math.min(200 - ca, base * (1 + 0.5 * precocity)));
+  // Elite potential is rare: keep most players below 190.
+  const ceiling = Math.max(0, 190 - ca);
+  return Math.round(Math.min(ceiling, base * (1 + 0.25 * precocity)));
 }
 
 /**

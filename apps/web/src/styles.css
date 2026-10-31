@@ -1634,6 +1634,18 @@ tr.is-sub td:first-child {
   margin: 0 0 8px;
 }
 
+tr.group-row td {
+  background: var(--panel-alt);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.tag-line {
+  margin: 0 0 8px;
+}
+
 /* ---------- Ratings ---------- */
 
 .stars {

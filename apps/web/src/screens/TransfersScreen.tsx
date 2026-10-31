@@ -228,9 +228,13 @@ function Bids({ game }: { game: GameState }) {
                   <td>{playerCell(b)}</td>
                   <td>{clubCell(b.buyerId)}</td>
                   <td className="right">{formatMoney(b.fee)}</td>
-                  <td>{b.status === 'pending' ? `Answer by ${formatShort(b.respondOn)}` : BID_STATUS_LABEL[b.status]}</td>
+                  <td>
+                    {b.kind === 'loan' ? 'Loan · ' : ''}
+                    {b.status === 'pending' ? (b.kind === 'loan' ? 'Waiting for an answer' : `Answer by ${formatShort(b.respondOn)}`) : BID_STATUS_LABEL[b.status]}
+                    {b.status === 'agreed' && b.moveOn ? ` (${formatShort(b.moveOn)})` : ''}
+                  </td>
                   <td className="right">
-                    {b.status === 'pending' && (
+                    {b.status === 'pending' && b.kind !== 'loan' && (
                       <span className="button-row">
                         <button className="btn small primary" onClick={() => act((g) => answerIncomingBid(g, b.id, true))}>Accept</button>
                         <button className="btn small" onClick={() => act((g) => answerIncomingBid(g, b.id, false))}>Reject</button>
@@ -243,6 +247,8 @@ function Bids({ game }: { game: GameState }) {
           </table>
         </div>
       )}
+      <h2>Loans</h2>
+      <LoansSummary game={game} />
       <h2>Your offers</h2>
       {outgoing.length === 0 ? (
         <p className="muted">You haven't made any offers. Find a player and make one from their page.</p>
@@ -260,7 +266,11 @@ function Bids({ game }: { game: GameState }) {
                   <td>{clubCell(b.sellerId)}</td>
                   <td className="right">{formatMoney(b.fee)}</td>
                   <td>
-                    <span className={`bid-pill ${b.status}`}>{BID_STATUS_LABEL[b.status]}</span>
+                    <span className={`bid-pill ${b.status}`}>
+                      {b.kind === 'loan' ? 'Loan · ' : ''}
+                      {BID_STATUS_LABEL[b.status]}
+                      {b.status === 'agreed' && b.moveOn ? ` (${formatShort(b.moveOn)})` : ''}
+                    </span>
                     {b.note && <span className="muted small"> {b.note}</span>}
                   </td>
                 </tr>
@@ -273,11 +283,46 @@ function Bids({ game }: { game: GameState }) {
   );
 }
 
+/** Players you've lent out and players you're borrowing. */
+export function LoansSummary({ game }: { game: GameState }) {
+  const clubId = game.manager.clubId!;
+  const out = Object.values(game.world.players).filter((p) => p.loan?.fromId === clubId);
+  const borrowed = Object.values(game.world.players).filter((p) => p.loan && p.clubId === clubId);
+  const row = (p: Player, otherId: string) => {
+    const other = game.world.clubs[otherId];
+    return (
+      <tr key={p.id}>
+        <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
+        <td>{other && <ClubName club={other} short />}</td>
+        <td>{formatShort(p.loan!.until)} {p.loan!.until.slice(0, 4)}</td>
+        <td className="right">{(() => {
+          const s = p.stats.filter((x) => x.clubId === p.clubId).at(-1);
+          return s ? `${s.apps} apps, ${s.goals} gls` : '–';
+        })()}</td>
+      </tr>
+    );
+  };
+  if (out.length === 0 && borrowed.length === 0) return <p className="muted">No players on loan. Loan players out or borrow them from their player pages.</p>;
+  return (
+    <div className="table-wrap">
+      <table className="data">
+        <thead><tr><th>Player</th><th>Club</th><th>Until</th><th className="right">This season</th></tr></thead>
+        <tbody>
+          {out.length > 0 && <tr className="group-row"><td colSpan={4}>Out on loan</td></tr>}
+          {out.map((p) => row(p, p.clubId!))}
+          {borrowed.length > 0 && <tr className="group-row"><td colSpan={4}>Borrowed</td></tr>}
+          {borrowed.map((p) => row(p, p.loan!.fromId))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function Deals({ game }: { game: GameState }) {
   const [leagueOnly, setLeagueOnly] = useState(true);
   const leagueId = game.world.clubs[game.manager.clubId ?? '']?.leagueId;
   const deals = recentTransfers(game, 300).filter((r) => {
-    if (r.kind === 'released') return false;
+    if (r.kind === 'released' || r.kind === 'loanReturn') return false;
     if (!leagueOnly) return true;
     return (r.toId && game.world.clubs[r.toId]?.leagueId === leagueId) || (r.fromId && game.world.clubs[r.fromId]?.leagueId === leagueId);
   });
@@ -306,7 +351,7 @@ function Deals({ game }: { game: GameState }) {
                     <td>{p && <EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink>}</td>
                     <td>{from ? <ClubName club={from} short /> : <span className="muted">{r.kind === 'import' ? 'Abroad' : 'Free agent'}</span>}</td>
                     <td>{to && <ClubName club={to} short />}</td>
-                    <td className="right">{r.fee > 0 ? formatMoney(r.fee) : 'Free'}</td>
+                    <td className="right">{r.kind === 'loan' ? 'Loan' : r.fee > 0 ? formatMoney(r.fee) : 'Free'}</td>
                   </tr>
                 );
               })}

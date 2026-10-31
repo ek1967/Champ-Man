@@ -1,7 +1,7 @@
 import {
-  activeBidFor, ageOn, answerIncomingBid, releaseByManager, releaseCost, askingPrice, type Bid, type ContractOffer, formatLong, formatMoney, formatShort,
-  type GameState, makeBid, nextWindowOpens, offerContract, openWindow, type Player, renewContract, setTransferListed,
-  wageDemand, willingToJoin,
+  activeBidFor, ageOn, agreedMoveFor, answerIncomingBid, askingPrice, type Bid, type ContractOffer, formatLong, formatMoney,
+  formatShort, type GameState, type LoanLength, makeBid, nextWindowOpens, offerContract, offerLoanOut, openWindow, type Player,
+  preContractAllowed, releaseByManager, releaseCost, renewContract, requestLoan, setTransferListed, wageDemand, willingToJoin,
 } from '@moc/engine';
 import { type ReactNode, useState } from 'react';
 import { act } from '../state/store.ts';
@@ -20,6 +20,7 @@ export const BID_STATUS_LABEL: Record<Bid['status'], string> = {
   countered: 'They want more',
   rejected: 'Rejected',
   accepted: 'Fee agreed: agree terms',
+  agreed: 'Agreed: moves when the window opens',
   completed: 'Completed',
   collapsed: 'Fell through',
   withdrawn: 'Withdrawn',
@@ -28,7 +29,35 @@ export const BID_STATUS_LABEL: Record<Bid['status'], string> = {
 /** Window status in one line, e.g. "Window open until 1 Sep" or "Window opens 1 Jan". */
 export function windowLine(date: string): string {
   const w = openWindow(date);
-  return w ? `The ${w.name} window is open until ${formatShort(w.closes)}.` : `The transfer window is closed. It opens on ${formatShort(nextWindowOpens(date))}.`;
+  return w
+    ? `The ${w.name} window is open until ${formatShort(w.closes)}.`
+    : `The window opens on ${formatShort(nextWindowOpens(date))}. You can agree deals now; players move when it opens.`;
+}
+
+function clubName(game: GameState, id: string | undefined | null): string {
+  return (id && game.world.clubs[id]?.shortName) || '?';
+}
+
+/** "Agreed to join Arsenal on 1 Jul", "On loan from Chelsea until 30 Jun", or nothing. */
+export function movementNote(game: GameState, player: Player): string | null {
+  if (player.loan) return `On loan from ${clubName(game, player.loan.fromId)} until ${formatShort(player.loan.until)} ${player.loan.until.slice(0, 4)}`;
+  const agreed = agreedMoveFor(game, player.id);
+  if (agreed?.moveOn) {
+    return `${agreed.kind === 'loan' ? 'Agreed a loan to' : 'Agreed to join'} ${clubName(game, agreed.buyerId)} on ${formatShort(agreed.moveOn)}`;
+  }
+  return null;
+}
+
+function LoanLengthPicker(props: { id: string; value: LoanLength; onChange: (v: LoanLength) => void }) {
+  return (
+    <label className="money-field" htmlFor={props.id}>
+      <span>Until</span>
+      <select id={props.id} value={props.value} onChange={(e) => props.onChange(e.target.value as LoanLength)}>
+        <option value="january">31 December</option>
+        <option value="season">End of the season</option>
+      </select>
+    </label>
+  );
 }
 
 /** Everything the manager can do about a player's future: sign, bid, renew, list. */
@@ -40,11 +69,23 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
   const free = player.clubId === null;
   const age = ageOn(player.dateOfBirth, game.date);
 
+  const note = movementNote(game, player);
+
+  if (mine && player.loan) {
+    return (
+      <section className="transfer-panel">
+        <h2>On loan</h2>
+        <p>{note}. You pay their wages of {formatMoney(player.contract?.wage ?? 0)} a week.</p>
+      </section>
+    );
+  }
+
   if (mine) {
-    const incoming = game.transfers.bids.filter((b) => b.playerId === player.id && b.sellerId === clubId && b.status === 'pending');
+    const incoming = game.transfers.bids.filter((b) => b.playerId === player.id && b.sellerId === clubId && b.status === 'pending' && b.kind !== 'loan');
     return (
       <section className="transfer-panel">
         <h2>Contract and transfers</h2>
+        {note && <p className="tag-line"><span className="tag listed">{note}</span></p>}
         <p>
           Contract until {player.contract ? formatLong(player.contract.expires).slice(4) : '—'} on{' '}
           {player.contract ? formatMoney(player.contract.wage) : '—'} a week · Value {formatMoney(player.value)} · Your board would want about{' '}
@@ -62,6 +103,7 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
         {incoming.map((bid) => (
           <IncomingBid key={bid.id} game={game} bid={bid} onDone={setFeedback} />
         ))}
+        <LoanOutControl player={player} onDone={setFeedback} />
         <ReleaseControl game={game} player={player} onDone={setFeedback} />
         <h3>Offer a new contract</h3>
         <ContractForm
@@ -91,11 +133,21 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
   }
 
   const bid = activeBidFor(game, player.id, clubId);
-  const windowOpen = openWindow(game.date) !== null;
+  const agreedHere = game.transfers.bids.find((b) => b.playerId === player.id && b.buyerId === clubId && b.status === 'agreed');
+  const preContract = !bid && !agreedHere && preContractAllowed(game, player);
+  if (player.loan || (note && !agreedHere)) {
+    return (
+      <section className="transfer-panel">
+        <h2>Transfer</h2>
+        <p>{note}. Not available for now.</p>
+      </section>
+    );
+  }
   return (
     <section className="transfer-panel">
       <h2>Transfer</h2>
       <p className="muted">{windowLine(game.date)}</p>
+      {agreedHere && <p className="feedback ok">{agreedHere.kind === 'loan' ? 'Loan agreed' : 'Deal agreed'}: joins you on {formatShort(agreedHere.moveOn ?? game.date)}.</p>}
       <p>
         Value {formatMoney(player.value)} · Contract until {player.contract ? formatLong(player.contract.expires).slice(4) : '—'}
         {player.transferListed && <span className="tag listed">Transfer-listed</span>}
@@ -115,7 +167,16 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
           )}
         </div>
       )}
-      {windowOpen && (!bid || bid.status === 'countered') && (
+      {preContract && (
+        <>
+          <h3>Pre-contract</h3>
+          <p className="small">
+            {player.knownAs ?? player.lastName}'s contract ends in June, so you can agree a free transfer now. The move happens on 1 July.
+          </p>
+          <ContractForm idPrefix="pre" demand={wageDemand(game, player, clubId)} maxYears={age >= 32 ? 2 : 5} onSubmit={signFree} submitLabel="Offer pre-contract" />
+        </>
+      )}
+      {!agreedHere && (!bid || bid.status === 'countered') && (
         <BidForm
           idPrefix="bid"
           suggested={bid?.asking ?? player.value}
@@ -127,8 +188,43 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
           onSubmit={(fee) => setFeedback(act((g) => makeBid(g, player.id, fee)))}
         />
       )}
+      {!agreedHere && !bid && <LoanRequestControl player={player} onDone={setFeedback} />}
       <FeedbackLine feedback={feedback} />
     </section>
+  );
+}
+
+function LoanRequestControl({ player, onDone }: { player: Player; onDone: (f: Feedback) => void }) {
+  const [length, setLength] = useState<LoanLength>('season');
+  return (
+    <form
+      className="money-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onDone(act((g) => requestLoan(g, player.id, length)));
+      }}
+    >
+      <LoanLengthPicker id="loan-in-length" value={length} onChange={setLength} />
+      <span className="muted small">You pay the player's wages.</span>
+      <button className="btn" type="submit">Ask to borrow</button>
+    </form>
+  );
+}
+
+function LoanOutControl({ player, onDone }: { player: Player; onDone: (f: Feedback) => void }) {
+  const [length, setLength] = useState<LoanLength>('season');
+  return (
+    <form
+      className="money-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onDone(act((g) => offerLoanOut(g, player.id, length)));
+      }}
+    >
+      <LoanLengthPicker id="loan-out-length" value={length} onChange={setLength} />
+      <span className="muted small">Regular games help young players develop.</span>
+      <button className="btn" type="submit">Offer out on loan</button>
+    </form>
   );
 }
 

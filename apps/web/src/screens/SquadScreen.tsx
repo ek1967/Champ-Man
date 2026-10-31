@@ -90,6 +90,7 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
             <>
               {status && <span className="tag danger" title={status}>{status.startsWith('Injured') ? 'Inj' : 'Sus'}</span>}
               {p.transferListed && <span className="tag listed">Listed</span>}
+              {p.loan && <span className="tag" title={`On loan from ${game.world.clubs[p.loan.fromId]?.shortName}`}>Loan</span>}
             </>
           );
         },

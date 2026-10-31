@@ -287,7 +287,7 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
       const side = hashString(id) % 2 === 0 ? 'L' : 'R';
       const fromInfobox = row.article ? infobox.get(row.article) ?? [] : [];
       const labels = fromInfobox.length > 0 ? fromInfobox : wd?.positions ?? [];
-      const [position, ...secondary] = gamePositions(labels, row.pos, side) as [Position, ...Position[]];
+      const [position, ...secondary] = gamePositions(labels, row.pos, side, fromInfobox.length > 0) as [Position, ...Position[]];
       if (labels.length === 0) flags.push('position from squad list only');
       else if (fromInfobox.length === 0) flags.push('position from Wikidata');
       const nat = nationForCode(row.nat, unknownCodes);

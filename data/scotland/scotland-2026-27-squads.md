@@ -30,7 +30,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 7 | Jota | AML | 27 | POR | 121 | 2.5 |  |
 | 23 | Haissem Hassan | AMR | 24 | EGY | 121 | 2.5 |  |
 | 26 | Sam Johnstone | GK | 33 | ENG | 119 | 2.5 |  |
-| 14 | Luke McCowan | WBL | 28 | SCO | 118 | 2.5 |  |
+| 14 | Luke McCowan | MC | 28 | SCO | 118 | 2.5 |  |
 | 21 | Alex Oxlade-Chamberlain | MC | 32 | ENG | 118 | 2.5 |  |
 | 42 | Callum McGregor | MC | 33 | SCO | 117 | 2.5 |  |
 | 31 | Ross Doohan | GK | 28 | SCO | 116 | 2 |  |
@@ -59,7 +59,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 21 | Dujon Sterling | DR | 26 | ENG | 119 | 2.5 |  |
 | 7 | Lawrence Shankland | ST | 30 | SCO | 118 | 2.5 |  |
 | 25 | Tuur Rommens | DL | 23 | BEL | 118 | 2.5 |  |
-| 2 | Ross McCrorie | DM | 28 | SCO | 117 | 2.5 |  |
+| 2 | Ross McCrorie | DC | 28 | SCO | 117 | 2.5 |  |
 | 23 | Djeidi Gassama | AML | 22 | MTN | 116 | 2 |  |
 | 31 | Liam Kelly | GK | 30 | SCO | 114 | 2 |  |
 | 29 | James Penrice | DL | 27 | SCO | 113 | 2 |  |
@@ -157,7 +157,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 8 | Josh Mulligan | MC | 23 | SCO | 106 | 2 |  |
 | 22 | Ante Šuto | ST | 25 | AUS | 106 | 2 |  |
 | 25 | Felix Passlack | DR | 28 | GER | 105 | 2 |  |
-| 5 | Marko Ivezić | DM | 24 | SRB | 104 | 2 |  |
+| 5 | Marko Ivezić | DC | 24 | SRB | 104 | 2 |  |
 | 11 | Joe Newell | MC | 33 | ENG | 104 | 2 |  |
 | 12 | Alex Williams | DR | 21 | WAL | 104 | 2 |  |
 | 18 | Thibault Klidjé | ST | 24 | TOG | 104 | 2 |  |
@@ -347,7 +347,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 23 | Ethan Ross | MC | 24 | SCO | 97 | 1.5 |  |
 | 9 | Ross MacIver | ST | 27 | SCO | 96 | 1.5 |  |
 | 10 | Craig Sibbald | MC | 31 | SCO | 96 | 1.5 |  |
-| 20 | Connor Allan | DM | 23 | SCO | 96 | 1.5 | no birth date (age 24 guessed) |
+| 20 | Connor Allan | DC | 23 | SCO | 96 | 1.5 | no birth date (age 24 guessed) |
 | 21 | Deniss Meļņiks | DC | 23 | LVA | 96 | 1.5 |  |
 | 27 | Conor McLeod | MC | 23 | ENG | 96 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 4 | Jack McMillan | DR | 28 | SCO | 95 | 1.5 |  |
@@ -365,7 +365,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 99 | CJ Fodrey | AML | 22 | USA | 87 | 1 |  |
 | 19 | Scott Bain | GK | 34 | SCO | 85 | 1 |  |
 | 38 | Leo Harris | MC | 20 | SCO | 85 | 1 | no birth date (age 20 guessed); position from squad list only |
-| 18 | Joe Gardner | AMR | 20 | IRL | 83 | 1 |  |
+| 18 | Joe Gardner | ST | 20 | IRL | 83 | 1 |  |
 | 47 | Aodhan Doherty | AMR | 20 | NIR | 80 | 1 |  |
 | 42 | Owen Eames | MC | 19 | ENG | 74 | 0.5 |  |
 
@@ -481,12 +481,12 @@ each club's level, age, squad number and senior caps; correct them in
 | 25 | Aaron Donnelly | DC | 23 | NIR | 82 | 1 |  |
 | 18 | Kian Corbally | MC | 22 | IRL | 80 | 1 |  |
 | 47 | Robbie Fraser | DC | 23 | SCO | 77 | 0.5 |  |
-| 16 | Rory MacLeod | AMR | 20 | SCO | 76 | 0.5 |  |
+| 16 | Rory MacLeod | ST | 20 | SCO | 76 | 0.5 |  |
 | 24 | Dylan Lobban | DR | 20 | SCO | 76 | 0.5 |  |
 | 22 | Keith Bray | MC | 20 | SCO | 75 | 0.5 |  |
 | 40 | Billy Terrell | GK | 23 | ENG | 72 | 0.5 |  |
 | 19 | Allan Oyirwoth | MC | 19 | UGA | 71 | 0.5 |  |
-| 26 | Andrew Tod | AMR | 20 | SCO | 69 | 0.5 |  |
+| 26 | Andrew Tod | MC | 20 | SCO | 69 | 0.5 |  |
 | 36 | Thomas Margetts | GK | 20 | SCO | 69 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 33 | Josh Cooper | MC | 19 | SCO | 68 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 38 | James Hardie | MC | 19 | SCO | 64 | 0.5 | no birth date (age 20 guessed); position from squad list only |
@@ -556,7 +556,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 1 | Josh Rae | GK | 25 | SCO | 87 | 1 |  |
 | 6 | Jack Baird | DC | 30 | SCO | 87 | 1 |  |
 | 8 | Kyle Turner | MC | 28 | SCO | 86 | 1 |  |
-| 10 | Lewis Vaughan | AMR | 30 | SCO | 85 | 1 |  |
+| 10 | Lewis Vaughan | ST | 30 | SCO | 85 | 1 |  |
 | 15 | Scott Tiffoney | AML | 27 | SCO | 85 | 1 |  |
 | 9 | George Oakley | ST | 30 | ENG | 84 | 1 |  |
 | 21 | Charlie Telfer | MC | 30 | SCO | 84 | 1 |  |
@@ -618,7 +618,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 24 | Aiden McCallion | MC | 23 | SCO | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 25 | Zebedee Lawson | ST | 24 | ENG | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 3 | Magnus Mackenzie | DC | 24 | SCO | 81 | 1 | no birth date (age 24 guessed); position from squad list only |
-| 4 | Euan Murray | DM | 32 | SCO | 81 | 1 |  |
+| 4 | Euan Murray | DC | 32 | SCO | 81 | 1 |  |
 | 5 | Ricki Lamie | DC | 32 | SCO | 80 | 1 |  |
 | 8 | Scott Martin | DM | 29 | SCO | 80 | 1 |  |
 | 12 | Carlo Pignatiello | DC | 26 | SCO | 80 | 1 |  |

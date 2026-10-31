@@ -130,9 +130,13 @@ function positionForLabel(label: string, side: 'L' | 'R'): Position | null {
  * as DF plays at the back). A bare "defender" only counts when nothing more precise is known.
  * `side` breaks ties for wide players whose side isn't known.
  */
-export function gamePositions(labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R'): Position[] {
+export function gamePositions(
+  labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R', ordered = false,
+): Position[] {
   if (wikiPos === 'GK') return ['GK'];
-  const precise = labels.filter((l) => !/^\s*(defender|midfielder)\s*$/i.test(l));
+  // An article's infobox lists positions in order of importance, so a generic first label counts there;
+  // Wikidata's order means nothing, so precise labels win.
+  const precise = ordered ? [...labels] : labels.filter((l) => !/^\s*(defender|midfielder)\s*$/i.test(l));
   const out: Position[] = [];
   for (const label of [...precise, ...labels]) {
     // Generic labels are only a fallback.

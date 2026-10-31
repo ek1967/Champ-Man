@@ -130,6 +130,8 @@ describe('positions from player articles', () => {
     expect(gamePositions(['defender'], 'DF', 'R')).toEqual(['DC']);
     expect(gamePositions(['Winger', 'forward'], 'FW', 'L')).toEqual(['AML', 'ST']);
     expect(gamePosition(['Right winger'], 'MF', 'L')).toBe('AMR');
+    // In an infobox the order counts: "Midfielder, left wing-back" is a midfielder first.
+    expect(gamePositions(['Midfielder', 'left wing-back'], 'MF', 'R', true)).toEqual(['MC', 'WBL']);
   });
 
   it('maps article texts back to the titles as linked', () => {

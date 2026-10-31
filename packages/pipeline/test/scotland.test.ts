@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fitToLevel, headroomFor, relativeAbility } from '../src/scotland/estimate.ts';
-import { gamePosition, isSeniorNationalTeam, parsePlayers, playersQuery } from '../src/scotland/wikidata.ts';
+import { gamePosition, isSeniorNationalTeam, pagePropsUrl, parsePageProps, parsePlayers, playersQuery } from '../src/scotland/wikidata.ts';
 import { parseName, parseSquad, splitParams } from '../src/scotland/wikitext.ts';
 
 const WIKITEXT = `
@@ -47,21 +47,37 @@ describe('reading squads from Wikipedia', () => {
 });
 
 describe('Wikidata', () => {
+  it('finds Wikidata ids through redirects and normalised titles', () => {
+    expect(pagePropsUrl(['Callum McGregor', 'Jota (footballer, born 1999)'])).toContain('redirects=1');
+    const ids = parsePageProps({
+      query: {
+        normalized: [{ from: 'callum McGregor', to: 'Callum McGregor' }],
+        redirects: [{ from: 'Jota (Portuguese footballer)', to: 'Jota (footballer, born 1999)' }],
+        pages: [
+          { title: 'Callum McGregor', pageprops: { wikibase_item: 'Q5025010' } },
+          { title: 'Jota (footballer, born 1999)', pageprops: { wikibase_item: 'Q27869446' } },
+          { title: 'Nobody', missing: true },
+        ],
+      },
+    }, ['callum McGregor', 'Jota (Portuguese footballer)', 'Nobody']);
+    expect([...ids]).toEqual([['callum McGregor', 'Q5025010'], ['Jota (Portuguese footballer)', 'Q27869446']]);
+  });
+
   it('builds a query and reads birth dates, positions and senior caps', () => {
-    expect(playersQuery(["Callum McGregor", "Kasper Schmeichel"])).toContain('<https://en.wikipedia.org/wiki/Callum_McGregor>');
+    expect(playersQuery(['Q5025010', 'Q1'])).toContain('wd:Q5025010 wd:Q1');
     const players = parsePlayers({
       results: {
         bindings: [
-          { article: { value: 'https://en.wikipedia.org/wiki/Callum_McGregor' }, dob: { value: '1993-06-14T00:00:00Z' }, posLabel: { value: 'midfielder' }, teamLabel: { value: 'Scotland national football team' } },
-          { article: { value: 'https://en.wikipedia.org/wiki/Callum_McGregor' }, posLabel: { value: 'defensive midfielder' }, teamLabel: { value: 'Scotland national under-21 football team' } },
-          { article: { value: 'https://en.wikipedia.org/wiki/Young_Lad' }, dob: { value: '2007-02-01T00:00:00Z' }, teamLabel: { value: 'Scotland national under-19 football team' } },
+          { item: { value: 'http://www.wikidata.org/entity/Q5025010' }, dob: { value: '1993-06-14T00:00:00Z' }, posLabel: { value: 'midfielder' }, teamLabel: { value: 'Scotland national football team' } },
+          { item: { value: 'http://www.wikidata.org/entity/Q5025010' }, posLabel: { value: 'defensive midfielder' }, teamLabel: { value: 'Scotland national under-21 football team' } },
+          { item: { value: 'http://www.wikidata.org/entity/Q9' }, dob: { value: '2007-02-01T00:00:00Z' }, teamLabel: { value: 'Scotland national under-19 football team' } },
         ],
       },
     });
-    expect(players.get('Callum McGregor')).toEqual({
-      article: 'Callum McGregor', dateOfBirth: '1993-06-14', positions: ['midfielder', 'defensive midfielder'], seniorInternational: true,
+    expect(players.get('Q5025010')).toEqual({
+      id: 'Q5025010', dateOfBirth: '1993-06-14', positions: ['midfielder', 'defensive midfielder'], seniorInternational: true,
     });
-    expect(players.get('Young Lad')!.seniorInternational).toBe(false);
+    expect(players.get('Q9')!.seniorInternational).toBe(false);
     expect(isSeniorNationalTeam('Republic of Ireland national association football team')).toBe(true);
     expect(isSeniorNationalTeam('England national under-21 football team')).toBe(false);
   });

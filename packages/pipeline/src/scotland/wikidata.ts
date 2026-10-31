@@ -5,7 +5,8 @@
 import type { Position } from '@moc/engine';
 
 export interface WikidataPlayer {
-  article: string;
+  /** Wikidata item id, e.g. 'Q312584'. */
+  id: string;
   dateOfBirth: string | null;
   /** Position labels, e.g. 'centre-back', 'winger'. */
   positions: string[];
@@ -13,14 +14,47 @@ export interface WikidataPlayer {
   seniorInternational: boolean;
 }
 
-/** A SPARQL query for a batch of article titles. */
-export function playersQuery(articles: readonly string[]): string {
-  const values = articles
-    .map((a) => `<https://en.wikipedia.org/wiki/${encodeURIComponent(a.replace(/ /g, '_')).replace(/%2F/g, '/')}>`)
-    .join(' ');
-  return `SELECT ?article ?dob ?posLabel ?teamLabel WHERE {
-  VALUES ?article { ${values} }
-  ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
+/**
+ * Wikipedia API request for the Wikidata ids of up to 50 articles. Redirects are followed, so a
+ * squad list linking to "Jota (footballer, born 1999)" or an old title still finds the player.
+ */
+export function pagePropsUrl(titles: readonly string[]): string {
+  const params = new URLSearchParams({
+    action: 'query', format: 'json', formatversion: '2', prop: 'pageprops', ppprop: 'wikibase_item', redirects: '1',
+    titles: titles.join('|'),
+  });
+  return `https://en.wikipedia.org/w/api.php?${params.toString()}`;
+}
+
+interface PagePropsJson {
+  query?: {
+    normalized?: Array<{ from: string; to: string }>;
+    redirects?: Array<{ from: string; to: string }>;
+    pages?: Array<{ title: string; missing?: boolean; pageprops?: { wikibase_item?: string } }>;
+  };
+}
+
+/** Article title as linked → Wikidata id, through Wikipedia's normalisation and redirects. */
+export function parsePageProps(json: PagePropsJson, titles: readonly string[]): Map<string, string> {
+  const q = json.query ?? {};
+  const normalized = new Map((q.normalized ?? []).map((n) => [n.from, n.to]));
+  const redirects = new Map((q.redirects ?? []).map((r) => [r.from, r.to]));
+  const ids = new Map<string, string>();
+  for (const page of q.pages ?? []) if (page.pageprops?.wikibase_item) ids.set(page.title, page.pageprops.wikibase_item);
+  const out = new Map<string, string>();
+  for (const title of titles) {
+    let t = normalized.get(title) ?? title;
+    for (let hops = 0; hops < 3 && redirects.has(t); hops++) t = redirects.get(t)!;
+    const id = ids.get(t);
+    if (id) out.set(title, id);
+  }
+  return out;
+}
+
+/** A SPARQL query for a batch of Wikidata items. */
+export function playersQuery(ids: readonly string[]): string {
+  return `SELECT ?item ?dob ?posLabel ?teamLabel WHERE {
+  VALUES ?item { ${ids.map((id) => `wd:${id}`).join(' ')} }
   OPTIONAL { ?item wdt:P569 ?dob . }
   OPTIONAL { ?item wdt:P413 ?pos . ?pos rdfs:label ?posLabel . FILTER(LANG(?posLabel) = "en") }
   OPTIONAL {
@@ -34,24 +68,20 @@ interface SparqlJson {
   results: { bindings: Array<Record<string, { value: string } | undefined>> };
 }
 
-/** Article title from a Wikipedia URL. */
-function titleOf(url: string): string {
-  return decodeURIComponent(url.replace('https://en.wikipedia.org/wiki/', '')).replace(/_/g, ' ');
-}
-
 /** True for senior national teams ("Scotland national football team"), not U21, B or Olympic sides. */
 export function isSeniorNationalTeam(label: string): boolean {
   return /national (association )?football team/i.test(label) && !/under-?\s?\d|\bU-?\d{2}\b|\bB\b|olympic|youth|amateur|futsal|beach/i.test(label);
 }
 
+/** Wikidata id → birth date, positions and senior caps. */
 export function parsePlayers(json: SparqlJson): Map<string, WikidataPlayer> {
   const out = new Map<string, WikidataPlayer>();
   for (const b of json.results.bindings) {
-    const url = b.article?.value;
+    const url = b.item?.value;
     if (!url) continue;
-    const article = titleOf(url);
-    let p = out.get(article);
-    if (!p) out.set(article, (p = { article, dateOfBirth: null, positions: [], seniorInternational: false }));
+    const id = url.slice(url.lastIndexOf('/') + 1);
+    let p = out.get(id);
+    if (!p) out.set(id, (p = { id, dateOfBirth: null, positions: [], seniorInternational: false }));
     const dob = b.dob?.value;
     if (dob && !p.dateOfBirth && /^\+?\d{4}-\d{2}-\d{2}/.test(dob)) p.dateOfBirth = dob.replace(/^\+/, '').slice(0, 10);
     const pos = b.posLabel?.value;

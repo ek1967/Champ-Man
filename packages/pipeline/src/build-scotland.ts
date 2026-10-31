@@ -24,7 +24,7 @@ import { FPL_REGIONS } from './nations.ts';
 import { PREMIERSHIP_CLUBS, SCOTTISH_CHAMPIONSHIP_CLUBS, type ScottishClub } from './scotland/clubs.ts';
 import { type EstimateInput, fitToLevel, headroomFor, relativeAbility } from './scotland/estimate.ts';
 import { SCOTTISH_OVERRIDES } from './scotland/overrides.ts';
-import { gamePosition, parsePlayers, playersQuery, type WikidataPlayer } from './scotland/wikidata.ts';
+import { gamePosition, pagePropsUrl, parsePageProps, parsePlayers, playersQuery, type WikidataPlayer } from './scotland/wikidata.ts';
 import { parseSquad, type SquadRow } from './scotland/wikitext.ts';
 
 const refresh = process.argv.includes('--refresh');
@@ -171,11 +171,25 @@ function topUp(info: ScottishClub, have: readonly PackPlayer[], size: number, us
   return generated.map((p) => ({ ...p, ca: Math.max(35, p.ca - 10) }));
 }
 
+/** Countries in Scottish squads that no English squad has (FIFA code → name, name pool). */
+const EXTRA_NATIONS: Record<string, [string, string]> = {
+  FIN: ['Finland', 'dutch'], MTN: ['Mauritania', 'french'], MKD: ['North Macedonia', 'czech'], FRO: ['Faroe Islands', 'dutch'],
+  UGA: ['Uganda', 'english'], ZAM: ['Zambia', 'english'], TOG: ['Togo', 'french'], SLE: ['Sierra Leone', 'english'],
+  MDA: ['Moldova', 'czech'], GRN: ['Grenada', 'english'], SKN: ['Saint Kitts and Nevis', 'english'], KEN: ['Kenya', 'english'],
+  CYP: ['Cyprus', 'english'], JER: ['Jersey', 'english'], ISL: ['Iceland', 'dutch'], LTU: ['Lithuania', 'czech'],
+  LVA: ['Latvia', 'czech'], EST: ['Estonia', 'czech'], MLT: ['Malta', 'italian'], GIB: ['Gibraltar', 'english'],
+  BER: ['Bermuda', 'english'], TRI: ['Trinidad and Tobago', 'english'], GUY: ['Guyana', 'english'], LBR: ['Liberia', 'english'],
+  GAM: ['Gambia', 'english'], GUI: ['Guinea', 'french'], MLI: ['Mali', 'french'], BEN: ['Benin', 'french'], NZL: ['New Zealand', 'english'],
+  PHI: ['Philippines', 'english'], THA: ['Thailand', 'english'], CUW: ['Curaçao', 'dutch'], SUR: ['Suriname', 'dutch'],
+};
+
 /** Country for a FIFA code from the squad list ('SCO' → Scotland). */
 function nationForCode(code: string, unknown: Set<string>): Nation {
   const id = code.toLowerCase();
   const known = allNations.get(id);
   if (known) return id === 'sco' ? nation('sco') : known;
+  const extra = EXTRA_NATIONS[code];
+  if (extra) return { id, name: extra[0], code, namePool: extra[1] };
   unknown.add(code);
   return { id: id || 'unk', name: code || 'Unknown', code: code || '???', namePool: 'english' };
 }
@@ -219,11 +233,22 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
     }
   }
 
-  // Wikidata, in batches.
+  // Wikidata ids through Wikipedia (which follows redirects), then the details from Wikidata.
   const articles = [...new Set([...squads.values()].flatMap((s) => s.rows.map((r) => r.article).filter((a): a is string => !!a)))];
+  const idByArticle = new Map<string, string>();
+  for (let i = 0; i < articles.length; i += 50) {
+    const batch = articles.slice(i, i + 50);
+    const url = pagePropsUrl(batch);
+    const text = await fetchCached(url, `scotland/pageprops-${hashString(url).toString(16)}.json`, refresh, HEADERS);
+    for (const [title, id] of parsePageProps(JSON.parse(text), batch)) idByArticle.set(title, id);
+    if (refresh) await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
+  const missing = articles.filter((a) => !idByArticle.has(a));
+  if (missing.length > 0) notes.push(`No Wikidata entry found for ${missing.length} linked article(s): ${missing.slice(0, 30).join(', ')}${missing.length > 30 ? ', …' : ''}.`);
+  const ids = [...new Set(idByArticle.values())];
   const wikidata = new Map<string, WikidataPlayer>();
-  for (let i = 0; i < articles.length; i += 40) {
-    const query = playersQuery(articles.slice(i, i + 40));
+  for (let i = 0; i < ids.length; i += 60) {
+    const query = playersQuery(ids.slice(i, i + 60));
     const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
     const text = await fetchCached(url, `scotland/wikidata-${hashString(query).toString(16)}.json`, refresh, { ...HEADERS, Accept: 'application/sparql-results+json' });
     for (const [k, v] of parsePlayers(JSON.parse(text))) wikidata.set(k, v);
@@ -237,7 +262,8 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
     const built: Array<{ row: SquadRow; input: EstimateInput; position: Position; nation: Nation; dob: string; flags: string[] }> = [];
     for (const row of squadRows) {
       const id = `sco-${hashString(row.article ?? `${club.id}:${row.name}`).toString(36)}`;
-      const wd = row.article ? wikidata.get(row.article) : undefined;
+      const qid = row.article ? idByArticle.get(row.article) : undefined;
+      const wd = qid ? wikidata.get(qid) : undefined;
       const flags: string[] = [];
       let dob = wd?.dateOfBirth ?? null;
       if (!dob) {

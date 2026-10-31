@@ -1,4 +1,5 @@
 import { deserializeGame, type GameState, serializeGame } from '@moc/engine';
+import { saveFileViaClaude, sendFileToClaude } from './claude.ts';
 
 /** One career slot in IndexedDB. Small and dependency-free; more slots can come later. */
 const DB_NAME = 'manager-of-champions';
@@ -68,12 +69,24 @@ export async function deleteCareer(): Promise<void> {
 }
 
 /** Downloads the save as a file, so careers can be backed up or moved between browsers. */
-export function exportCareer(state: GameState): void {
+export async function exportCareer(state: GameState): Promise<void> {
   const blob = new Blob([serializeGame(state)], { type: 'application/json' });
+  const filename = `manager-of-champions-${state.date}.json`;
+  // Inside a Claude page, downloads go through the page runtime (which asks the viewer first).
+  const viaClaude = await saveFileViaClaude(filename, blob);
+  if (viaClaude !== false) return;
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `manager-of-champions-${state.date}.json`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Hands the current save to Claude (only possible when the game runs as a Claude page). */
+export async function sendCareerToClaude(state: GameState): Promise<string> {
+  const blob = new Blob([serializeGame(state)], { type: 'application/json' });
+  const id = await sendFileToClaude(blob);
+  if (!id) throw new Error('Sending a save to Claude only works in the published Claude page.');
+  return id;
 }

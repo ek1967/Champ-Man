@@ -64,7 +64,9 @@ export const RATING = {
    * as in real-world player valuations.
    */
   positionOffset: { GK: -4, DEF: -2, MID: 1, FWD: 2 } as Record<FplPosition, number>,
-  /** Per-90 figures need this many minutes to count. */
+  /** Per-90 figures need this many minutes to judge a player's style (position)… */
+  minStyleMinutes: 180,
+  /** …and this many to count towards their rating. */
   minPer90Minutes: 450,
 } as const;
 
@@ -93,7 +95,7 @@ export function percentiles(inputs: readonly RatingInput[]): Map<string, Percent
   const groups: FplPosition[] = ['GK', 'DEF', 'MID', 'FWD'];
   const keys: Array<keyof Per90> = ['xg', 'xa', 'threat', 'creativity', 'tackles', 'cbi', 'recoveries', 'bps'];
   for (const group of groups) {
-    const members = inputs.filter((i) => i.group === group && i.per90 && i.per90Minutes >= RATING.minPer90Minutes);
+    const members = inputs.filter((i) => i.group === group && i.per90 && i.per90Minutes >= RATING.minStyleMinutes);
     for (const key of keys) {
       const sorted = members.map((m) => (m.per90 as Per90)[key]).sort((a, b) => a - b);
       for (const m of members) {
@@ -123,8 +125,9 @@ export function currentAbility(input: RatingInput, pct: Percentiles | undefined)
   const price = (pct?.price ?? 0) ** 1.5;
   const club = clamp01((input.clubTier - 1) / 4);
   const minutes = Math.max(input.minutesNow, (input.minutesLast ?? 0) * 0.9);
-  const regularity = minutes * (0.6 + 0.4 * club);
-  const performance = pct?.bps ?? null;
+  // Club strength already counts once below; here it only slightly favours minutes at stronger clubs.
+  const regularity = minutes * (0.8 + 0.2 * club);
+  const performance = input.per90Minutes >= RATING.minPer90Minutes ? (pct?.bps ?? null) : null;
 
   const w = RATING.weights;
   let score: number;
@@ -177,7 +180,9 @@ export function detailedPositions(input: RatingInput, pct: Percentiles | undefin
       const attack = (p('threat') + p('xg') + p('creativity') + p('xa')) / 4;
       const defence = (p('tackles') + p('recoveries') + p('cbi')) / 3;
       if (defence - attack > 0.2) return { main: 'DM', positions: { DM: 20, MC: 16 } };
-      if (attack - defence > 0.15) {
+      // Expensive midfielders are nearly always attackers; it settles players with few minutes so far.
+      const pricedAsAttacker = input.price >= 7.5;
+      if (attack - defence > 0.08 || (pricedAsAttacker && attack - defence > -0.1)) {
         if (p('threat') > p('creativity')) {
           // Goal threat from midfield usually means a wide forward.
           const main: Position = side === 'L' ? 'AML' : 'AMR';

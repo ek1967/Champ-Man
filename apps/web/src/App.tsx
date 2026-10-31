@@ -8,7 +8,7 @@ import { ClubSwatch } from './components/ClubName.tsx';
 import { EntityLink } from './components/EntityLink.tsx';
 import { ordinal } from './components/format.ts';
 import { back, forward, navigate, type Route, useRoute } from './state/nav.ts';
-import { exportCareer, saveCareer } from './state/persistence.ts';
+import { exportCareer, saveCareer, sendCareerToClaude } from './state/persistence.ts';
 import { continueOnce, getLiveMatch, setGame, useGame } from './state/store.ts';
 import { ClubScreen, FixturesScreen, NationScreen } from './screens/ClubScreen.tsx';
 import { CompetitionScreen } from './screens/CompetitionScreen.tsx';
@@ -171,6 +171,7 @@ function NavItem({ to, active, children }: { to: Route; active: boolean; childre
 }
 
 function SideNav({ game, route }: { game: GameState; route: Route }) {
+  const [sendState, setSendState] = useState<'idle' | 'sending' | 'sent' | string>('idle');
   const clubId = game.manager.clubId;
   const club = clubId ? game.world.clubs[clubId] : undefined;
   const unread = unreadNewsCount(game);
@@ -214,9 +215,25 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
       <h2 className="nav-heading">Game</h2>
       <ul>
         <li>
-          <button className="nav-item" onClick={() => exportCareer(game)}>
+          <button className="nav-item" onClick={() => void exportCareer(game)}>
             Download save
           </button>
+        </li>
+        <li>
+          <button
+            className="nav-item"
+            disabled={sendState === 'sending'}
+            onClick={() => {
+              setSendState('sending');
+              sendCareerToClaude(game)
+                .then(() => setSendState('sent'))
+                .catch((e: unknown) => setSendState(e instanceof Error ? e.message : 'Could not send the save.'));
+            }}
+          >
+            {sendState === 'sending' ? 'Sending…' : 'Send save to Claude'}
+          </button>
+          {sendState === 'sent' && <p className="nav-status ok">Sent. Tell Claude in the chat that it's there.</p>}
+          {sendState !== 'idle' && sendState !== 'sending' && sendState !== 'sent' && <p className="nav-status">{sendState}</p>}
         </li>
         <li>
           <button

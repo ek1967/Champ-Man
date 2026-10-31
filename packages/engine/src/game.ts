@@ -521,12 +521,17 @@ export function continueGame(state: GameState): StopReason {
   return 'week';
 }
 
-/** Board expectations from the club's size relative to its league rivals. */
+/**
+ * Board expectations from how strong the squad is compared with its league rivals (best XI),
+ * so a big club with a third-best squad is asked for the top four, not the title.
+ */
 export function boardExpectation(state: GameState, clubId: Id): string {
   const club = getClub(state, clubId);
+  const squads = squadIndex(state);
   const rivals = Object.values(state.world.clubs)
     .filter((c) => c.leagueId === club.leagueId)
-    .sort((a, b) => b.reputation - a.reputation);
+    .map((c) => ({ id: c.id, strength: pickBestLineup(squads.get(c.id) ?? []).strength }))
+    .sort((a, b) => b.strength - a.strength);
   const rank = rivals.findIndex((c) => c.id === clubId) + 1;
   if (rank <= 2) return 'win the title';
   if (rank <= 5) return 'finish in the top four';

@@ -435,6 +435,14 @@ select {
   color: var(--muted);
   margin: 14px 14px 4px;
 }
+.nav-status {
+  font-size: 0.78rem;
+  margin: 2px 14px 6px;
+  color: var(--loss);
+}
+.nav-status.ok {
+  color: var(--win);
+}
 .nav-hint {
   font-size: 0.75rem;
   color: var(--muted);

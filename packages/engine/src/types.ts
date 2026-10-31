@@ -14,6 +14,8 @@ export interface Nation {
   code: string;
   /** Which name pool generated players from this nation use. */
   namePool: string;
+  /** How much money its clubs have compared with English clubs of the same size (1 when unset). */
+  wealth?: number;
 }
 
 export interface Club {
@@ -173,9 +175,17 @@ export interface CompetitionSeason {
   final: {
     order: Id[];
     championId: Id;
-    /** Winner of the promotion play-off, if the league has one. */
+    /** Club promoted through the play-off, if the league has one. */
     playoffWinnerId?: Id;
+    /** Winner of the play-off in this league, waiting to play the club from the league above. */
+    playoffQualifierId?: Id;
+    /** The club from the league above that lost the play-off and goes down (null: it won). */
+    playoffRelegatedId?: Id | null;
   } | null;
+  /** Set once a league with a split has divided: the clubs in each half, top half first. */
+  split?: { groups: Id[][] } | null;
+  /** Match dates kept for the rounds after the split. */
+  splitDates?: ISODate[];
 }
 
 export type NewsCategory = 'welcome' | 'result' | 'competition' | 'season' | 'club' | 'transfer';

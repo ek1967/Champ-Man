@@ -75,8 +75,9 @@ export function wageBill(state: GameState, clubId: Id): number {
 /** Starting budgets from club size: the biggest clubs can spend well over €150M in a summer. */
 export function initialFinances(state: GameState, club: Club): ClubFinances {
   const r = club.reputation / 100;
+  const wealth = state.world.nations[club.nationId]?.wealth ?? 1;
   return {
-    transferBudget: roundMoney(Math.max(1_000_000, 230_000_000 * r ** 4.5)),
+    transferBudget: roundMoney(Math.max(500_000, 230_000_000 * r ** 4.5 * wealth)),
     wageBudget: roundMoney(wageBill(state, club.id) * (1.08 + 0.1 * r)),
   };
 }
@@ -456,6 +457,27 @@ export function answerIncomingBid(state: GameState, bidId: Id, accept: boolean):
 
 // ---------- Computer clubs ----------
 
+/** Average ability of a squad's best eleven players. */
+function xiLevel(squad: readonly Player[]): number {
+  const best = squad.map((p) => p.ca).sort((a, b) => b - a).slice(0, 11);
+  return best.length === 0 ? 0 : best.reduce((a, b) => a + b, 0) / best.length;
+}
+
+/**
+ * The best player a club in a poorer football nation (wealth below 1, e.g. Scotland) can attract:
+ * it can't pay the wages of players far above the level its size supports (a best XI of about
+ * 55 + 0.95 × reputation, which is how the Scotland pack is built). Anchored to size rather than
+ * the current squad, so signings can't ratchet a league upwards. Unlimited for English clubs,
+ * whose second tier lives off players released from the top flight.
+ */
+function attractCeiling(state: GameState, club: Club, margin = 5): number {
+  const wealth = state.world.nations[club.nationId]?.wealth ?? 1;
+  return wealth >= 1 ? Infinity : 55 + 0.95 * club.reputation + margin;
+}
+
+/** Number of clubs the computer clubs' transfer activity was tuned for. */
+const REFERENCE_CLUBS = 44;
+
 export const MIN_SQUAD = 20;
 export const MAX_SQUAD = 30;
 
@@ -487,11 +509,12 @@ function aiSigning(state: GameState): void {
   }
   const price = (p: Player) => (p.clubId ? askingPrice(state, p, ranks.get(p.id)) : 0);
   const agreedIds = new Set(state.transfers.bids.filter((b) => b.status === 'agreed').map((b) => b.playerId));
+  const ceiling = attractCeiling(state, buyer);
 
   const candidates = Object.values(state.world.players).filter((p) => {
     if (p.clubId === buyer.id || p.clubId === humanId || p.retired || p.loan) return false;
     if (agreedIds.has(p.id)) return false;
-    if (ageOn(p.dateOfBirth, state.date) > 31) return false;
+    if (ageOn(p.dateOfBirth, state.date) > 31 || p.ca > ceiling) return false;
     if (positionRating(p, need.position) < need.rating + 5) return false;
     if (p.clubId && (squads.get(p.clubId)?.length ?? 0) <= MIN_SQUAD) return false;
     if (p.clubId && isKeeper(p) && (squads.get(p.clubId) ?? []).filter(isKeeper).length <= 2) return false;
@@ -533,7 +556,7 @@ function signFromAbroad(state: GameState, buyer: Club, position: Position, curre
   // A first-team signing is pitched at the level of the club's best XI, not at a stand-in.
   const level = squadCa.slice(0, 11).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(11, squadCa.length));
   let ca = Math.round(Math.max(current, level - 4) + randInt(state.rng, 3, 12));
-  ca = Math.min(ca, best + randInt(state.rng, -4, 6), 185);
+  ca = Math.min(ca, best + randInt(state.rng, -4, 6), 185, attractCeiling(state, buyer, 2));
   if (backup) ca = Math.round(level - randInt(state.rng, 12, 25));
   state.transfers.counter++;
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -565,8 +588,9 @@ function ensureKeepers(state: GameState): void {
       const squadCa = squadOf(state, club.id).map((p) => p.ca).sort((a, b) => b - a);
       const level = squadCa.slice(0, 11).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(11, squadCa.length));
       const wanted = keepers === 0 ? level - 5 : level - 20;
+      const ceiling = attractCeiling(state, club);
       const free = Object.values(state.world.players)
-        .filter((p) => !p.clubId && !p.retired && isKeeper(p) && p.ca >= wanted)
+        .filter((p) => !p.clubId && !p.retired && isKeeper(p) && p.ca >= wanted && p.ca <= ceiling)
         .sort((a, b) => b.ca - a.ca)[0];
       if (free) completeTransfer(state, free, club.id, 0, wageDemand(state, free, club.id), randInt(state.rng, 1, 3));
       else signFromAbroad(state, club, 'GK', wanted, keepers > 0);
@@ -581,10 +605,14 @@ function aiFreeAgents(state: GameState): void {
   const free = Object.values(state.world.players).filter((p) => !p.clubId && !p.retired && ageOn(p.dateOfBirth, state.date) <= 34);
   if (free.length === 0) return;
   const squads = squadIndex(state);
+  // Players don't sign for clubs in poorer leagues far below their level.
   for (const club of Object.values(state.world.clubs)) {
     let size = squads.get(club.id)?.length ?? 0;
+    const ceiling = attractCeiling(state, club);
     while (size < MIN_SQUAD + 2) {
-      const best = free.filter((p) => !p.clubId && willingToJoin(state, p, club.id).ok).sort((a, b) => b.ca - a.ca)[0];
+      const best = free
+        .filter((p) => !p.clubId && p.ca <= ceiling && willingToJoin(state, p, club.id).ok)
+        .sort((a, b) => b.ca - a.ca)[0];
       if (!best) break;
       completeTransfer(state, best, club.id, 0, wageDemand(state, best, club.id), randInt(state.rng, 1, 2));
       size++;
@@ -708,12 +736,20 @@ export function transferDay(state: GameState): void {
   if (!window) return;
 
   const summer = window.name === 'summer';
-  const deals = poisson(state.rng, summer ? 1.5 : 0.6);
+  // Rates are set for a world of two English divisions; bigger worlds do proportionally more business.
+  const scale = Math.max(1, Object.keys(state.world.clubs).length / REFERENCE_CLUBS);
+  const deals = poisson(state.rng, (summer ? 1.5 : 0.6) * scale);
   for (let i = 0; i < deals; i++) aiSigning(state);
   if (md === '07-15' || md === '08-20' || md === '01-25') aiFreeAgents(state);
   if (md === '07-03' || md === '08-25' || md === '01-05') ensureKeepers(state);
-  if (chance(state.rng, summer ? 0.6 : 0.3)) aiLoan(state);
-  if (state.manager.clubId && chance(state.rng, summer ? 0.05 : 0.035)) aiBidForHumanPlayer(state);
+  for (let loans = (summer ? 0.6 : 0.3) * scale; loans > 0; loans--) {
+    if (chance(state.rng, Math.min(1, loans))) aiLoan(state);
+  }
+  if (state.manager.clubId) {
+    // Listing players draws more interest.
+    const listed = squadOf(state, state.manager.clubId).some((p) => p.transferListed);
+    if (chance(state.rng, (summer ? 0.05 : 0.035) * (listed ? 2 : 1))) aiBidForHumanPlayer(state);
+  }
   if (state.manager.clubId && new Date(`${state.date}T00:00:00Z`).getUTCDay() === 1) weeklyRoundUp(state);
 }
 
@@ -870,13 +906,14 @@ function aiLoan(state: GameState): void {
   const player = weightedPick(state.rng, prospects, (p) => p.pa - p.ca);
   const parent = getClub(state, player.clubId!);
   if (agreedMoveFor(state, player.id)) return;
+  // Somewhere the player will play, but not a club far below their level; mostly at home.
   const homes = Object.values(state.world.clubs).filter((c) => {
     if (c.id === parent.id || c.id === humanId || c.reputation > parent.reputation) return false;
     const squad = squads.get(c.id) ?? [];
-    return squad.length < MAX_SQUAD - 1 && squad.filter((p) => p.ca > player.ca).length < 12;
+    return squad.length < MAX_SQUAD - 1 && squad.filter((p) => p.ca > player.ca).length < 12 && player.ca <= attractCeiling(state, c, 6);
   });
   if (homes.length === 0) return;
-  const home = weightedPick(state.rng, homes, (c) => c.reputation);
+  const home = weightedPick(state.rng, homes, (c) => c.reputation * (c.nationId === parent.nationId ? 3 : 1));
   startLoan(state, player, home.id, loanEnd(state.date, 'season'));
 }
 

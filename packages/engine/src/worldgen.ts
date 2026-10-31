@@ -152,8 +152,8 @@ export function createDemoWorld(rng: Rng, today: ISODate): World {
     };
     clubs[club.id] = club;
 
-    // A club's level of player follows its size.
-    const meanCa = 55 + reputation;
+    // A club's level of player follows its size; the very biggest clubs pull further ahead.
+    const meanCa = 55 + reputation + Math.max(0, reputation - 75) * 0.6;
     const squad: Player[] = [];
     for (const slot of SQUAD_TEMPLATE) {
       if (slot.fullOnly && tier !== 1) continue;
@@ -166,7 +166,8 @@ export function createDemoWorld(rng: Rng, today: ISODate): World {
       const player = generatePlayer(rng, {
         id: `p${playerCount}`,
         position: slot.position,
-        ca: meanCa + depth.caOffset + normal(rng, 0, 8),
+        // Starters vary more, so the best clubs have a few real stars, as in real leagues.
+        ca: meanCa + depth.caOffset + normal(rng, 0, slot.depth === 'starter' ? 11 : 8),
         age: randInt(rng, depth.minAge, depth.maxAge),
         nationId: nation.id,
         namePool: nation.namePool,

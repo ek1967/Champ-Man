@@ -27,7 +27,11 @@ export function seasonFixtures(state: GameState, season: CompetitionSeason): Fix
 
 export function seasonTable(state: GameState, season: CompetitionSeason): TableRow[] {
   const competition = getCompetition(state, season.competitionId);
-  return computeTable(season.clubIds, seasonFixtures(state, season), competition.rules, (id) => getClub(state, id).name);
+  const rows = computeTable(season.clubIds, seasonFixtures(state, season), competition.rules, (id) => getClub(state, id).name);
+  // After a split, clubs stay in their half whatever their points.
+  const groups = season.split?.groups;
+  if (!groups) return rows;
+  return groups.flatMap((group) => rows.filter((r) => group.includes(r.clubId)));
 }
 
 export function leaguePosition(state: GameState, clubId: Id): number | null {

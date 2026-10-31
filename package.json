@@ -13,7 +13,8 @@
     "test": "vitest run",
     "calibrate": "node packages/harness/src/calibrate.ts --seasons 25",
     "check": "npm run typecheck && npm test && npm run calibrate -- --check",
-    "data:england": "node packages/pipeline/src/build-england.ts"
+    "data:england": "node packages/pipeline/src/build-england.ts",
+    "data:scotland": "node packages/pipeline/src/build-scotland.ts"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

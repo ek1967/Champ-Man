@@ -48,9 +48,25 @@ export interface LeagueRules {
   promotion?: { places: number; to: string };
   /**
    * Positions `from`–`to` play off for one more promotion place (e.g. 3rd–6th in the Championship):
-   * two-legged semi-finals, then a one-off final.
+   * two-legged semi-finals, then a one-off final. With an odd number of clubs the best-placed one
+   * goes straight to the final (Scotland: 3rd v 4th, then 2nd v the winner).
    */
-  promotionPlayoff?: { from: number; to: number };
+  promotionPlayoff?: {
+    from: number;
+    to: number;
+    /** Legs in the final; 1 (a one-off at a neutral ground) unless set. */
+    finalLegs?: 1 | 2;
+    /**
+     * The winner then plays the club finishing in this place in the league above, over two legs,
+     * for a place in that league (Scotland: the Premiership's 11th-placed club).
+     */
+    versusPlace?: number;
+  };
+  /**
+   * After `after` rounds the league splits into `groups` equal halves by position; each half plays
+   * a single round-robin and clubs can't leave their half (the Scottish Premiership's split).
+   */
+  split?: { after: number; groups: number };
   zones: TableZone[];
 }
 

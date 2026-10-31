@@ -8,6 +8,7 @@ import { simulateScore } from './quicksim.ts';
 import { injuryEnd, kickOff, type LiveMatch, type MatchContext, playToEnd } from './match.ts';
 import { autoTactics, bestLineup, readyTactics, type Tactics } from './tactics.ts';
 import { chance, createRng, forkRng } from './rng.ts';
+import type { LeagueRules } from './rules.ts';
 import { pickBestLineup } from './selection.ts';
 import type {
   CompetitionSeason, Fixture, GameState, Id, MatchResult, Player, PlayerSeasonStats, World,
@@ -73,20 +74,52 @@ function seasonLabel(calendar: 'aug-may' | 'calendar', startYear: number): strin
   return calendar === 'aug-may' ? `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}` : `${startYear}`;
 }
 
-/** Fixture list for a generated season: a shuffled round-robin spread across the season window. */
-function generateFixtures(state: GameState, competitionId: Id, startYear: number, clubIds: Id[]): PackFixture[] {
-  const { season: calendar, rounds: legs } = getCompetition(state, competitionId).rules;
+/** Rounds each half plays after a split: a single round-robin. */
+function splitRounds(rules: LeagueRules, clubCount: number): number {
+  if (!rules.split) return 0;
+  const size = Math.ceil(clubCount / rules.split.groups);
+  return size % 2 === 0 ? size - 1 : size;
+}
+
+/**
+ * Fixture list for a generated season: a shuffled round-robin spread across the season window.
+ * Leagues that split get dates kept back for the rounds after the split.
+ */
+function generateFixtures(
+  state: GameState, competitionId: Id, startYear: number, clubIds: Id[],
+): { fixtures: PackFixture[]; splitDates: ISODate[] } {
+  const { rules } = getCompetition(state, competitionId);
+  const { season: calendar, rounds: legs } = rules;
   const endYear = calendar.calendar === 'aug-may' ? startYear + 1 : startYear;
   const startDate = nextWeekday(onYear(calendar.start, startYear), 6);
   const endDate = previousWeekday(onYear(calendar.end, endYear), 6);
-  const rounds = roundRobin(state.rng, clubIds, legs);
+  let rounds = roundRobin(state.rng, clubIds, legs);
+  if (rules.split) rounds = rounds.slice(0, rules.split.after);
   const blocked = blockedRangesForSeason(calendar.blocked, startYear, calendar.calendar);
-  const dates = scheduleRoundDates(startDate, endDate, rounds.length, blocked);
-  return rounds.flatMap((pairings, roundIndex) =>
+  const dates = scheduleRoundDates(startDate, endDate, rounds.length + splitRounds(rules, clubIds.length), blocked);
+  const fixtures = rounds.flatMap((pairings, roundIndex) =>
     pairings.map(([homeId, awayId]) => ({
       competitionId, round: roundIndex + 1, date: dates[roundIndex] as ISODate, homeId, awayId,
     })),
   );
+  return { fixtures, splitDates: dates.slice(rounds.length) };
+}
+
+function addFixture(state: GameState, seasonId: Id, plan: PackFixture): Fixture {
+  state.counters.fixture++;
+  const fixture: Fixture = {
+    id: `f${state.counters.fixture}`,
+    competitionId: plan.competitionId,
+    seasonId,
+    round: plan.round,
+    date: plan.date,
+    homeId: plan.homeId,
+    awayId: plan.awayId,
+    result: null,
+  };
+  state.fixtures[fixture.id] = fixture;
+  (state.fixturesByDate[fixture.date] ??= []).push(fixture.id);
+  return fixture;
 }
 
 /**
@@ -103,25 +136,14 @@ export function createSeason(
   const competition = getCompetition(state, competitionId);
   const label = seasonLabel(competition.rules.season.calendar, startYear);
   const id = `${competitionId}:${label}`;
-  const planned = realFixtures ?? generateFixtures(state, competitionId, startYear, clubIds);
+  const generated = realFixtures ? null : generateFixtures(state, competitionId, startYear, clubIds);
+  const planned = realFixtures ?? generated?.fixtures ?? [];
 
   const fixtureIds: Id[] = [];
   let startDate = planned[0]?.date ?? state.date;
   let endDate = startDate;
   for (const plan of planned) {
-    state.counters.fixture++;
-    const fixture: Fixture = {
-      id: `f${state.counters.fixture}`,
-      competitionId,
-      seasonId: id,
-      round: plan.round,
-      date: plan.date,
-      homeId: plan.homeId,
-      awayId: plan.awayId,
-      result: null,
-    };
-    state.fixtures[fixture.id] = fixture;
-    (state.fixturesByDate[fixture.date] ??= []).push(fixture.id);
+    const fixture = addFixture(state, id, plan);
     fixtureIds.push(fixture.id);
     if (fixture.date < startDate) startDate = fixture.date;
     if (fixture.date > endDate) endDate = fixture.date;
@@ -130,6 +152,12 @@ export function createSeason(
   const season: CompetitionSeason = {
     id, competitionId, label, startDate, endDate, clubIds: [...clubIds], fixtureIds, status: 'scheduled', final: null,
   };
+  if (competition.rules.split) {
+    season.split = null;
+    season.splitDates = generated?.splitDates ?? [];
+    const last = season.splitDates[season.splitDates.length - 1];
+    if (last && last > season.endDate) season.endDate = last;
+  }
   state.counters.season++;
   state.seasons[id] = season;
   state.currentSeason[competitionId] = id;
@@ -305,8 +333,66 @@ function afterResults(state: GameState, seasonIds: Iterable<Id>): void {
     const season = state.seasons[seasonId];
     if (!season || season.status === 'finished') continue;
     if (season.status === 'scheduled') season.status = 'inProgress';
-    if (seasonFixtures(state, season).every((f) => f.result !== null)) finishSeason(state, season);
+    if (!seasonFixtures(state, season).every((f) => f.result !== null)) continue;
+    if (getCompetition(state, season.competitionId).rules.split && !season.split) splitLeague(state, season);
+    else finishSeason(state, season);
   }
+}
+
+/**
+ * The split: once every club has met every other three times, the top and bottom halves play
+ * each other once more. Home games go to whoever has had fewer so far.
+ */
+function splitLeague(state: GameState, season: CompetitionSeason): void {
+  const competition = getCompetition(state, season.competitionId);
+  const groupCount = competition.rules.split?.groups ?? 2;
+  const order = seasonTable(state, season).map((r) => r.clubId);
+  const size = Math.ceil(order.length / groupCount);
+  const groups: Id[][] = [];
+  for (let g = 0; g < groupCount; g++) groups.push(order.slice(g * size, (g + 1) * size));
+
+  const fixtures = seasonFixtures(state, season);
+  const homeGames = new Map<Id, number>();
+  for (const f of fixtures) homeGames.set(f.homeId, (homeGames.get(f.homeId) ?? 0) + 1);
+  const firstRound = Math.max(0, ...fixtures.map((f) => f.round)) + 1;
+  const needed = splitRounds(competition.rules, order.length);
+  let dates = (season.splitDates ?? []).filter((d) => d > state.date);
+  if (dates.length < needed) {
+    // Real fixture lists don't include the rounds after the split: play them weekly.
+    dates = [];
+    let d = nextWeekday(addDays(state.date, 1), 6);
+    for (let i = 0; i < needed; i++, d = addDays(d, 7)) dates.push(d);
+  }
+
+  for (const group of groups) {
+    roundRobin(state.rng, group, 1).forEach((pairings, i) => {
+      for (const [a, b] of pairings) {
+        const aHome = (homeGames.get(a) ?? 0) <= (homeGames.get(b) ?? 0);
+        const [homeId, awayId] = aHome ? [a, b] : [b, a];
+        homeGames.set(homeId, (homeGames.get(homeId) ?? 0) + 1);
+        const fixture = addFixture(state, season.id, {
+          competitionId: competition.id, round: firstRound + i, date: dates[i] as ISODate, homeId, awayId,
+        });
+        season.fixtureIds.push(fixture.id);
+      }
+    });
+  }
+  season.split = { groups };
+  const last = dates[needed - 1];
+  if (last && last > season.endDate) season.endDate = last;
+
+  const humanClub = state.manager.clubId;
+  const humanHere = humanClub !== null && order.includes(humanClub);
+  addNews(state, {
+    category: 'competition',
+    title: `The ${competition.shortName} splits`,
+    body: [
+      `After ${firstRound - 1} rounds the ${competitionLink(competition)} divides in two. Each half plays its remaining ${needed} games among itself, and no club can move out of its half.`,
+      ...groups.map((g, i) => `${i === 0 ? 'Top' : 'Bottom'} ${g.length}: ${listClubs(state, g)}.`),
+      humanHere ? `Your side are in the ${groups[0]?.includes(humanClub) ? 'top' : 'bottom'} half.` : '',
+    ].filter(Boolean).join('\n\n'),
+    important: humanHere,
+  });
 }
 
 /**
@@ -373,23 +459,74 @@ function playTie(state: GameState, homeId: Id, awayId: Id, legs: 1 | 2): Id {
   return chance(state.rng, 0.5 + (home - away) / 400) ? homeId : awayId;
 }
 
-/** Semi-finals (best-placed club at home second) then a final, e.g. 3rd v 6th and 4th v 5th. */
-function runPlayoff(state: GameState, order: readonly Id[], from: number, to: number): { winnerId: Id; lines: string[] } {
-  const seeds = order.slice(from - 1, to);
+/**
+ * Semi-finals (best-placed club at home second) then a final, e.g. 3rd v 6th and 4th v 5th.
+ * With an odd number of clubs the best-placed one waits in the final (Scotland: 3rd v 4th, then 2nd).
+ */
+function runPlayoff(
+  state: GameState, order: readonly Id[], playoff: NonNullable<LeagueRules['promotionPlayoff']>,
+): { winnerId: Id; lines: string[] } {
+  const seeds = order.slice(playoff.from - 1, playoff.to);
   const names = (id: Id) => clubLink(getClub(state, id));
   const finalists: Id[] = [];
   const lines: string[] = [];
+  const bye = seeds.length % 2 === 1 ? (seeds.shift() as Id) : null;
+  const versus = playoff.versusPlace !== undefined;
   for (let i = 0; i < seeds.length / 2; i++) {
     const higher = seeds[i] as Id;
     const lower = seeds[seeds.length - 1 - i] as Id;
     const winner = playTie(state, lower, higher, 2);
     finalists.push(winner);
-    lines.push(`Semi-final: ${names(higher)} v ${names(lower)} — ${names(winner)} go through.`);
+    lines.push(`${bye ? 'Quarter-final' : 'Semi-final'}: ${names(higher)} v ${names(lower)} — ${names(winner)} go through.`);
   }
+  if (bye) finalists.unshift(bye);
   const [a, b] = finalists as [Id, Id];
-  const winnerId = playTie(state, a, b, 1);
-  lines.push(`Final: ${names(a)} v ${names(b)} — ${names(winnerId)} win promotion.`);
+  // In a two-legged final the lower-placed club is at home first.
+  const winnerId = (playoff.finalLegs ?? 1) === 2 ? playTie(state, b, a, 2) : playTie(state, a, b, 1);
+  lines.push(
+    `${bye ? 'Semi-final' : 'Final'}: ${names(a)} v ${names(b)} — ${names(winnerId)} ${versus ? 'go through to the play-off final' : 'win promotion'}.`,
+  );
   return { winnerId, lines };
+}
+
+/**
+ * Play-off finals between leagues (Scotland: the Championship's play-off winner v the
+ * Premiership's 11th-placed club), played once both seasons are over.
+ */
+function settleTierPlayoffs(state: GameState, nationId: Id): void {
+  for (const competition of Object.values(state.world.competitions)) {
+    const { promotionPlayoff, promotion } = competition.rules;
+    if (competition.nationId !== nationId || !promotionPlayoff?.versusPlace || !promotion) continue;
+    const lower = currentSeasonOf(state, competition.id);
+    const upper = currentSeasonOf(state, promotion.to);
+    const challengerId = lower?.final?.playoffQualifierId;
+    if (!lower?.final || !challengerId || lower.final.playoffWinnerId || lower.final.playoffRelegatedId === null) continue;
+    if (lower.final.playoffRelegatedId !== undefined || !upper?.final || upper.status !== 'finished') continue;
+    const defenderId = upper.final.order[promotionPlayoff.versusPlace - 1];
+    if (!defenderId) continue;
+    const winnerId = playTie(state, challengerId, defenderId, 2);
+    const challengerWon = winnerId === challengerId;
+    if (challengerWon) {
+      lower.final.playoffWinnerId = challengerId;
+      lower.final.playoffRelegatedId = defenderId;
+    } else {
+      lower.final.playoffRelegatedId = null;
+    }
+    const upperCompetition = getCompetition(state, promotion.to);
+    const human = state.manager.clubId;
+    const winner = getClub(state, winnerId);
+    addNews(state, {
+      category: 'season',
+      title: `${winner.shortName} win the ${upperCompetition.shortName} play-off final`,
+      body: [
+        `${clubLink(getClub(state, challengerId))} (${competition.shortName}) v ${clubLink(getClub(state, defenderId))} (${upperCompetition.shortName}), over two legs.`,
+        challengerWon
+          ? `${clubLink(winner)} are promoted to the ${competitionLink(upperCompetition)}; ${clubLink(getClub(state, defenderId))} go down.`
+          : `${clubLink(winner)} stay in the ${competitionLink(upperCompetition)}.`,
+      ].join('\n\n'),
+      important: human === challengerId || human === defenderId,
+    });
+  }
 }
 
 function finishSeason(state: GameState, season: CompetitionSeason): void {
@@ -399,10 +536,11 @@ function finishSeason(state: GameState, season: CompetitionSeason): void {
   const championId = order[0] as Id;
   season.final = { order, championId };
   season.status = 'finished';
-  const playoff = competition.rules.promotionPlayoff
-    ? runPlayoff(state, order, competition.rules.promotionPlayoff.from, competition.rules.promotionPlayoff.to)
-    : null;
-  if (playoff) season.final.playoffWinnerId = playoff.winnerId;
+  const playoff = competition.rules.promotionPlayoff ? runPlayoff(state, order, competition.rules.promotionPlayoff) : null;
+  if (playoff) {
+    if (competition.rules.promotionPlayoff?.versusPlace) season.final.playoffQualifierId = playoff.winnerId;
+    else season.final.playoffWinnerId = playoff.winnerId;
+  }
 
   const champion = getClub(state, championId);
   const humanHere = state.manager.clubId !== null && order.includes(state.manager.clubId);
@@ -421,6 +559,7 @@ function finishSeason(state: GameState, season: CompetitionSeason): void {
     body: lines.join('\n\n'),
     important: competition.mode === 'playable' || humanHere,
   });
+  settleTierPlayoffs(state, competition.nationId);
 }
 
 /**
@@ -449,9 +588,11 @@ function rolloverNation(state: GameState, nationId: Id): void {
     }
     if (promotion && membership.has(promotion.to)) {
       const promoted = order.slice(0, promotion.places);
-      const playoffWinner = currentSeasonOf(state, competition.id)?.final?.playoffWinnerId;
-      if (playoffWinner) promoted.push(playoffWinner);
+      const final = currentSeasonOf(state, competition.id)?.final;
+      if (final?.playoffWinnerId) promoted.push(final.playoffWinnerId);
       for (const clubId of promoted) moves.push({ clubId, from: competition.id, to: promotion.to });
+      // A club from the league above that lost a play-off final against this league's club.
+      if (final?.playoffRelegatedId) moves.push({ clubId: final.playoffRelegatedId, from: promotion.to, to: competition.id });
     }
   }
   for (const move of moves) {
@@ -547,9 +688,15 @@ export function boardExpectation(state: GameState, clubId: Id): string {
     .map((c) => ({ id: c.id, strength: pickBestLineup(squads.get(c.id) ?? []).strength }))
     .sort((a, b) => b.strength - a.strength);
   const rank = rivals.findIndex((c) => c.id === clubId) + 1;
+  const n = rivals.length;
+  const split = getCompetition(state, club.leagueId).rules.split;
   if (rank <= 2) return 'win the title';
-  if (rank <= 5) return 'finish in the top four';
-  if (rank <= 12) return 'finish in the top half';
+  if (split) {
+    const half = Math.ceil(n / split.groups);
+    return rank <= half ? `finish in the top ${half}` : 'avoid relegation';
+  }
+  if (rank <= Math.round(n / 4)) return 'finish in the top four';
+  if (rank <= Math.round(n * 0.6)) return 'finish in the top half';
   return 'avoid relegation';
 }
 

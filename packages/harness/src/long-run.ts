@@ -1,20 +1,26 @@
 /**
  * Long-run stability check (PLAN §10, Phase 8): simulate many seasons and watch for ability
  * inflation or deflation, shrinking squads and ageing leagues.
- *   node packages/harness/src/long-run.ts [seasons] [--demo] [--check]
+ *   node packages/harness/src/long-run.ts [seasons] [--demo] [--check] [--scotland] [--league sco-1]
+ * --scotland adds the Scotland pack to the England one; --league picks the league to report on.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  advanceDay, ageOn, createGame, type GameState, seasonFixtures, seasonsOf, seasonTable, squadOf, type WorldPack,
+  advanceDay, ageOn, createGame, type GameState, mergePacks, seasonFixtures, seasonsOf, seasonTable, squadOf, type WorldPack,
 } from '@moc/engine';
 
 const seasons = Number(process.argv[2] ?? 10);
 const demo = process.argv.includes('--demo');
 const check = process.argv.includes('--check');
-const pack = demo ? undefined : (JSON.parse(readFileSync(join(import.meta.dirname, '../../../data/packs/england-2026-27.json'), 'utf8')) as WorldPack);
+const loadPack = (id: string) => JSON.parse(readFileSync(join(import.meta.dirname, `../../../data/packs/${id}.json`), 'utf8')) as WorldPack;
+const pack = demo
+  ? undefined
+  : mergePacks(['england-2026-27', ...(process.argv.includes('--scotland') ? ['scotland-2026-27'] : [])].map(loadPack));
 const state: GameState = createGame({ seed: 'long-run', managerName: 'Harness', pack });
-const top = Object.values(state.world.competitions).find((c) => c.tier === 1 && c.mode === 'playable')!;
+const leagueArg = process.argv[process.argv.indexOf('--league') + 1];
+const top = (process.argv.includes('--league') && leagueArg ? state.world.competitions[leagueArg] : undefined)
+  ?? Object.values(state.world.competitions).find((c) => c.tier === 1 && c.mode === 'playable')!;
 
 interface Snapshot { year: number; xi: number; elite: number; active: number; age: number; minSquad: number; maxSquad: number; free: number; retired: number; youth: number; goals: number; champion: string; wonderkids: number }
 const snapshots: Snapshot[] = [];

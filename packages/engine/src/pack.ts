@@ -116,6 +116,29 @@ export function worldFromPack(pack: WorldPack, seed: string, today: ISODate): Wo
   return world;
 }
 
+/**
+ * Several packs played as one world (e.g. England and Scotland), so players can move between
+ * their leagues. Nations listed in more than one pack are merged, later packs winning.
+ */
+export function mergePacks(packs: readonly WorldPack[]): WorldPack {
+  if (packs.length === 1) return packs[0] as WorldPack;
+  const nations = new Map<string, Nation>();
+  for (const pack of packs) for (const n of pack.nations) nations.set(n.id, { ...nations.get(n.id), ...n });
+  return {
+    format: 1,
+    id: packs.map((p) => p.id).join('+'),
+    name: packs.map((p) => p.name).join(' + '),
+    notice: packs.map((p) => p.notice).join(' '),
+    createdAt: packs.map((p) => p.createdAt).sort().at(-1) ?? '',
+    sources: packs.flatMap((p) => p.sources),
+    nations: [...nations.values()],
+    competitions: packs.flatMap((p) => p.competitions),
+    clubs: packs.flatMap((p) => p.clubs),
+    players: packs.flatMap((p) => p.players),
+    fixtures: packs.flatMap((p) => p.fixtures),
+  };
+}
+
 /** Basic integrity checks, run by the pipeline before writing a pack and by tests. */
 export function validatePack(pack: WorldPack): string[] {
   const problems: string[] = [];
@@ -124,6 +147,11 @@ export function validatePack(pack: WorldPack): string[] {
   const competitions = new Set(pack.competitions.map((c) => c.id));
   for (const club of pack.clubs) {
     if (!competitions.has(club.leagueId)) problems.push(`Club ${club.id} is in unknown league ${club.leagueId}`);
+  }
+  const clubIds = new Set<string>();
+  for (const club of pack.clubs) {
+    if (clubIds.has(club.id)) problems.push(`Duplicate club id ${club.id}`);
+    clubIds.add(club.id);
   }
   const seen = new Set<string>();
   for (const p of pack.players) {

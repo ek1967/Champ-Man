@@ -4,8 +4,10 @@ import { advanceDay, createGame, takeJob } from '../src/game.ts';
 import { abilityStars } from '../src/players.ts';
 import { currentSeasonOf, squadOf } from '../src/queries.ts';
 import {
-  attributeView, estimatedAbility, estimatedPotential, knowledgeOf, scoutClub, scoutingStaff, scoutPlayer, toggleShortlist,
+  attributeView, estimatedAbility, estimatedPotential, findPlayers, knowledgeOf, playersAbroad, scoutClub, scoutingStaff, scoutPlayer,
+  toggleShortlist,
 } from '../src/scouting.ts';
+import { ageOn } from '../src/dates.ts';
 import { DEMO_TOP_DIVISION } from '../src/worldgen.ts';
 
 function career(seed: string) {
@@ -73,5 +75,49 @@ describe('scouting', () => {
     expect(toggleShortlist(state, p.id)).toBe(true);
     expect(state.scouting!.shortlist).toContain(p.id);
     expect(toggleShortlist(state, p.id)).toBe(false);
+  });
+});
+
+describe('searching for players', () => {
+  it('finds first-team players for a position, better than the current starter', () => {
+    const { state } = career('search-first');
+    expect(findPlayers(state, { position: 'DL', need: 'first', where: 'all' }).ok).toBe(true);
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    const search = state.scouting!.searches![0]!;
+    expect(search.criteria.position).toBe('DL');
+    expect(search.playerIds.length).toBeGreaterThan(0);
+    for (const id of search.playerIds) {
+      const p = state.world.players[id]!;
+      expect(knowledgeOf(state, p)).toBe(100);
+      expect(state.scouting!.reports[id]).toBeDefined();
+      expect(p.positions.DL ?? 0).toBeGreaterThan(10);
+    }
+    expect(state.news.some((n) => n.title.includes('left-backs'))).toBe(true);
+  });
+
+  it('finds prospects of 21 or under for the future, in your own league', () => {
+    const { state, clubId } = career('search-future');
+    findPlayers(state, { position: 'any', need: 'future', where: 'league' });
+    for (let i = 0; i < 6; i++) advanceDay(state);
+    const search = state.scouting!.searches![0]!;
+    expect(search.playerIds.length).toBeGreaterThan(0);
+    for (const id of search.playerIds) {
+      const p = state.world.players[id]!;
+      expect(ageOn(p.dateOfBirth, state.date)).toBeLessThanOrEqual(21);
+      expect(state.world.clubs[p.clubId!]!.leagueId).toBe(state.world.clubs[clubId]!.leagueId);
+    }
+  });
+
+  it('brings back players abroad matching the brief', () => {
+    const { state } = career('search-abroad');
+    expect(findPlayers(state, { position: 'ST', need: 'future', where: 'bra' }).ok).toBe(true);
+    for (let i = 0; i < 15; i++) advanceDay(state);
+    const found = playersAbroad(state);
+    expect(found).toHaveLength(5);
+    for (const p of found) {
+      expect(p.nationId).toBe('bra');
+      expect(p.positions.ST).toBe(20);
+      expect(ageOn(p.dateOfBirth, state.date)).toBeLessThanOrEqual(21);
+    }
   });
 });

@@ -1,7 +1,7 @@
 import {
   activeAssignments, ageOn, askingPrice, cancelAssignment, estimatedAbility, estimatedPotential, formatMoney, formatShort, type GameState,
-  knowledgeOf, mainPosition, type Player, playersAbroad, scoutClub, scoutCountry, scoutingCountries, scoutingStaff, scoutPlayer, shortName,
-  toggleShortlist,
+  describeSearch, findPlayers, knowledgeOf, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
+  scoutingStaff, type ScoutNeed, scoutPlayer, shortName, toggleShortlist,
 } from '@moc/engine';
 import { useState } from 'react';
 import { act } from '../state/store.ts';
@@ -127,8 +127,8 @@ export function ScoutingTab({ game }: { game: GameState }) {
                     const p = game.world.players[a.targetId];
                     return p ? <EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> : '?';
                   })()
-                : a.kind === 'country'
-                  ? `Looking for players in ${game.world.nations[a.targetId]?.name ?? '?'}`
+                : a.kind === 'country' || a.kind === 'search'
+                  ? `Looking for ${a.criteria ? describeSearch(game, a.criteria) : `players in ${game.world.nations[a.targetId]?.name ?? '?'}`}`
                   : (() => {
                       const c = game.world.clubs[a.targetId];
                       return c ? <ClubName club={c} short /> : '?';
@@ -144,7 +144,7 @@ export function ScoutingTab({ game }: { game: GameState }) {
           })}
         </ul>
       )}
-      <ScoutAbroad game={game} />
+      <FindPlayers game={game} />
       <h2>Shortlist</h2>
       {shortlist.length === 0 ? (
         <p className="muted">Add players from their pages to keep an eye on them.</p>
@@ -195,61 +195,118 @@ export function ScoutingTab({ game }: { game: GameState }) {
   );
 }
 
-/** Send a scout to another country, and the players found there. */
-function ScoutAbroad({ game }: { game: GameState }) {
-  const countries = scoutingCountries(game);
-  const [nationId, setNationId] = useState(countries[0]?.id ?? '');
+const POSITION_CHOICES: Array<[ScoutCriteria['position'], string]> = [
+  ['any', 'Any (your weakest positions)'], ['GK', 'Goalkeeper'], ['DC', 'Centre-back'], ['DL', 'Left-back'], ['DR', 'Right-back'],
+  ['DM', 'Defensive midfielder'], ['MC', 'Central midfielder'], ['AMC', 'Attacking midfielder'], ['AML', 'Left winger'],
+  ['AMR', 'Right winger'], ['ST', 'Striker'],
+];
+
+/** Brief a scout: position, kind of player and where to look; then the players they found. */
+function FindPlayers({ game }: { game: GameState }) {
+  const abroad = scoutingCountries(game);
+  const inGame = nationsInGame(game);
+  const [position, setPosition] = useState<ScoutCriteria['position']>('any');
+  const [need, setNeed] = useState<ScoutNeed>('first');
+  const [where, setWhere] = useState('all');
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const searches = game.scouting?.searches ?? [];
   const found = playersAbroad(game);
-  if (countries.length === 0) return null;
   return (
     <>
-      <h2>Scout abroad</h2>
+      <h2>Find players</h2>
       <p className="small">
-        Leagues outside the game can't be searched, but a scout can spend two weeks in a country and come back with four or five players who
-        would suit you. You can bid for them for about four months.
+        Tell a scout what you need. Searching the leagues in the game takes about a week; a trip abroad takes two weeks and finds players
+        at clubs outside the game, who you can bid for over the next four months.
       </p>
       <form
         className="money-form"
         onSubmit={(e) => {
           e.preventDefault();
-          setFeedback(act((g) => scoutCountry(g, nationId)));
+          setFeedback(act((g) => findPlayers(g, { position, need, where })));
         }}
       >
-        <label className="money-field" htmlFor="scout-country">
-          <span>Country</span>
-          <select id="scout-country" value={nationId} onChange={(e) => setNationId(e.target.value)}>
-            {countries.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+        <label className="money-field" htmlFor="scout-position">
+          <span>Position</span>
+          <select id="scout-position" value={position} onChange={(e) => setPosition(e.target.value as ScoutCriteria['position'])}>
+            {POSITION_CHOICES.map(([id, label]) => (
+              <option key={id} value={id}>{label}</option>
             ))}
+          </select>
+        </label>
+        <label className="money-field" htmlFor="scout-need">
+          <span>Looking for</span>
+          <select id="scout-need" value={need} onChange={(e) => setNeed(e.target.value as ScoutNeed)}>
+            <option value="first">First-team ready</option>
+            <option value="backup">Squad backup</option>
+            <option value="future">One for the future (21 or under)</option>
+          </select>
+        </label>
+        <label className="money-field" htmlFor="scout-where">
+          <span>Where</span>
+          <select id="scout-where" value={where} onChange={(e) => setWhere(e.target.value)}>
+            <option value="league">Your league</option>
+            <option value="all">Every league in the game</option>
+            {inGame.length > 1 && inGame.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+            <optgroup label="Abroad (two-week trip)">
+              {abroad.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </label>
         <button className="btn" type="submit">Send a scout</button>
       </form>
       {feedback && <p className={`feedback ${feedback.ok ? 'ok' : 'bad'}`}>{feedback.message}</p>}
-      {found.length > 0 && (
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr><th>Player</th><th>Country</th><th>Pos</th><th className="right">Age</th><th>Ability</th><th>Potential</th><th className="right">Price</th><th>Until</th></tr>
-            </thead>
-            <tbody>
-              {found.map((p) => (
-                <tr key={p.id}>
-                  <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
-                  <td>{game.world.nations[p.abroad!.nationId]?.name}</td>
-                  <td>{mainPosition(p)}</td>
-                  <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
-                  <td><AbilityEstimate game={game} player={p} /></td>
-                  <td><PotentialEstimate game={game} player={p} /></td>
-                  <td className="right">{formatMoney(askingPrice(game, p))}</td>
-                  <td>{formatShort(p.abroad!.until)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {searches.slice(0, 3).map((search) => (
+        <div key={`${search.date}-${search.label}`}>
+          <h3>
+            {search.label.charAt(0).toUpperCase() + search.label.slice(1)} <span className="muted small">({formatShort(search.date)})</span>
+          </h3>
+          {search.playerIds.length === 0 ? (
+            <p className="muted">Nobody suitable found.</p>
+          ) : (
+            <PlayerTable game={game} players={search.playerIds.map((id) => game.world.players[id]).filter((p): p is Player => !!p && !p.retired)} />
+          )}
         </div>
+      ))}
+      {found.length > 0 && (
+        <>
+          <h3>Found abroad</h3>
+          <PlayerTable game={game} players={found} abroad />
+        </>
       )}
     </>
+  );
+}
+
+function PlayerTable({ game, players, abroad = false }: { game: GameState; players: Player[]; abroad?: boolean }) {
+  return (
+    <div className="table-wrap">
+      <table className="data">
+        <thead>
+          <tr>
+            <th>Player</th><th>{abroad ? 'Country' : 'Club'}</th><th>Pos</th><th className="right">Age</th><th>Ability</th><th>Potential</th>
+            <th className="right">Price</th><th>{abroad ? 'Until' : 'Grade'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((p) => {
+            const report = game.scouting?.reports[p.id];
+            return (
+              <tr key={p.id}>
+                <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
+                <td>{abroad ? game.world.nations[p.abroad!.nationId]?.name : <PlayerClub game={game} player={p} short />}</td>
+                <td>{mainPosition(p)}</td>
+                <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
+                <td><AbilityEstimate game={game} player={p} /></td>
+                <td><PotentialEstimate game={game} player={p} /></td>
+                <td className="right">{formatMoney(askingPrice(game, p))}</td>
+                <td>{abroad ? formatShort(p.abroad!.until) : report ? <span className={`grade grade-${report.grade}`}>{report.grade}</span> : '–'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

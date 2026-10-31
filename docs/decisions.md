@@ -211,3 +211,19 @@ the maximum the buyer pays it; up to a quarter above it they improve their offer
 offer); beyond that they walk away. Computer clubs also ask to borrow the manager's young fringe
 players during windows. The manager's own loan-out offers wait for the other club to confirm and
 are not shown as offers to answer.
+
+## 017 — Scouting briefs
+Scouts can be given a brief: a position (or "any", meaning the three weakest places in the best
+XI), what's needed (first-team ready: better than the current starter, 31 or under; squad backup:
+up to 14 rating points below the starter, cheaper preferred; one for the future: 21 or under with
+the potential to reach the side's level) and where (the manager's league, a country in the game,
+every league in the game, or a country abroad). Scouts misjudge in proportion to their judgement,
+only put forward players who would join and who cost no more than half as much again as the
+budget, and don't see everyone: five are picked from the best dozen. Results are kept on the
+Scouting screen (last three searches) and each player gets a full report. Trips abroad create
+players matching the brief, as before.
+
+The real Scottish squads (#015) are built by the "Scotland data" workflow on GitHub's servers,
+because this project's cloud sessions can't reach Wikipedia. The workflow runs when the importer
+changes (or by hand) and saves the pack, report and raw downloads in `data/scotland/`; copying
+`data/scotland/raw/*` to `data/raw/scotland/` lets `npm run data:scotland` rebuild offline.

@@ -12,7 +12,7 @@ import { abilityStars, estimateWage, generatePlayer, mainPosition, positionRatin
 import { getClub, squadOf } from './queries.ts';
 import { createRng, hashString, normal, random, randInt, shuffle } from './rng.ts';
 import { autoTactics, FORMATIONS } from './tactics.ts';
-import { ABROAD, askingPrice, attractCeiling, formatMoney, sellerName, wageDemand, willingToJoin } from './transfers.ts';
+import { ABROAD, askingPrice, attractCeiling, financesOf, formatMoney, sellerName, wageDemand, willingToJoin } from './transfers.ts';
 import type { GameState, Id, Player } from './types.ts';
 
 /** Countries scouts can travel to (the other countries planned for the game, plus France and Belgium). */
@@ -22,10 +22,40 @@ export const SCOUTING_COUNTRIES = ['esp', 'ita', 'ger', 'fra', 'ned', 'por', 'be
 const COUNTRY_TRIP_DAYS = 14;
 const ABROAD_AVAILABLE_DAYS = 120;
 
+/** What the manager wants a scout to find. */
+export type ScoutNeed = 'first' | 'backup' | 'future';
+
+export interface ScoutCriteria {
+  /** A position, or 'any' for the weakest places in the side. */
+  position: Position | 'any';
+  /** First-team ready, a squad backup, or a prospect for the future. */
+  need: ScoutNeed;
+  /** 'league' (the manager's own), 'all' (every league in the game), a nation with leagues in the game, or a country abroad. */
+  where: string;
+}
+
+export const SCOUT_NEED_LABELS: Record<ScoutNeed, string> = {
+  first: 'first-team ready',
+  backup: 'squad backup',
+  future: 'one for the future',
+};
+
+/** A search's results, for the Scouting screen. */
+export interface ScoutSearch {
+  date: ISODate;
+  criteria: ScoutCriteria;
+  label: string;
+  playerIds: Id[];
+}
+
 export interface ScoutAssignment {
   id: Id;
-  /** 'country': a trip abroad (targetId is a nation) to find players outside the simulated leagues. */
-  kind: 'player' | 'club' | 'country';
+  /**
+   * 'search': look for players matching `criteria` in the leagues in the game.
+   * 'country': a trip abroad (targetId is a nation) to find players outside the simulated leagues.
+   */
+  kind: 'player' | 'club' | 'country' | 'search';
+  criteria?: ScoutCriteria;
   targetId: Id;
   started: ISODate;
   due: ISODate;
@@ -45,6 +75,8 @@ export interface ScoutingState {
   shortlist: Id[];
   reports: Record<Id, ScoutReport>;
   counter: number;
+  /** Latest searches first. */
+  searches?: ScoutSearch[];
 }
 
 export function scouting(state: GameState): ScoutingState {
@@ -142,6 +174,50 @@ export function scoutCountry(state: GameState, nationId: Id): ScoutResult {
   return assign(state, 'country', nationId, COUNTRY_TRIP_DAYS, `players in ${nation.name}`);
 }
 
+const POSITION_WORDS: Record<Position, [string, string]> = {
+  GK: ['goalkeeper', 'goalkeepers'], DC: ['centre-back', 'centre-backs'], DL: ['left-back', 'left-backs'], DR: ['right-back', 'right-backs'],
+  WBL: ['left wing-back', 'left wing-backs'], WBR: ['right wing-back', 'right wing-backs'], DM: ['defensive midfielder', 'defensive midfielders'],
+  MC: ['central midfielder', 'central midfielders'], ML: ['left midfielder', 'left midfielders'], MR: ['right midfielder', 'right midfielders'],
+  AML: ['left winger', 'left wingers'], AMR: ['right winger', 'right wingers'], AMC: ['attacking midfielder', 'attacking midfielders'],
+  ST: ['striker', 'strikers'],
+};
+
+/** "left-backs, first-team ready, in Scotland". */
+export function describeSearch(state: GameState, c: ScoutCriteria): string {
+  const what = c.position === 'any' ? 'players for your weakest positions' : POSITION_WORDS[c.position][1];
+  return `${what} (${SCOUT_NEED_LABELS[c.need]}) ${whereLabel(state, c.where)}`;
+}
+
+function whereLabel(state: GameState, where: string): string {
+  if (where === 'league') {
+    const club = state.manager.clubId ? state.world.clubs[state.manager.clubId] : undefined;
+    return `in the ${club ? state.world.competitions[club.leagueId]?.name ?? 'league' : 'league'}`;
+  }
+  if (where === 'all') return 'in every league in the game';
+  return `in ${state.world.nations[where]?.name ?? where}`;
+}
+
+/** Nations whose leagues are in the game (searched among real clubs). */
+export function nationsInGame(state: GameState): Array<{ id: Id; name: string }> {
+  const ids = [...new Set(Object.values(state.world.competitions).map((c) => c.nationId))];
+  return ids.map((id) => ({ id, name: state.world.nations[id]?.name ?? id }));
+}
+
+/**
+ * Sends a scout to find players: a position (or the weakest places in the side), what kind of
+ * player, and where. Leagues in the game take a week (five days in your own league); a country
+ * abroad takes two weeks.
+ */
+export function findPlayers(state: GameState, criteria: ScoutCriteria): ScoutResult {
+  if (!state.manager.clubId) return { ok: false, message: 'You need a club to send scouts.' };
+  const label = describeSearch(state, criteria);
+  const key = `search:${criteria.position}:${criteria.need}:${criteria.where}`;
+  const inGame = criteria.where === 'league' || criteria.where === 'all' || nationsInGame(state).some((n) => n.id === criteria.where);
+  if (inGame) return assign(state, 'search', key, criteria.where === 'league' ? 5 : 7, label, criteria);
+  if (!state.world.nations[criteria.where]) return { ok: false, message: 'Nowhere to scout.' };
+  return assign(state, 'country', criteria.where, COUNTRY_TRIP_DAYS, label, criteria);
+}
+
 /** Countries a scout can be sent to in this world. */
 export function scoutingCountries(state: GameState): Array<{ id: Id; name: string }> {
   return SCOUTING_COUNTRIES.filter((id) => state.world.nations[id]).map((id) => ({ id, name: state.world.nations[id]!.name }));
@@ -159,7 +235,7 @@ function sameLeague(state: GameState, clubId: Id | null): boolean {
   return state.world.clubs[clubId]?.leagueId === state.world.clubs[state.manager.clubId]?.leagueId;
 }
 
-function assign(state: GameState, kind: ScoutAssignment['kind'], targetId: Id, days: number, label: string): ScoutResult {
+function assign(state: GameState, kind: ScoutAssignment['kind'], targetId: Id, days: number, label: string, criteria?: ScoutCriteria): ScoutResult {
   const s = scouting(state);
   if (s.assignments.some((a) => a.targetId === targetId)) return { ok: false, message: `A scout is already watching ${label}.` };
   const { scouts } = scoutingStaff(state);
@@ -168,8 +244,9 @@ function assign(state: GameState, kind: ScoutAssignment['kind'], targetId: Id, d
   }
   s.counter++;
   const due = addDays(state.date, days);
-  s.assignments.push({ id: `s${s.counter}`, kind, targetId, started: state.date, due });
-  return { ok: true, message: `A scout is on the way to watch ${label}. Report due ${formatShort(due)}.` };
+  s.assignments.push({ id: `s${s.counter}`, kind, targetId, started: state.date, due, ...(criteria ? { criteria } : {}) });
+  const verb = kind === 'search' || kind === 'country' ? 'look for' : 'watch';
+  return { ok: true, message: `A scout is on the way to ${verb} ${label}. Report due ${formatShort(due)}.` };
 }
 
 export function cancelAssignment(state: GameState, assignmentId: Id): void {
@@ -215,7 +292,8 @@ function gradeFor(state: GameState, player: Player): ScoutReport['grade'] {
   return 'D';
 }
 
-function writeReport(state: GameState, player: Player): void {
+/** A scout's full assessment of a player, kept as their report (no news item). */
+function assess(state: GameState, player: Player): ScoutReport {
   const s = scouting(state);
   const { judgement } = scoutingStaff(state);
   s.knowledge[player.id] = 100;
@@ -225,8 +303,14 @@ function writeReport(state: GameState, player: Player): void {
   const grade = gradeFor(state, player);
   const age = ageOn(player.dateOfBirth, state.date);
   const prospect = age <= 21 && potentialStars >= 4 ? ' One for the future.' : '';
-  const verdict = `${GRADE_TEXT[grade]}${prospect}`;
-  s.reports[player.id] = { date: state.date, potentialStars, grade, verdict };
+  const report = { date: state.date, potentialStars, grade, verdict: `${GRADE_TEXT[grade]}${prospect}` };
+  s.reports[player.id] = report;
+  return report;
+}
+
+function writeReport(state: GameState, player: Player): void {
+  const { potentialStars, grade, verdict } = assess(state, player);
+  const age = ageOn(player.dateOfBirth, state.date);
   const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
   const willing = state.manager.clubId ? willingToJoin(state, player, state.manager.clubId) : { ok: true };
   const where = club ? ` at ${clubLink(club)}` : player.abroad ? `, at ${sellerName(state, ABROAD, player.id)}` : ', free agent';
@@ -279,12 +363,111 @@ function weakestPositions(state: GameState): Position[] {
     .map((x) => x.position);
 }
 
+/** Rating of the manager's current first choice at a position (their best player there if it isn't in the side). */
+function starterRatingAt(state: GameState, position: Position): number {
+  const clubId = state.manager.clubId!;
+  const squad = squadOf(state, clubId);
+  const tactics = state.manager.tactics ?? autoTactics(squad, state.date);
+  const slots = FORMATIONS[tactics.formation];
+  const inSide = tactics.lineup
+    .map((id, i) => ({ p: squad.find((x) => x.id === id), pos: slots[i]?.position }))
+    .filter((x) => x.p && x.pos === position)
+    .map((x) => positionRating(x.p!, position));
+  if (inSide.length > 0) return Math.min(...inSide);
+  return Math.max(0, ...squad.map((p) => positionRating(p, position)));
+}
+
+function bestXiLevel(state: GameState): number {
+  const best = squadOf(state, state.manager.clubId!).map((p) => p.ca).sort((a, b) => b - a).slice(0, 11);
+  return best.reduce((a, b) => a + b, 0) / Math.max(1, best.length);
+}
+
+/** Positions a search covers: the one asked for, or the three weakest in the side. */
+function searchPositions(state: GameState, c: ScoutCriteria): Position[] {
+  return c.position === 'any' ? [...new Set(weakestPositions(state))].slice(0, 3) : [c.position];
+}
+
 /**
- * A trip abroad: the scout finds four or five players at clubs in that country who would suit the
- * manager: first-team options for the weakest positions, one cheaper squad player and a prospect.
- * They're created now (the rest of the world isn't simulated) and kept for a few months.
+ * A search of the leagues in the game. Scouts judge players by how they'd fit: first-team players
+ * better than the current starter, backups a little below the starter and cheaper, prospects of 21
+ * or under who could reach the side's level. Judgement isn't perfect (worse scouts misjudge more),
+ * and only players who'd consider joining are put forward.
  */
-function writeCountryReport(state: GameState, nationId: Id): void {
+function writeSearchReport(state: GameState, c: ScoutCriteria): void {
+  const clubId = state.manager.clubId!;
+  const me = getClub(state, clubId);
+  const s = scouting(state);
+  const { judgement } = scoutingStaff(state);
+  const level = bestXiLevel(state);
+  const positions = searchPositions(state, c);
+  const starters = new Map(positions.map((p) => [p, starterRatingAt(state, p)]));
+  const budget = financesOf(state, clubId).transferBudget;
+  const fuzz = (p: Player) => normal(createRng(hashString(`${state.seed}:${p.id}:search:${state.date}`)), 0, (21 - judgement) * 0.6);
+  const scored: Array<{ p: Player; score: number; position: Position }> = [];
+  for (const p of Object.values(state.world.players)) {
+    if (!p.clubId || p.clubId === clubId || p.retired || p.loan) continue;
+    const club = state.world.clubs[p.clubId];
+    if (!club) continue;
+    if (c.where === 'league' && club.leagueId !== me.leagueId) continue;
+    if (c.where !== 'league' && c.where !== 'all' && club.nationId !== c.where) continue;
+    const age = ageOn(p.dateOfBirth, state.date);
+    let best: { position: Position; rating: number } | null = null;
+    for (const position of positions) {
+      const rating = positionRating(p, position);
+      if (!best || rating > best.rating) best = { position, rating };
+    }
+    if (!best) continue;
+    const starter = starters.get(best.position) ?? 0;
+    const seen = best.rating + fuzz(p);
+    let score: number;
+    if (c.need === 'first') {
+      if (age > 31 || seen < starter + 1) continue;
+      score = seen - starter - Math.max(0, age - 28);
+    } else if (c.need === 'backup') {
+      if (age > 33 || seen < starter - 14 || seen >= starter + 1) continue;
+      score = seen - starter + 14 - Math.log10(1 + askingPrice(state, p) / 1_000_000) * 3;
+    } else {
+      const potential = p.pa + fuzz(p) * 2;
+      if (age > 21 || potential < level - 6) continue;
+      score = potential - level + (21 - age) * 2;
+    }
+    if (askingPrice(state, p) > Math.max(budget, 1) * 1.5) continue;
+    if (!willingToJoin(state, p, clubId).ok) continue;
+    scored.push({ p, score, position: best.position });
+  }
+  // Scouts don't see everyone: pick from the best dozen.
+  const shortlist = scored.sort((a, b) => b.score - a.score).slice(0, 12);
+  const picked = shuffle(state.rng, shortlist).slice(0, 5).sort((a, b) => b.score - a.score);
+  for (const { p } of picked) assess(state, p);
+  const label = describeSearch(state, c);
+  (s.searches ??= []).unshift({ date: state.date, criteria: c, label, playerIds: picked.map((x) => x.p.id) });
+  s.searches = s.searches.slice(0, 10);
+  addNews(state, {
+    category: 'transfer',
+    title: picked.length > 0 ? `Scout report: ${picked.length} ${label}` : `Scout report: nobody found`,
+    body: picked.length > 0
+      ? [
+          `Your scout has been looking for ${label} and recommends:`,
+          picked
+            .map(({ p }) => {
+              const club = getClub(state, p.clubId!);
+              return `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}) at ${clubLink(club)}: grade ${s.reports[p.id]?.grade}, about ${formatMoney(askingPrice(state, p))}`;
+            })
+            .join('\n'),
+          'They are on the Scouting screen too.',
+        ].join('\n\n')
+      : `Your scout looked for ${label} but found nobody suitable who would join and you could afford. Try another position, another kind of player or somewhere else.`,
+    important: true,
+  });
+}
+
+/**
+ * A trip abroad: the scout finds five players at clubs in that country. Without a brief they suit
+ * the manager's weakest positions (first-team options, a cheaper squad player and a prospect);
+ * with one they match it. They're created now (the rest of the world isn't simulated) and kept
+ * for a few months.
+ */
+function writeCountryReport(state: GameState, nationId: Id, criteria?: ScoutCriteria): void {
   const nation = state.world.nations[nationId];
   const clubId = state.manager.clubId;
   if (!nation || !clubId) return;
@@ -295,13 +478,22 @@ function writeCountryReport(state: GameState, nationId: Id): void {
   const ceiling = attractCeiling(state, getClub(state, clubId), 8);
   const weak = weakestPositions(state);
   const others = shuffle(state.rng, [...new Set(weak.slice(3))]);
-  const targets: Array<{ position: Position; ca: number; age: number }> = [
+  let targets: Array<{ position: Position; ca: number; age: number; future?: boolean }> = [
     { position: weak[0] ?? 'MC', ca: level + randInt(state.rng, 0, 8), age: randInt(state.rng, 22, 28) },
     { position: weak[1] ?? 'ST', ca: level + randInt(state.rng, -3, 6), age: randInt(state.rng, 21, 29) },
     { position: weak[2] ?? 'DC', ca: level + randInt(state.rng, -6, 4), age: randInt(state.rng, 23, 31) },
     { position: others[0] ?? 'DC', ca: level - randInt(state.rng, 8, 14), age: randInt(state.rng, 22, 30) },
-    { position: others[1] ?? 'AMC', ca: level - randInt(state.rng, 22, 32), age: randInt(state.rng, 17, 19) },
+    { position: others[1] ?? 'AMC', ca: level - randInt(state.rng, 22, 32), age: randInt(state.rng, 17, 19), future: true },
   ];
+  if (criteria) {
+    const positions = searchPositions(state, criteria);
+    targets = Array.from({ length: 5 }, (_, i) => {
+      const position = positions[i % positions.length]!;
+      if (criteria.need === 'first') return { position, ca: level + randInt(state.rng, -1, 9), age: randInt(state.rng, 22, 29) };
+      if (criteria.need === 'backup') return { position, ca: level - randInt(state.rng, 5, 14), age: randInt(state.rng, 21, 31) };
+      return { position, ca: level - randInt(state.rng, 18, 32), age: randInt(state.rng, 17, 20), future: true };
+    });
+  }
   const found: Player[] = [];
   const until = addDays(state.date, ABROAD_AVAILABLE_DAYS);
   for (const t of targets) {
@@ -316,6 +508,8 @@ function writeCountryReport(state: GameState, nationId: Id): void {
       clubId: null,
       today: state.date,
     });
+    // A prospect the scout recommends has the potential to reach the side's level.
+    if (t.future) player.pa = Math.max(player.pa, Math.round(level + randInt(state.rng, -4, 12)));
     player.abroad = { nationId, until, price: Math.max(100_000, roundMoney(player.value * 1.25)) };
     player.squadNumber = null;
     // Their contract with the club abroad (shown on their page; replaced when they sign).
@@ -372,7 +566,9 @@ export function scoutingDay(state: GameState): void {
       const player = state.world.players[a.targetId];
       if (player && !player.retired) writeReport(state, player);
     } else if (a.kind === 'country') {
-      writeCountryReport(state, a.targetId);
+      writeCountryReport(state, a.targetId, a.criteria);
+    } else if (a.kind === 'search' && a.criteria) {
+      writeSearchReport(state, a.criteria);
     } else if (state.world.clubs[a.targetId]) {
       writeClubReport(state, a.targetId);
     }

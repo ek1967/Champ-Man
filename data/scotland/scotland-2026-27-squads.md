@@ -97,9 +97,9 @@ each club's level, age, squad number and senior caps; correct them in
 | 17 | Stuart Findlay | DC | 30 | SCO | 108 | 2 |  |
 | 18 | Harry Milne | DC | 29 | SCO | 108 | 2 | position from squad list only |
 | 4 | Craig Halkett | DC | 31 | SCO | 107 | 2 |  |
-| 20 | Leart Kabashi | MC | 26 | SUI | 106 | 2 | no birth date (age guessed); position from squad list only |
 | 29 | Sabah Kerjota | MC | 24 | ALB | 106 | 2 | position from squad list only |
 | 16 | Blair Spittal | MC | 30 | SCO | 105 | 2 |  |
+| 20 | Leart Kabashi | MC | 23 | SUI | 105 | 2 | no birth date (age 24 guessed); position from squad list only |
 | 12 | Tom Renaud | MC | 25 | FRA | 104 | 2 | position from squad list only |
 | 15 | Josh McPake | ST | 24 | SCO | 104 | 2 |  |
 | 34 | Kieran Wright | GK | 27 | SCO | 104 | 2 | position from squad list only |
@@ -143,9 +143,9 @@ each club's level, age, squad number and senior caps; correct them in
 | 31 | Mitchy Ntelo | ST | 25 | BEL | 97 | 1.5 | position from squad list only |
 | 27 | Marius Müller | GK | 32 | GER | 96 | 1.5 |  |
 | 7 | Tony Yogane | MC | 20 | ENG | 94 | 1.5 | position from squad list only |
-| 40 | Findlay Marshall | MC | 26 | SCO | 94 | 1.5 | no birth date (age guessed); position from squad list only |
 | 17 | Stuart Armstrong | MC | 34 | SCO | 93 | 1.5 |  |
 | 77 | Emmanuel Gyamfi | DC | 21 | GER | 86 | 1 | position from squad list only |
+| 40 | Findlay Marshall | MC | 17 | SCO | 68 | 0.5 | no birth date (age 18 guessed); position from squad list only |
 
 ## Hibernian (best XI target 106)
 
@@ -173,11 +173,11 @@ each club's level, age, squad number and senior caps; correct them in
 | 9 | Nathan Lowe | ST | 20 | ENG | 99 | 1.5 | position from squad list only |
 | 10 | Martin Boyle | ST | 33 | AUS | 99 | 1.5 |  |
 | 14 | Miguel Chaiwa | MC | 22 | ZAM | 99 | 1.5 | position from squad list only |
-| 35 | Freddie Owens | GK | 26 | SCO | 99 | 1.5 | no birth date (age guessed); position from squad list only |
 | 27 | Kanayo Megwa | DC | 22 | ENG | 97 | 1.5 | position from squad list only |
 | 7 | Owen Elding | ST | 20 | IRL | 96 | 1.5 |  |
 | 24 | Jacob Devaney | MC | 19 | IRL | 95 | 1.5 | position from squad list only |
 | 47 | Azeem Abdulai | MC | 23 | SLE | 93 | 1.5 | position from squad list only |
+| 35 | Freddie Owens | GK | 20 | SCO | 89 | 1 | no birth date (age 20 guessed); position from squad list only |
 
 ## Dundee United (best XI target 101)
 
@@ -192,10 +192,10 @@ each club's level, age, squad number and senior caps; correct them in
 | 4 | Iurie Iovu | DC | 23 | MDA | 100 | 1.5 | position from squad list only |
 | 11 | Will Ferry | DC | 25 | IRL | 100 | 1.5 |  |
 | 7 | Mehdi Merghem | ST | 28 | ALG | 98 | 1.5 |  |
-| 26 | Abdoulaye Yoro | MC | 26 | CIV | 98 | 1.5 | no birth date (age guessed); position from squad list only |
-| 16 | Lyall Cameron | MC | 23 | SCO | 97 | 1.5 | position from squad list only |
+| 16 | Lyall Cameron | MC | 23 | SCO | 98 | 1.5 | position from squad list only |
 | 18 | Michael Forbes | DC | 22 | NIR | 97 | 1.5 | position from squad list only |
-| 19 | Kevin Ciubotaru | DC | 22 | ROU | 96 | 1.5 |  |
+| 19 | Kevin Ciubotaru | DC | 22 | ROU | 97 | 1.5 |  |
+| 26 | Abdoulaye Yoro | MC | 23 | CIV | 97 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 20 | Neil Farrugia | DC | 27 | IRL | 96 | 1.5 |  |
 | 9 | Zac Sapsford | ST | 23 | AUS | 95 | 1.5 |  |
 | 15 | Lachlan Rose | ST | 27 | AUS | 94 | 1.5 | position from squad list only |
@@ -204,10 +204,10 @@ each club's level, age, squad number and senior caps; correct them in
 | 30 | Jordan Amissah | GK | 24 | GHA | 92 | 1.5 | position from squad list only |
 | 12 | Emmanuel Agyei | MC | 21 | GHA | 90 | 1 | position from squad list only |
 | 23 | Joshua Rawlins | DC | 22 | AUS | 90 | 1 |  |
-| 45 | Cohen Leiper | MC | 26 | SCO | 88 | 1 | no birth date (age guessed); position from squad list only |
-| 60 | Lorenzo Sassetti | ST | 26 | ITA | 87 | 1 | no birth date (age guessed); position from squad list only |
 | 93 | Idjessi Metsoko | ST | 24 | TOG | 83 | 1 | position from squad list only |
 | 77 | Daniel Bennie | ST | 20 | AUS | 74 | 0.5 | position from squad list only |
+| 45 | Cohen Leiper | MC | 17 | SCO | 62 | 0.5 | no birth date (age 18 guessed); position from squad list only |
+| 60 | Lorenzo Sassetti | ST | 17 | ITA | 61 | 0.5 | no birth date (age 18 guessed); position from squad list only |
 
 ## Motherwell (best XI target 101)
 
@@ -224,7 +224,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 22 | John Koutroumbis | DC | 28 | AUS | 99 | 1.5 |  |
 | 15 | Eythor Bjørgolfsson | ST | 25 | NOR | 98 | 1.5 | position from squad list only |
 | 14 | Callum Hendry | ST | 28 | SCO | 97 | 1.5 |  |
-| 21 | Matthew Connelly | GK | 26 | SCO | 97 | 1.5 | no birth date (age guessed); position from squad list only |
+| 21 | Matthew Connelly | GK | 24 | SCO | 97 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 3 | Jake Girdwood-Reich | DC | 22 | AUS | 96 | 1.5 |  |
 | 7 | Tom Sparrow | MC | 23 | WAL | 96 | 1.5 | position from squad list only |
 | 17 | Regan Charles-Cook | ST | 29 | GRN | 96 | 1.5 |  |
@@ -256,8 +256,8 @@ each club's level, age, squad number and senior caps; correct them in
 | 5 | Mark O'Hara | MC | 30 | SCO | 97 | 1.5 |  |
 | 6 | Robbie Deas | DC | 26 | SCO | 97 | 1.5 |  |
 | 7 | Rory McKenzie | MC | 32 | SCO | 97 | 1.5 |  |
-| 23 | Roshaun Mathurin | MC | 26 | ENG | 97 | 1.5 | no birth date (age guessed); position from squad list only |
-| 27 | Ieuan Owen | ST | 26 | WAL | 96 | 1.5 | no birth date (age guessed); position from squad list only |
+| 23 | Roshaun Mathurin | MC | 23 | ENG | 96 | 1.5 | no birth date (age 24 guessed); position from squad list only |
+| 27 | Ieuan Owen | ST | 24 | WAL | 96 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 36 | Aaron Tshibola | MC | 31 | COD | 96 | 1.5 |  |
 | 12 | Calum Ferrie | GK | 27 | ENG | 95 | 1.5 |  |
 | 15 | Johnly Yfeko | DC | 22 | ENG | 95 | 1.5 | position from squad list only |
@@ -285,24 +285,24 @@ each club's level, age, squad number and senior caps; correct them in
 | 18 | Malik Dijksteel | MC | 24 | NED | 96 | 1.5 | position from squad list only |
 | 8 | Ryan Carr | MC | 21 | SCO | 94 | 1.5 | position from squad list only |
 | 13 | Alex Gogić | DC | 32 | CYP | 94 | 1.5 |  |
-| 24 | Josh Farquhar | ST | 26 | SCO | 94 | 1.5 | no birth date (age guessed); position from squad list only |
+| 24 | Josh Farquhar | ST | 23 | SCO | 93 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 25 | Nikolas Agrafiotis | ST | 26 | SRB | 93 | 1.5 |  |
-| 26 | Marcello De Barros | DC | 26 | SCO | 92 | 1.5 | no birth date (age guessed); position from squad list only |
-| 31 | Ryan Mullen | GK | 26 | SCO | 92 | 1.5 | no birth date (age guessed); position from squad list only |
+| 26 | Marcello De Barros | DC | 24 | SCO | 92 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 23 | Chris Mochrie | MC | 23 | SCO | 91 | 1 |  |
-| 35 | Grant Tamosevicius | GK | 26 | SCO | 90 | 1 | no birth date (age guessed); position from squad list only |
 | 16 | Luke Thomas | MC | 27 | ENG | 89 | 1 |  |
 | 22 | Marcus Fraser | DC | 31 | SCO | 89 | 1 |  |
 | 6 | Louis Jackson | DC | 20 | SCO | 88 | 1 | position from squad list only |
 | 9 | Eseosa Sule | ST | 20 | SCO | 87 | 1 | position from squad list only |
-| 32 | Luke Douglas | ST | 26 | SCO | 87 | 1 | no birth date (age guessed); position from squad list only |
-| 37 | Carrick McEvoy | MC | 26 | SCO | 87 | 1 | no birth date (age guessed); position from squad list only |
 | 30 | Fraser Taylor | MC | 23 | SCO | 86 | 1 | position from squad list only |
 | 47 | Calvin Ramsay | DC | 22 | SCO | 85 | 1 | position from squad list only |
 | 88 | Killian Phillips | MC | 24 | IRL | 85 | 1 | position from squad list only |
 | 19 | Ismeal Kabia | ST | 20 | NED | 83 | 1 | position from squad list only |
+| 31 | Ryan Mullen | GK | 20 | SCO | 82 | 1 | no birth date (age 20 guessed); position from squad list only |
+| 32 | Luke Douglas | ST | 20 | SCO | 77 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 37 | Carrick McEvoy | MC | 20 | SCO | 77 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 48 | Paul Nsio | MC | 20 | ENG | 76 | 0.5 | position from squad list only |
 | 53 | Henry Fieldson | DC | 20 | SCO | 76 | 0.5 | position from squad list only |
+| 35 | Grant Tamosevicius | GK | 19 | SCO | 75 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 
 ## Dundee (best XI target 98)
 
@@ -312,13 +312,13 @@ each club's level, age, squad number and senior caps; correct them in
 | 5 | Owen Bevan | DC | 22 | WAL | 101 | 1.5 | position from squad list only |
 | 2 | Brad Halliday | DC | 30 | ENG | 99 | 1.5 |  |
 | 4 | Ryan Astley | DC | 24 | WAL | 99 | 1.5 | position from squad list only |
-| 11 | Ashley Hay | ST | 26 | ENG | 99 | 1.5 | no birth date (age guessed); position from squad list only |
 | 1 | Owen Goodman | GK | 22 | CAN | 98 | 1.5 |  |
+| 11 | Ashley Hay | ST | 23 | ENG | 98 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 17 | Žan Bešir | MC | 25 | SVN | 97 | 1.5 | position from squad list only |
+| 18 | Charlie Reilly | MC | 24 | SCO | 97 | 1.5 | position from squad list only |
 | 7 | Drey Wright | MC | 31 | ENG | 96 | 1.5 |  |
 | 10 | Finlay Robertson | MC | 23 | SCO | 96 | 1.5 |  |
 | 14 | Alan Forrest | MC | 29 | SCO | 96 | 1.5 |  |
-| 18 | Charlie Reilly | MC | 24 | SCO | 96 | 1.5 | position from squad list only |
 | 28 | Callum Jones | MC | 25 | WAL | 96 | 1.5 | position from squad list only |
 | 19 | Joe Westley | ST | 21 | ENG | 95 | 1.5 | position from squad list only |
 | 21 | Bradley Fink | ST | 23 | SUI | 95 | 1.5 | position from squad list only |
@@ -329,10 +329,10 @@ each club's level, age, squad number and senior caps; correct them in
 | 26 | Joe Wright | DC | 31 | WAL | 90 | 1 |  |
 | 48 | Ethan Hamilton | MC | 27 | SCO | 90 | 1 |  |
 | 6 | Matai Akinmboni | DC | 19 | USA | 89 | 1 |  |
-| 9 | Bobby Wales | ST | 20 | SCO | 88 | 1 | position from squad list only |
+| 9 | Bobby Wales | ST | 20 | SCO | 89 | 1 | position from squad list only |
 | 15 | Simon Murray | ST | 34 | SCO | 87 | 1 |  |
-| 77 | Alfie Harrison | MC | 26 | ENG | 87 | 1 | no birth date (age guessed); position from squad list only |
 | 27 | Joe Bevan | ST | 21 | SCO | 85 | 1 | position from squad list only |
+| 77 | Alfie Harrison | MC | 17 | ENG | 61 | 0.5 | no birth date (age 18 guessed); position from squad list only |
 
 ## Falkirk (best XI target 98)
 
@@ -340,32 +340,32 @@ each club's level, age, squad number and senior caps; correct them in
 |---|---|---|---|---|---|---|---|
 | 2 | Keelan Adams | DC | 24 | SCO | 101 | 1.5 | position from squad list only |
 | 6 | Coll Donaldson | DC | 31 | SCO | 100 | 1.5 |  |
+| 3 | Leon McCann | DC | 26 | SCO | 99 | 1.5 | position from squad list only |
 | 8 | Brad Spencer | MC | 30 | SCO | 99 | 1.5 |  |
-| 11 | Paul McGovern | ST | 26 | NIR | 99 | 1.5 | no birth date (age guessed); position from squad list only |
+| 11 | Paul McGovern | ST | 24 | NIR | 99 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 1 | Nicky Hogarth | GK | 25 | SCO | 98 | 1.5 | position from squad list only |
-| 3 | Leon McCann | DC | 26 | SCO | 98 | 1.5 | position from squad list only |
-| 20 | Connor Allan | DC | 26 | SCO | 97 | 1.5 | no birth date (age guessed); position from squad list only |
 | 23 | Ethan Ross | MC | 24 | SCO | 97 | 1.5 |  |
-| 27 | Conor McLeod | MC | 26 | ENG | 97 | 1.5 | no birth date (age guessed); position from squad list only |
 | 9 | Ross MacIver | ST | 27 | SCO | 96 | 1.5 |  |
 | 10 | Craig Sibbald | MC | 31 | SCO | 96 | 1.5 |  |
+| 20 | Connor Allan | DC | 23 | SCO | 96 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 21 | Deniss Meļņiks | DC | 23 | LVA | 96 | 1.5 |  |
+| 27 | Conor McLeod | MC | 23 | ENG | 96 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 4 | Jack McMillan | DC | 28 | SCO | 95 | 1.5 |  |
 | 5 | Liam Henderson | DC | 29 | SCO | 95 | 1.5 |  |
 | 22 | Ryan Strain | DC | 29 | AUS | 95 | 1.5 |  |
-| 38 | Leo Harris | MC | 26 | SCO | 95 | 1.5 | no birth date (age guessed); position from squad list only |
-| 26 | Aidan Nesbitt | MC | 29 | SCO | 93 | 1.5 |  |
+| 26 | Aidan Nesbitt | MC | 29 | SCO | 94 | 1.5 |  |
 | 16 | Finley Barbrook | MC | 21 | ENG | 92 | 1.5 | position from squad list only |
 | 28 | Ben Krauhaus | MC | 21 | ENG | 91 | 1 | position from squad list only |
+| 14 | Finn Yeats | MC | 22 | SCO | 90 | 1 | position from squad list only |
 | 15 | Lewis Neilson | DC | 23 | SCO | 90 | 1 | position from squad list only |
 | 17 | Scott Tanser | DL | 31 | ENG | 90 | 1 |  |
 | 7 | Ben Parkinson | ST | 21 | ENG | 89 | 1 | position from squad list only |
-| 14 | Finn Yeats | MC | 22 | SCO | 89 | 1 | position from squad list only |
 | 24 | Jacob Murrell | ST | 21 | USA | 89 | 1 |  |
 | 12 | Ethan Laidlaw | ST | 21 | SCO | 88 | 1 | position from squad list only |
 | 99 | CJ Fodrey | ST | 22 | USA | 87 | 1 |  |
 | 19 | Scott Bain | GK | 34 | SCO | 85 | 1 |  |
-| 18 | Joe Gardner | ST | 20 | IRL | 82 | 1 |  |
+| 38 | Leo Harris | MC | 20 | SCO | 85 | 1 | no birth date (age 20 guessed); position from squad list only |
+| 18 | Joe Gardner | ST | 20 | IRL | 83 | 1 |  |
 | 47 | Aodhan Doherty | ST | 20 | NIR | 80 | 1 | position from squad list only |
 | 42 | Owen Eames | MC | 19 | ENG | 74 | 0.5 | position from squad list only |
 
@@ -382,10 +382,9 @@ each club's level, age, squad number and senior caps; correct them in
 | 1 | Toby Steward | GK | 21 | ENG | 96 | 1.5 |  |
 | 19 | Daniel Finlayson | DC | 25 | NIR | 95 | 1.5 |  |
 | 22 | Danny Schmidt | ST | 23 | GER | 95 | 1.5 | position from squad list only |
-| 7 | Taylor Steven | ST | 26 | SCO | 94 | 1.5 | no birth date (age guessed); position from squad list only |
+| 7 | Taylor Steven | ST | 24 | SCO | 94 | 1.5 | no birth date (age 24 guessed); position from squad list only |
 | 11 | Sam Stanton | MC | 32 | SCO | 94 | 1.5 |  |
 | 33 | Liam Smith | DC | 30 | SCO | 93 | 1.5 |  |
-| 39 | Kyle Thomson | GK | 26 | SCO | 93 | 1.5 | no birth date (age guessed); position from squad list only |
 | 8 | Jason Holt | MC | 33 | SCO | 92 | 1.5 |  |
 | 14 | Matty Foulds | DC | 28 | ENG | 92 | 1.5 |  |
 | 18 | Kai Fotheringham | ST | 23 | SCO | 92 | 1.5 | position from squad list only |
@@ -398,6 +397,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 25 | Macaulay Tait | MC | 20 | SCO | 84 | 1 | position from squad list only |
 | 42 | Reece McAlear | MC | 24 | SCO | 84 | 1 |  |
 | 99 | Ruari Paton | ST | 25 | IRL | 83 | 1 | position from squad list only |
+| 39 | Kyle Thomson | GK | 19 | SCO | 78 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 
 ## Livingston (best XI target 92)
 
@@ -422,13 +422,13 @@ each club's level, age, squad number and senior caps; correct them in
 | 5 | Ryan McGowan | DC | 36 | AUS | 87 | 1 |  |
 | 24 | Adam Montgomery | DC | 23 | SCO | 87 | 1 |  |
 | 22 | Jordan Doherty | DC | 28 | IRL | 86 | 1 |  |
-| 34 | Lewis Campbell | ST | 26 | SCO | 86 | 1 | no birth date (age guessed); position from squad list only |
 | 8 | Scott Pittman | MC | 33 | SCO | 85 | 1 |  |
 | 28 | Jérôme Prior | GK | 30 | FRA | 84 | 1 |  |
 | 30 | Shane Blaney | DC | 27 | IRL | 83 | 1 |  |
 | 39 | Liam Polworth | MC | 31 | SCO | 82 | 1 |  |
 | 14 | Jack Hamilton | GK | 32 | SCO | 80 | 1 |  |
 | 26 | Cristian Montaño | MC | 34 | COL | 80 | 1 |  |
+| 34 | Lewis Campbell | ST | 20 | SCO | 76 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 27 | Graham Carey | MC | 37 | IRL | 75 | 0.5 |  |
 
 ## Partick Thistle (best XI target 88)
@@ -449,15 +449,15 @@ each club's level, age, squad number and senior caps; correct them in
 | 14 | Robbie Crawford | MC | 31 | SCO | 85 | 1 |  |
 | 17 | Ethan Ingram | DC | 23 | ENG | 84 | 1 | position from squad list only |
 | 20 | Dan O'Reilly | DL | 31 | IRL | 83 | 1 |  |
-| 31 | Jamie Low | DC | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
 | 22 | Cale Loughrey | DC | 24 | CAN | 82 | 1 | position from squad list only |
-| 34 | Steven Docherty | MC | 26 | SCO | 82 | 1 | no birth date (age guessed); position from squad list only |
 | 32 | Tony Watt | ST | 32 | SCO | 81 | 1 |  |
 | 12 | Liam McFarlane | GK | 21 | SCO | 80 | 1 | position from squad list only |
 | 24 | Ben McPherson | DC | 22 | SCO | 79 | 1 | position from squad list only |
-| 35 | Josh Miller | MC | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
 | 26 | Ben Stanway | MC | 21 | SCO | 76 | 0.5 | position from squad list only |
+| 31 | Jamie Low | DC | 20 | SCO | 73 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 35 | Josh Miller | MC | 20 | SCO | 68 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 64 | Ts'oanelo Lets'osa | MC | 22 | SCO | 68 | 0.5 | position from squad list only |
+| 34 | Steven Docherty | MC | 19 | SCO | 67 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 
 ## Dunfermline Athletic (best XI target 88)
 
@@ -465,32 +465,32 @@ each club's level, age, squad number and senior caps; correct them in
 |---|---|---|---|---|---|---|---|
 | 1 | Aston Oxborough | GK | 28 | ENG | 93 | 1.5 |  |
 | 9 | Zak Rudden | ST | 26 | SCO | 90 | 1 |  |
-| 15 | Samuel Cleall-Harding | DC | 26 | SCO | 90 | 1 | no birth date (age guessed); position from squad list only |
 | 10 | Oli Shaw | ST | 28 | SCO | 89 | 1 |  |
+| 15 | Samuel Cleall-Harding | DC | 23 | SCO | 89 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 7 | Callumn Morrison | ST | 26 | SCO | 88 | 1 |  |
 | 14 | Alfons Amade | MC | 26 | MOZ | 88 | 1 |  |
-| 2 | Freddie Turley | DC | 26 | IRL | 86 | 1 | no birth date (age guessed); position from squad list only |
+| 8 | Charlie Gilmour | MC | 27 | SCO | 87 | 1 |  |
+| 2 | Freddie Turley | DC | 24 | IRL | 86 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 5 | Luke Robinson | DC | 24 | SCO | 86 | 1 | position from squad list only |
-| 6 | Nurudeen Abdulai | DC | 26 | GHA | 86 | 1 | no birth date (age guessed); position from squad list only |
-| 8 | Charlie Gilmour | MC | 27 | SCO | 86 | 1 |  |
-| 11 | Shea Kearney | DC | 26 | NIR | 86 | 1 | no birth date (age guessed); position from squad list only |
+| 6 | Nurudeen Abdulai | DC | 24 | GHA | 86 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 11 | Shea Kearney | DC | 24 | NIR | 86 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 20 | Chris Kane | ST | 31 | SCO | 85 | 1 |  |
-| 3 | John Tod | DC | 26 | SCO | 84 | 1 | no birth date (age guessed); position from squad list only |
-| 33 | Josh Cooper | MC | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
+| 3 | John Tod | DC | 23 | SCO | 83 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 12 | Musa Dibaga | GK | 26 | GAM | 82 | 1 | position from squad list only |
 | 17 | Olly Thomas | ST | 21 | ENG | 82 | 1 | position from squad list only |
 | 25 | Aaron Donnelly | DC | 23 | NIR | 82 | 1 | position from squad list only |
-| 12 | Musa Dibaga | GK | 26 | GAM | 81 | 1 | position from squad list only |
 | 18 | Kian Corbally | MC | 22 | IRL | 80 | 1 | position from squad list only |
-| 36 | Thomas Margetts | GK | 26 | SCO | 79 | 1 | no birth date (age guessed); position from squad list only |
-| 38 | James Hardie | MC | 26 | SCO | 79 | 1 | no birth date (age guessed); position from squad list only |
 | 47 | Robbie Fraser | DC | 23 | SCO | 77 | 0.5 | position from squad list only |
 | 16 | Rory MacLeod | ST | 20 | SCO | 76 | 0.5 | position from squad list only |
 | 24 | Dylan Lobban | DC | 20 | SCO | 76 | 0.5 |  |
 | 22 | Keith Bray | MC | 20 | SCO | 75 | 0.5 | position from squad list only |
-| 99 | Olamilekan Adams | ST | 26 | NGA | 74 | 0.5 | no birth date (age guessed); position from squad list only |
 | 40 | Billy Terrell | GK | 23 | ENG | 72 | 0.5 | position from squad list only |
 | 19 | Allan Oyirwoth | MC | 19 | UGA | 71 | 0.5 |  |
 | 26 | Andrew Tod | MC | 20 | SCO | 69 | 0.5 | position from squad list only |
+| 36 | Thomas Margetts | GK | 20 | SCO | 69 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 33 | Josh Cooper | MC | 19 | SCO | 68 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 38 | James Hardie | MC | 19 | SCO | 64 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 99 | Olamilekan Adams | ST | 17 | NGA | 48 | 0.5 | no birth date (age 18 guessed); position from squad list only |
 
 ## Inverness Caledonian Thistle (best XI target 85)
 
@@ -498,9 +498,9 @@ each club's level, age, squad number and senior caps; correct them in
 |---|---|---|---|---|---|---|---|
 | 7 | Paul Allan | MC | 26 | SCO | 89 | 1 | position from squad list only |
 | 3 | Noa Boutin | DC | 22 | FRA | 87 | 1 | position from squad list only |
-| 19 | Morgan Bates | ST | 26 | WAL | 87 | 1 | no birth date (age guessed); position from squad list only |
+| 5 | Remi Savage | DC | 25 | ENG | 86 | 1 | position from squad list only |
 | 8 | Adam Mackinnon | MC | 23 | SCO | 86 | 1 | position from squad list only |
-| 5 | Remi Savage | DC | 25 | ENG | 85 | 1 | position from squad list only |
+| 19 | Morgan Bates | ST | 23 | WAL | 86 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 9 | Layton Stewart | ST | 23 | ENG | 85 | 1 |  |
 | 11 | Luis Longstaff | MC | 25 | ENG | 85 | 1 |  |
 | 1 | Ross Munro | GK | 26 | SCO | 84 | 1 |  |
@@ -511,7 +511,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 10 | David Wotherspoon | MC | 36 | CAN | 80 | 1 |  |
 | 16 | Ryan Duncan | MC | 22 | SCO | 80 | 1 | position from squad list only |
 | 15 | Kerr Smith | DC | 21 | SCO | 78 | 0.5 | position from squad list only |
-| 28 | Ben Corner | ST | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
+| 28 | Ben Corner | ST | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 20 | Junior Osong | ST | 21 | ENG | 75 | 0.5 | position from squad list only |
 | 21 | Logan Ross | GK | 22 | SCO | 75 | 0.5 | position from squad list only |
 | 4 | Graeme Shinnie | MC | 34 | SCO | 74 | 0.5 |  |
@@ -523,30 +523,30 @@ each club's level, age, squad number and senior caps; correct them in
 
 | No | Player | Pos | Age | Nat | CA | ★ | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | Harry Stone | GK | 26 | SCO | 89 | 1 | no birth date (age guessed); position from squad list only |
-| 11 | Ross Taylor | MC | 26 | SCO | 88 | 1 | no birth date (age guessed); position from squad list only |
-| 17 | Thomas Hatton | ST | 26 | SCO | 88 | 1 | no birth date (age guessed); position from squad list only |
+| 1 | Harry Stone | GK | 24 | SCO | 89 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 11 | Ross Taylor | MC | 24 | SCO | 88 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 17 | Thomas Hatton | ST | 24 | SCO | 88 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 6 | Reece Lyon | MC | 26 | SCO | 87 | 1 |  |
-| 2 | Nick McAllister | DC | 26 | SCO | 85 | 1 | no birth date (age guessed); position from squad list only |
-| 23 | Marco Rus | MC | 23 | ROU | 85 | 1 | position from squad list only |
+| 23 | Marco Rus | MC | 23 | ROU | 86 | 1 | position from squad list only |
+| 2 | Nick McAllister | DC | 23 | SCO | 84 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 8 | Leon King | DC | 22 | SCO | 84 | 1 |  |
-| 10 | Kieran Shanks | ST | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
-| 3 | Liam Dick | DC | 30 | SCO | 82 | 1 |  |
+| 3 | Liam Dick | DC | 30 | SCO | 83 | 1 |  |
+| 10 | Kieran Shanks | ST | 24 | SCO | 83 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 21 | Ethan Walker | MC | 23 | ENG | 82 | 1 |  |
 | 22 | Mark McKenzie | ST | 25 | SCO | 81 | 1 | position from squad list only |
 | 16 | Ben Summers | MC | 21 | SCO | 80 | 1 | position from squad list only |
 | 20 | Luke McBeth | DC | 27 | SCO | 80 | 1 | position from squad list only |
-| 26 | Matthew Warbrick | ST | 26 | NZL | 80 | 1 | no birth date (age guessed); position from squad list only |
-| 25 | Kenzie Mitchell | MC | 26 | SCO | 79 | 1 | no birth date (age guessed); position from squad list only |
+| 26 | Matthew Warbrick | ST | 24 | NZL | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 33 | Scott McMann | DC | 29 | SCO | 79 | 1 |  |
-| 38 | Liam Russell | GK | 26 | SCO | 79 | 1 | no birth date (age guessed); position from squad list only |
 | 5 | Kevin Holt | DL | 33 | SCO | 78 | 0.5 |  |
-| 32 | Dylan Watret | DC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 34 | Jamie Douglas | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
+| 25 | Kenzie Mitchell | MC | 23 | SCO | 78 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 15 | Jamie Murphy | ST | 36 | SCO | 76 | 0.5 |  |
 | 7 | Owen Stirton | ST | 19 | SCO | 74 | 0.5 | position from squad list only |
 | 12 | Olly Whyte | MC | 19 | SCO | 74 | 0.5 | position from squad list only |
 | 9 | Josh Landers | ST | 19 | SCO | 70 | 0.5 | position from squad list only |
+| 38 | Liam Russell | GK | 20 | SCO | 69 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 32 | Dylan Watret | DC | 19 | SCO | 62 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 34 | Jamie Douglas | MC | 19 | SCO | 62 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 
 ## Raith Rovers (best XI target 85)
 
@@ -564,76 +564,76 @@ each club's level, age, squad number and senior caps; correct them in
 | 3 | Zak Delaney | DC | 24 | IRL | 83 | 1 | position from squad list only |
 | 5 | Callum Fordyce | DC | 33 | SCO | 83 | 1 |  |
 | 7 | Arron Lyall | MC | 22 | SCO | 83 | 1 | position from squad list only |
-| 25 | Kai Montagu | MC | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
 | 19 | Anton Dowds | ST | 30 | SCO | 82 | 1 | position from squad list only |
 | 22 | Ross Millen | DC | 31 | SCO | 82 | 1 |  |
-| 14 | Calum Adamson | MC | 26 | SCO | 81 | 1 | no birth date (age guessed); position from squad list only |
+| 25 | Kai Montagu | MC | 23 | SCO | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 14 | Calum Adamson | MC | 23 | SCO | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 23 | Dylan Easton | MC | 32 | SCO | 79 | 1 |  |
 | 4 | Paul Hanlon | DC | 36 | SCO | 78 | 0.5 |  |
 | 18 | Paul McMullan | ST | 30 | SCO | 78 | 0.5 |  |
 | 20 | Scott Brown | MC | 31 | SCO | 78 | 0.5 |  |
-| 13 | Luke Armstrong | GK | 26 | WAL | 77 | 0.5 | no birth date (age guessed); position from squad list only |
+| 13 | Luke Armstrong | GK | 23 | WAL | 76 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 16 | Lewis Stevenson | DR | 38 | SCO | 72 | 0.5 |  |
 
 ## Greenock Morton (best XI target 84)
 
 | No | Player | Pos | Age | Nat | CA | ★ | Notes |
 |---|---|---|---|---|---|---|---|
-| 5 | Phil Croker | DC | 26 | ENG | 90 | 1 | no birth date (age guessed); position from squad list only |
-| 7 | Michael Garrity | MC | 26 | SCO | 86 | 1 | no birth date (age guessed); position from squad list only |
+| 5 | Phil Croker | DC | 23 | ENG | 89 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 17 | Sahil Bashir | MC | 24 | ENG | 87 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 10 | Eamonn Brophy | ST | 30 | SCO | 86 | 1 |  |
-| 17 | Sahil Bashir | MC | 26 | ENG | 86 | 1 | no birth date (age guessed); position from squad list only |
-| 6 | Calvin Okike | DC | 26 | NGA | 85 | 1 | no birth date (age guessed); position from squad list only |
+| 6 | Calvin Okike | DC | 23 | NGA | 85 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 7 | Michael Garrity | MC | 23 | SCO | 85 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 14 | Zach Robinson | ST | 24 | ENG | 84 | 1 |  |
-| 25 | MacKenzie Carse | MC | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
+| 25 | MacKenzie Carse | MC | 23 | SCO | 83 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 2 | Cammy Ballantyne | DC | 29 | SCO | 82 | 1 |  |
 | 9 | Jayden Gorman | ST | 23 | AUS | 82 | 1 | position from squad list only |
-| 2 | Cammy Ballantyne | DC | 29 | SCO | 81 | 1 |  |
-| 8 | Grant Savoury | MC | 26 | SCO | 81 | 1 | no birth date (age guessed); position from squad list only |
-| 20 | Callum Sandilands | MC | 26 | SCO | 81 | 1 | no birth date (age guessed); position from squad list only |
 | 27 | Iain Wilson | MC | 27 | SCO | 81 | 1 |  |
-| 37 | Calan Burgess | MC | 26 | SCO | 80 | 1 | no birth date (age guessed); position from squad list only |
-| 19 | Kerr Robertson | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 23 | Jackson Longridge | DC | 31 | SCO | 77 | 0.5 |  |
-| 31 | Brian Kinnear | GK | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 36 | Jaiden Lang | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 39 | Olivet Okunzuwa | MC | 26 | SCO | 76 | 0.5 | no birth date (age guessed); position from squad list only |
-| 1 | Elyh Harrison | GK | 20 | ENG | 75 | 0.5 | position from squad list only |
-| 21 | Grant Gillespie | MC | 34 | SCO | 74 | 0.5 |  |
+| 8 | Grant Savoury | MC | 23 | SCO | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 20 | Callum Sandilands | MC | 23 | SCO | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 23 | Jackson Longridge | DC | 31 | SCO | 78 | 0.5 |  |
+| 19 | Kerr Robertson | MC | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 1 | Elyh Harrison | GK | 20 | ENG | 76 | 0.5 | position from squad list only |
+| 21 | Grant Gillespie | MC | 34 | SCO | 75 | 0.5 |  |
 | 47 | Harry Cochrane | MC | 25 | SCO | 74 | 0.5 |  |
 | 12 | Dylan Borso | MC | 20 | USA | 73 | 0.5 |  |
-| 52 | Laiith Fairnie | DC | 26 | JER | 71 | 0.5 | no birth date (age guessed); position from squad list only |
-| 40 | Aaron Greenock | MC | 26 | SCO | 70 | 0.5 | no birth date (age guessed); position from squad list only |
-| 29 | Michael O'Halloran | ST | 35 | SCO | 68 | 0.5 |  |
+| 29 | Michael O'Halloran | ST | 35 | SCO | 69 | 0.5 |  |
+| 36 | Jaiden Lang | MC | 20 | SCO | 67 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 37 | Calan Burgess | MC | 19 | SCO | 66 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 39 | Olivet Okunzuwa | MC | 20 | SCO | 66 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 | 4 | Christopher Cupps | DC | 18 | USA | 64 | 0.5 |  |
+| 31 | Brian Kinnear | GK | 19 | SCO | 62 | 0.5 | no birth date (age 20 guessed); position from squad list only |
+| 52 | Laiith Fairnie | DC | 17 | JER | 45 | 0.5 | no birth date (age 18 guessed); position from squad list only |
+| 40 | Aaron Greenock | MC | 17 | SCO | 44 | 0.5 | no birth date (age 18 guessed); position from squad list only |
 
 ## Queen's Park (best XI target 83)
 
 | No | Player | Pos | Age | Nat | CA | ★ | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | Zach Mauchin | DC | 26 | SCO | 86 | 1 | no birth date (age guessed); position from squad list only |
+| 2 | Zach Mauchin | DC | 23 | SCO | 86 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 10 | Jack Hamilton | ST | 25 | SCO | 86 | 1 |  |
 | 11 | Aidan Connolly | MC | 30 | SCO | 86 | 1 |  |
 | 9 | Michael Ruth | ST | 24 | SCO | 85 | 1 | position from squad list only |
 | 22 | Matthew Shiels | DC | 25 | SCO | 84 | 1 |  |
-| 24 | Aiden McCallion | MC | 26 | SCO | 83 | 1 | no birth date (age guessed); position from squad list only |
-| 25 | Zebedee Lawson | ST | 26 | ENG | 82 | 1 | no birth date (age guessed); position from squad list only |
-| 20 | Kyle Rodger | DC | 26 | SCO | 81 | 1 | no birth date (age guessed); position from squad list only |
-| 3 | Magnus Mackenzie | DC | 26 | SCO | 80 | 1 | no birth date (age guessed); position from squad list only |
-| 4 | Euan Murray | DC | 32 | SCO | 80 | 1 |  |
+| 24 | Aiden McCallion | MC | 23 | SCO | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 25 | Zebedee Lawson | ST | 24 | ENG | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 3 | Magnus Mackenzie | DC | 24 | SCO | 81 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 4 | Euan Murray | DC | 32 | SCO | 81 | 1 |  |
 | 5 | Ricki Lamie | DC | 32 | SCO | 80 | 1 |  |
 | 8 | Scott Martin | MC | 29 | SCO | 80 | 1 |  |
 | 12 | Carlo Pignatiello | DC | 26 | SCO | 80 | 1 | position from squad list only |
-| 14 | Lewis Stewart | MC | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
-| 16 | Oliver Fisher | DC | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
-| 17 | Tyrece McDonnell | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 18 | Cole Goldie | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 21 | Ross Mclean | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
+| 20 | Kyle Rodger | DC | 23 | SCO | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 14 | Lewis Stewart | MC | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 16 | Oliver Fisher | DC | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 17 | Tyrece McDonnell | MC | 24 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 18 | Cole Goldie | MC | 24 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 7 | Louis Longridge | ST | 34 | SCO | 76 | 0.5 |  |
-| 30 | Jack Wills | GK | 26 | SCO | 76 | 0.5 | no birth date (age guessed); position from squad list only |
-| 1 | David Mitchell | GK | 36 | SCO | 74 | 0.5 |  |
+| 21 | Ross Mclean | MC | 23 | SCO | 76 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 1 | David Mitchell | GK | 36 | SCO | 75 | 0.5 |  |
 | 27 | Callum Smith | ST | 26 | SCO | 74 | 0.5 |  |
 | 77 | Nikolay Todorov | ST | 29 | BUL | 72 | 0.5 |  |
 | 26 | Ben Brannan | DC | 20 | SCO | 68 | 0.5 | position from squad list only |
+| 30 | Jack Wills | GK | 20 | SCO | 66 | 0.5 | no birth date (age 20 guessed); position from squad list only |
 
 ## Arbroath (best XI target 80)
 
@@ -643,23 +643,23 @@ each club's level, age, squad number and senior caps; correct them in
 | 2 | Stuart Morrison | DC | 27 | SCO | 83 | 1 |  |
 | 4 | Brody Paterson | DC | 25 | SCO | 83 | 1 | position from squad list only |
 | 9 | Andy Winter | ST | 24 | SCO | 83 | 1 | position from squad list only |
-| 22 | Charlie Dewar | DC | 26 | ENG | 80 | 1 | no birth date (age guessed); position from squad list only |
 | 6 | Tom Beadling | MC | 30 | AUS | 79 | 1 |  |
 | 12 | Scott Stewart | MC | 30 | SCO | 79 | 1 |  |
-| 20 | Scott Constable | MC | 26 | SCO | 79 | 1 | no birth date (age guessed); position from squad list only |
+| 20 | Scott Constable | MC | 24 | SCO | 79 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 22 | Charlie Dewar | DC | 23 | ENG | 79 | 1 | no birth date (age 24 guessed); position from squad list only |
 | 7 | David Gold | MC | 33 | SCO | 77 | 0.5 |  |
 | 15 | Scott McGill | MC | 24 | SCO | 77 | 0.5 | position from squad list only |
 | 26 | Sean Mackie | DL | 27 | SCO | 76 | 0.5 |  |
 | 3 | Colin Hamilton | DC | 34 | SCO | 75 | 0.5 |  |
-| 23 | Jude Bonnar | MC | 26 | SCO | 75 | 0.5 | no birth date (age guessed); position from squad list only |
 | 10 | Gavin Reilly | ST | 33 | SCO | 74 | 0.5 |  |
+| 23 | Jude Bonnar | MC | 23 | SCO | 74 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 5 | Thomas O'Brien | DC | 34 | SCO | 73 | 0.5 |  |
 | 11 | Ryan Dow | MC | 35 | SCO | 73 | 0.5 |  |
+| 8 | Ryan Flynn | MC | 37 | SCO | 72 | 0.5 |  |
 | 16 | Craig Watson | DC | 31 | SCO | 72 | 0.5 |  |
 | 27 | Kyle Magennis | MC | 27 | SCO | 72 | 0.5 |  |
-| 8 | Ryan Flynn | MC | 37 | SCO | 71 | 0.5 |  |
 | 17 | Dylan Reid | MC | 21 | SCO | 70 | 0.5 | position from squad list only |
-| 21 | Jordan Pettigrew | GK | 26 | SCO | 70 | 0.5 | no birth date (age guessed); position from squad list only |
+| 21 | Jordan Pettigrew | GK | 24 | SCO | 70 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 14 | Michael McKenna | ST | 35 | SCO | 67 | 0.5 |  |
 | 24 | Rudi Molotnikov | MC | 20 | SCO | 67 | 0.5 |  |
 | 25 | Jacob MacIntyre | MC | 20 | SCO | 65 | 0.5 |  |
@@ -669,25 +669,25 @@ each club's level, age, squad number and senior caps; correct them in
 
 | No | Player | Pos | Age | Nat | CA | ★ | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | Ross Meechan | DC | 26 | SCO | 82 | 1 | no birth date (age guessed); position from squad list only |
-| 11 | Lewis O'Donnell | MC | 26 | SCO | 81 | 1 | no birth date (age guessed); position from squad list only |
-| 7 | Euan O'Reilly | MC | 26 | SCO | 80 | 1 | no birth date (age guessed); position from squad list only |
-| 17 | Michael Anderson | MC | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
-| 24 | Leyton Grant | DC | 26 | SCO | 78 | 0.5 | no birth date (age guessed); position from squad list only |
-| 21 | Lewis Hodgkiss | MC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 28 | Callum Penman | DC | 26 | SCO | 77 | 0.5 | no birth date (age guessed); position from squad list only |
-| 8 | Finn Robson | MC | 26 | SCO | 76 | 0.5 | no birth date (age guessed); position from squad list only |
-| 10 | Andrew Shinnie | MC | 36 | SCO | 76 | 0.5 |  |
-| 14 | Kinlay Bilham | DC | 26 | SCO | 76 | 0.5 | no birth date (age guessed); position from squad list only |
-| 20 | Gus Stevenson | MC | 26 | SCO | 76 | 0.5 | no birth date (age guessed); position from squad list only |
-| 5 | Sam Young | DC | 26 | SCO | 75 | 0.5 | no birth date (age guessed); position from squad list only |
+| 2 | Ross Meechan | DC | 24 | SCO | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 11 | Lewis O'Donnell | MC | 24 | SCO | 82 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 7 | Euan O'Reilly | MC | 23 | SCO | 80 | 1 | no birth date (age 24 guessed); position from squad list only |
+| 17 | Michael Anderson | MC | 23 | SCO | 78 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 8 | Finn Robson | MC | 24 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 10 | Andrew Shinnie | MC | 36 | SCO | 77 | 0.5 |  |
+| 21 | Lewis Hodgkiss | MC | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 24 | Leyton Grant | DC | 23 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 28 | Callum Penman | DC | 24 | SCO | 77 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 14 | Kinlay Bilham | DC | 23 | SCO | 76 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 20 | Gus Stevenson | MC | 23 | SCO | 76 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 5 | Sam Young | DC | 23 | SCO | 75 | 0.5 | no birth date (age 24 guessed); position from squad list only |
+| 15 | Dale Carrick | ST | 32 | SCO | 75 | 0.5 |  |
 | 25 | Hamzad Kargbo | ST | 24 | ENG | 75 | 0.5 | position from squad list only |
-| 15 | Dale Carrick | ST | 32 | SCO | 74 | 0.5 |  |
-| 1 | Darren Jamieson | GK | 35 | SCO | 72 | 0.5 |  |
-| 19 | Scott Bright | DC | 26 | SCO | 72 | 0.5 | no birth date (age guessed); position from squad list only |
-| 39 | Matthew Gillies | DC | 26 | SCO | 72 | 0.5 | no birth date (age guessed); position from squad list only |
+| 1 | Darren Jamieson | GK | 35 | SCO | 73 | 0.5 |  |
+| 19 | Scott Bright | DC | 23 | SCO | 72 | 0.5 | no birth date (age 24 guessed); position from squad list only |
 | 34 | Robbie Hemfrey | GK | 24 | SCO | 69 | 0.5 | position from squad list only |
+| 37 | Oscar MacIntyre | DC | 21 | SCO | 69 | 0.5 | position from squad list only |
 | 29 | Miller Thomson | MC | 21 | SCO | 68 | 0.5 | position from squad list only |
-| 37 | Oscar MacIntyre | DC | 21 | SCO | 68 | 0.5 | position from squad list only |
+| 36 | Louis Lloyd | ST | 22 | WAL | 68 | 0.5 | position from squad list only |
 | 4 | Gregor Buchanan | DC | 36 | SCO | 67 | 0.5 |  |
-| 36 | Louis Lloyd | ST | 22 | WAL | 67 | 0.5 | position from squad list only |
+| 39 | Matthew Gillies | DC | 20 | SCO | 63 | 0.5 | no birth date (age 20 guessed); position from squad list only |

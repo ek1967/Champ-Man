@@ -267,8 +267,11 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
       const flags: string[] = [];
       let dob = wd?.dateOfBirth ?? null;
       if (!dob) {
-        flags.push('no birth date (age guessed)');
-        dob = makeDate(2000, 1, 1);
+        // Players without a Wikipedia article are mostly academy and fringe players: high numbers are teenagers.
+        const n = row.number ?? 99;
+        const age = n >= 40 ? 18 : n >= 30 ? 20 : 24;
+        flags.push(`no birth date (age ${age} guessed)`);
+        dob = makeDate(2026 - age, 1 + (hashString(`dob:${row.name}`) % 12), 1 + (hashString(`dob-day:${row.name}`) % 28));
       }
       const side = hashString(id) % 2 === 0 ? 'L' : 'R';
       const position = gamePosition(wd?.positions ?? [], row.pos, side);

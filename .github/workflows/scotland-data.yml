@@ -1,0 +1,44 @@
+name: Scotland data
+
+# Downloads the Scottish squads (Wikipedia, CC BY-SA) and player details (Wikidata, CC0) on
+# GitHub's servers and saves the pack, the review report and the raw downloads in data/scotland.
+# Runs when the Scotland importer changes, or by hand.
+on:
+  push:
+    branches: [build/foundations]
+    paths:
+      - '.github/workflows/scotland-data.yml'
+      - 'packages/pipeline/src/build-scotland.ts'
+      - 'packages/pipeline/src/scotland/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: scotland-data
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run data:scotland -- --refresh
+      - name: Save the squads in the repository
+        run: |
+          rm -rf data/scotland
+          mkdir -p data/scotland
+          cp data/packs/scotland-2026-27.json data/scotland/
+          cp data/reports/scotland-2026-27-squads.md data/scotland/
+          cp -r data/raw/scotland data/scotland/raw
+          git config user.name "github-actions[bot]"
+          git config user.email "41898741+github-actions[bot]@users.noreply.github.com"
+          git add -f data/scotland
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Scotland squads from Wikipedia and Wikidata"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"

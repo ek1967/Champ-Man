@@ -13,3 +13,6 @@ apps/web/public/packs/
 
 # Local scratch files (screenshots, test scripts)
 .work/
+
+# Scottish squads come from openly licensed sources (Wikipedia, Wikidata) and are kept in git
+# by the "Scotland data" workflow under data/scotland/.

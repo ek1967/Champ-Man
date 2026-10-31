@@ -1,12 +1,12 @@
 {
   "head" : {
-    "vars" : [ "article", "dob", "posLabel", "teamLabel" ]
+    "vars" : [ "item", "dob", "posLabel", "teamLabel" ]
   },
   "results" : {
     "bindings" : [ {
-      "article" : {
+      "item" : {
         "type" : "uri",
-        "value" : "https://en.wikipedia.org/wiki/Louis_Lloyd"
+        "value" : "http://www.wikidata.org/entity/Q104907460"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -14,9 +14,9 @@
         "value" : "2003-10-15T00:00:00Z"
       }
     }, {
-      "article" : {
+      "item" : {
         "type" : "uri",
-        "value" : "https://en.wikipedia.org/wiki/Oscar_MacIntyre"
+        "value" : "http://www.wikidata.org/entity/Q116978387"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -24,9 +24,9 @@
         "value" : "2004-07-23T00:00:00Z"
       }
     }, {
-      "article" : {
+      "item" : {
         "type" : "uri",
-        "value" : "https://en.wikipedia.org/wiki/Oscar_MacIntyre"
+        "value" : "http://www.wikidata.org/entity/Q116978387"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",

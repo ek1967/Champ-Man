@@ -132,7 +132,7 @@ function positionForLabel(label: string, side: 'L' | 'R'): Position | null {
  */
 export function gamePositions(labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R'): Position[] {
   if (wikiPos === 'GK') return ['GK'];
-  const precise = labels.filter((l) => !/^\s*(defender|midfielder|forward)\s*$/i.test(l));
+  const precise = labels.filter((l) => !/^\s*(defender|midfielder)\s*$/i.test(l));
   const out: Position[] = [];
   for (const label of [...precise, ...labels]) {
     // Generic labels are only a fallback.

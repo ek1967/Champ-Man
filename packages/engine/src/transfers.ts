@@ -915,7 +915,7 @@ function weeklyRoundUp(state: GameState): void {
     .slice(0, 12)
     .map((r) => {
       const p = state.world.players[r.playerId]!;
-      const from = r.fromId ? getClub(state, r.fromId).shortName : 'free agency';
+      const from = r.fromId ? getClub(state, r.fromId).shortName : r.kind === 'import' ? 'abroad' : 'free agency';
       return `${playerLink(p)}: ${from} → ${clubLink(getClub(state, r.toId!))} (${r.fee > 0 ? formatMoney(r.fee) : 'free'})`;
     });
   addNews(state, { category: 'transfer', title: `Transfer round-up: ${top.length} deal${top.length > 1 ? 's' : ''} this week`, body: lines.join('\n') });

@@ -188,6 +188,12 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
         Value {formatMoney(player.value)} · Contract until {player.contract ? formatLong(player.contract.expires).slice(4) : '—'}
         {player.transferListed && <span className="tag listed">Transfer-listed</span>}
       </p>
+      {!player.abroad && (
+        <p className="small">
+          {clubName(game, player.clubId)} are asking about <strong>{formatMoney(askingPrice(game, player))}</strong>. That's their opening
+          position: offer less and they may come down, but offers far below it won't be taken seriously.
+        </p>
+      )}
       {player.abroad && (
         <p className="small">
           Plays for {sellerName(game, ABROAD, player.id)}, who want about {formatMoney(askingPrice(game, player))}. Found by your scouts; available
@@ -224,7 +230,7 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
           suggested={bid?.asking ? Math.round((bid.fee + bid.asking) / 2) : player.abroad ? askingPrice(game, player) : player.value}
           quick={[
             { label: 'Value', amount: player.value },
-            ...(bid?.asking || player.abroad ? [{ label: 'Their price', amount: bid?.asking ?? askingPrice(game, player) }] : []),
+            { label: 'Their price', amount: bid?.asking ?? askingPrice(game, player) },
             ...(bid?.asking ? [{ label: 'Meet halfway', amount: Math.round((bid.fee + bid.asking) / 2) }] : []),
           ]}
           submitLabel={bid ? 'Improve offer' : 'Make offer'}

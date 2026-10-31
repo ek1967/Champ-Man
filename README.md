@@ -29,6 +29,9 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
   reports, ability history on player pages
 - **Transfer windows open 1 July and 1 January**. Deals can be agreed at any time; players move
   when the window opens. Pre-contracts from January for players whose deals end in June
+- **Negotiation**: clubs counter and come down towards your offer (each has a hidden limit),
+  players haggle over wages and contract length, and you can name your price for offers for
+  your players
 - **Loans** in and out (to 31 December or the end of the season), optionally with an **option or
   obligation to buy** at a fee agreed up front; computer clubs loan out prospects
 - **Scouting**: players outside your club are seen through estimates (ability marked ≈,

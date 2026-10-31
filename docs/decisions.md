@@ -191,3 +191,23 @@ so each club's best eleven matches its level in `scotland/clubs.ts`. Attributes 
 positions are generated to fit. Every rating is in the review report, and hand corrections go in
 `scotland/overrides.ts`. Squads under 22 (Premiership) or 20 (Championship) are topped up with
 generated reserves, and every club keeps two keepers. `--generated` keeps the old made-up squads.
+
+## 016 — Negotiation
+An asking price is an opening position. Each selling club has a hidden limit (about 80–92% of
+its asking price; lower for listed players and contracts in their last year, higher for its three
+best players). Below the asking price it counters at halfway between the bid and its last price,
+never below the limit, and says when that is its final price. A bid at or above the limit is
+accepted from the second round (or straight away if within 5% of its price). Bids under 55% of
+the asking price are dismissed, and talks end after five rounds. Clubs abroad work the same way.
+
+Players do the same with wages: they ask for their demand but would sign for a little less
+(84–92%, less for the unambitious). Below that they name a figure halfway between the offer and
+their demand. Contract length matters: players over 30 want more than a year, under-24s don't
+want five. Renewals work the same way.
+
+Offers for the manager's players carry the buyer's hidden maximum (95–130% of the board's
+valuation, within the buyer's budget). The manager can accept, reject, or name a price: within
+the maximum the buyer pays it; up to a quarter above it they improve their offer (to a final
+offer); beyond that they walk away. Computer clubs also ask to borrow the manager's young fringe
+players during windows. The manager's own loan-out offers wait for the other club to confirm and
+are not shown as offers to answer.

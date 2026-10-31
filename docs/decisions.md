@@ -227,3 +227,25 @@ The real Scottish squads (#015) are built by the "Scotland data" workflow on Git
 because this project's cloud sessions can't reach Wikipedia. The workflow runs when the importer
 changes (or by hand) and saves the pack, report and raw downloads in `data/scotland/`; copying
 `data/scotland/raw/*` to `data/raw/scotland/` lets `npm run data:scotland` rebuild offline.
+
+## 018 — The board
+The board's confidence in the manager (0–100, starting at 60) moves with results (+1 a win, −1 a
+defeat), with a monthly check of the league position against its expectation (+2 at or above,
+−3 well below) and with a judgement at the end of each season (+12 or more for meeting it, −15
+for missing it). Expectations come from the squad's strength against its rivals, as before.
+
+Budgets: money can be moved between the transfer and wage budgets at a year's wages (€1K a week =
+€52K), as long as the wage budget still covers the wage bill and promised wages. Each summer
+(28 June) the board sets the manager's budgets: half of the unspent transfer money plus an
+allocation of 20–70% of a big first summer's budget depending on confidence (more with a bigger
+stadium); the wage budget grows 3% and always covers the wage bill. Computer clubs aren't topped
+up yet: even small top-ups made leagues stronger year on year in the long-run harness, so a
+yearly income for every club needs the transfer market retuned with it.
+
+Requests (granted mostly on confidence; a wait before asking again: 45 days after a refusal,
+longer after a yes): more transfer money (10% of a summer's allocation and up), a bigger wage
+budget (about 8%), a stadium expansion (+2 reputation and more money each summer; about ten
+months), training facilities (faster development; four months), the youth academy (+2 academy
+rating, so better and bigger intakes; five months), each up to three times, and a new contract
+for the manager (two more years, 25% more). The manager can't be sacked yet; the board warn when
+confidence falls very low.

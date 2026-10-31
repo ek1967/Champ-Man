@@ -1916,3 +1916,27 @@ tr.group-row td {
 table.league tr.split-line td {
   border-bottom: 3px solid var(--muted);
 }
+
+/* Board requests */
+.request-list {
+  display: grid;
+  gap: 8px;
+}
+.request {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.request p {
+  margin: 2px 0 0;
+}
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -15,6 +15,7 @@ import type {
 } from './types.ts';
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { developmentDay } from './development.ts';
+import { board, boardAfterMatch, boardDay, boardTarget } from './board.ts';
 import { learnFromMatch, scoutingDay } from './scouting.ts';
 import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
@@ -276,6 +277,8 @@ export function completeMatch(state: GameState, fixture: Fixture, live: LiveMatc
 
   if (human) {
     reportHumanResult(state, fixture, result, live);
+    const home = fixture.homeId === state.manager.clubId;
+    boardAfterMatch(state, home ? result.homeGoals : result.awayGoals, home ? result.awayGoals : result.homeGoals);
     const theirSide = fixture.homeId === state.manager.clubId ? 'away' : 'home';
     learnFromMatch(state, Object.values(live.players).filter((lp) => lp.side === theirSide).map((lp) => lp.id));
   }
@@ -638,6 +641,7 @@ function dailyTasks(state: GameState): void {
   developmentDay(state);
   transferDay(state);
   scoutingDay(state);
+  boardDay(state);
   const md = monthDay(state.date);
   const nations = new Set<Id>();
   for (const competition of Object.values(state.world.competitions)) {
@@ -681,28 +685,13 @@ export function continueGame(state: GameState): StopReason {
  * so a big club with a third-best squad is asked for the top four, not the title.
  */
 export function boardExpectation(state: GameState, clubId: Id): string {
-  const club = getClub(state, clubId);
-  const squads = squadIndex(state);
-  const rivals = Object.values(state.world.clubs)
-    .filter((c) => c.leagueId === club.leagueId)
-    .map((c) => ({ id: c.id, strength: pickBestLineup(squads.get(c.id) ?? []).strength }))
-    .sort((a, b) => b.strength - a.strength);
-  const rank = rivals.findIndex((c) => c.id === clubId) + 1;
-  const n = rivals.length;
-  const split = getCompetition(state, club.leagueId).rules.split;
-  if (rank <= 2) return 'win the title';
-  if (split) {
-    const half = Math.ceil(n / split.groups);
-    return rank <= half ? `finish in the top ${half}` : 'avoid relegation';
-  }
-  if (rank <= Math.round(n / 4)) return 'finish in the top four';
-  if (rank <= Math.round(n * 0.6)) return 'finish in the top half';
-  return 'avoid relegation';
+  return boardTarget(state, clubId).text;
 }
 
 export function takeJob(state: GameState, clubId: Id): void {
   const club = getClub(state, clubId);
   state.manager.clubId = clubId;
+  board(state);
   const competition = getCompetition(state, club.leagueId);
   addNews(state, {
     category: 'welcome',

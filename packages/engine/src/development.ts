@@ -5,6 +5,7 @@
  * and train at a bigger club; players past their peak decline, physical attributes first.
  * Each spring every club takes on a youth intake; each summer older players retire.
  */
+import { facilityLevel } from './board.ts';
 import {
   ALL_ATTRIBUTES, type AttributeKey, clampAttribute, GOALKEEPING, MENTAL, PHYSICAL, type Position,
   POSITION_PROFILES,
@@ -68,7 +69,7 @@ export function monthlyChange(state: GameState, player: Player): number {
   const attitude = 0.6 + ((h.professionalism + player.attributes.determination) / 40) * 0.8;
   const minutes = 0.7 + 0.6 * playingTime(state, player);
   const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
-  const facilities = 0.85 + ((club?.reputation ?? 30) / 100) * 0.3;
+  const facilities = 0.85 + ((club?.reputation ?? 30) / 100) * 0.3 + 0.04 * facilityLevel(state, club?.id, 'training');
   return (player.pa - player.ca) * rate * attitude * minutes * facilities * (1 + normal(state.rng, 0, 0.25));
 }
 
@@ -153,9 +154,10 @@ const ACADEMY_NATIONS: Array<[string, number]> = [
   ['eng', 74], ['sco', 4], ['wal', 4], ['irl', 4], ['nir', 2], ['fra', 3], ['esp', 2], ['por', 2], ['ned', 2], ['bra', 1], ['ger', 2],
 ];
 
-/** How good a club's academy is, 1–20, from its size. */
-export function academyRating(club: Club): number {
-  return Math.max(1, Math.min(20, Math.round(4 + (club.reputation / 100) * 15)));
+/** How good a club's academy is, 1–20, from its size and any investment the board has made. */
+export function academyRating(club: Club, state?: GameState): number {
+  const invested = state ? facilityLevel(state, club.id, 'youth') * 2 : 0;
+  return Math.max(1, Math.min(20, Math.round(4 + (club.reputation / 100) * 15) + invested));
 }
 
 export function generateYouthPlayer(state: GameState, club: Club, index: number): Player {
@@ -164,7 +166,7 @@ export function generateYouthPlayer(state: GameState, club: Club, index: number)
   const nationId = weightedPick(rng, nations, ([, w]) => w)[0];
   const nation = state.world.nations[nationId]!;
   const position = weightedPick(rng, YOUTH_POSITIONS, ([, w]) => w)[0];
-  const academy = academyRating(club);
+  const academy = academyRating(club, state);
   // Potential: most intakes are ordinary, a few are special; bigger academies find more of them.
   let pa = normal(rng, 70 + academy * 3.5, 22);
   if (chance(rng, 0.01 + academy / 1000)) pa = randInt(rng, 165, 195);
@@ -191,7 +193,7 @@ export function generateYouthPlayer(state: GameState, club: Club, index: number)
 function youthIntake(state: GameState): void {
   const humanId = state.manager.clubId;
   for (const club of Object.values(state.world.clubs)) {
-    const count = randInt(state.rng, 1, 2 + Math.round(academyRating(club) / 8));
+    const count = randInt(state.rng, 1, 2 + Math.round(academyRating(club, state) / 8));
     const intake: Player[] = [];
     for (let i = 1; i <= count; i++) {
       const player = generateYouthPlayer(state, club, i);

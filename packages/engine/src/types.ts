@@ -2,6 +2,7 @@ import type { Attributes, HiddenAttributes, Position } from './attributes.ts';
 import type { ISODate } from './dates.ts';
 import type { LeagueRules } from './rules.ts';
 import type { Rng } from './rng.ts';
+import type { BoardState } from './board.ts';
 import type { ScoutingState } from './scouting.ts';
 import type { Tactics } from './tactics.ts';
 
@@ -247,6 +248,8 @@ export interface GameState {
   transfers: TransferMarket;
   /** What the manager knows about other clubs' players; created when first needed. */
   scouting?: ScoutingState;
+  /** The board's view of the manager, budgets requests and facilities; created when first needed. */
+  board?: BoardState;
 }
 
 export interface ClubFinances {

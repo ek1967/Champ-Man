@@ -10,6 +10,7 @@ export type Route =
   | { screen: 'nation'; id: string }
   | { screen: 'tactics' }
   | { screen: 'transfers' }
+  | { screen: 'board' }
   | { screen: 'match' };
 
 export type CompetitionTab = 'table' | 'fixtures' | 'scorers' | 'history';

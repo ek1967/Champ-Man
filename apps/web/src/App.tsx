@@ -18,6 +18,7 @@ import { MatchScreen } from './screens/MatchScreen.tsx';
 import { SquadScreen } from './screens/SquadScreen.tsx';
 import { TacticsScreen } from './screens/TacticsScreen.tsx';
 import { TransfersScreen } from './screens/TransfersScreen.tsx';
+import { BoardScreen } from './screens/BoardScreen.tsx';
 import { StartScreen } from './screens/StartScreen.tsx';
 
 export function App() {
@@ -202,6 +203,9 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
               {openWindow(game.date) && <span className="badge window">Open</span>}
               {incomingOffers > 0 && <span className="badge">{incomingOffers}</span>}
             </NavItem>
+            <NavItem to={{ screen: 'board' }} active={route.screen === 'board'}>
+              Board
+            </NavItem>
             <NavItem to={{ screen: 'fixtures', clubId: club.id }} active={route.screen === 'fixtures' && route.clubId === club.id}>
               Fixtures
             </NavItem>
@@ -282,6 +286,8 @@ function Screen({ game, route }: { game: GameState; route: Route }) {
       return <TacticsScreen game={game} />;
     case 'transfers':
       return <TransfersScreen game={game} />;
+    case 'board':
+      return <BoardScreen game={game} />;
     case 'match':
       return <MatchScreen game={game} />;
   }

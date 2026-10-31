@@ -38,7 +38,7 @@ export function ClubScreen({ game, id }: { game: GameState; id: string }) {
         <div><span>Size</span>{reputationLabel(club.reputation)}</div>
         <div><span>Stadium</span>{club.stadium}</div>
         <div><span>Founded</span>{club.founded}</div>
-        <div><span>Youth academy</span>{academyRating(club)}/20</div>
+        <div><span>Youth academy</span>{academyRating(club, game)}/20</div>
         <div><span>Squad</span><RouteLink to={{ screen: 'squad', clubId: club.id }}>{squad.length} players</RouteLink></div>
         <div><span>Squad value</span>{money(squadValue)}</div>
         <div><span>Transfer budget</span>{money(financesOf(game, club.id).transferBudget)}</div>

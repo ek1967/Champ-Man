@@ -51,6 +51,7 @@ export function TransfersScreen({ game }: { game: GameState }) {
         <div><span>Wage bill</span>{formatMoney(bill)} a week</div>
         <div><span>Wage budget</span>{formatMoney(finances.wageBudget)} a week</div>
         <div><span>Room for wages</span>{formatMoney(Math.max(0, finances.wageBudget - bill))} a week</div>
+        <div><span>Need more?</span><RouteLink to={{ screen: 'board' }}>Move money or ask the board →</RouteLink></div>
       </div>
       <Tabs
         tabs={[

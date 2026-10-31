@@ -24,8 +24,10 @@ import { FPL_REGIONS } from './nations.ts';
 import { PREMIERSHIP_CLUBS, SCOTTISH_CHAMPIONSHIP_CLUBS, type ScottishClub } from './scotland/clubs.ts';
 import { type EstimateInput, fitToLevel, headroomFor, relativeAbility } from './scotland/estimate.ts';
 import { SCOTTISH_OVERRIDES } from './scotland/overrides.ts';
-import { gamePosition, pagePropsUrl, parsePageProps, parsePlayers, playersQuery, type WikidataPlayer } from './scotland/wikidata.ts';
-import { parseSquad, type SquadRow } from './scotland/wikitext.ts';
+import {
+  articlesUrl, gamePositions, pagePropsUrl, parseArticles, parsePageProps, parsePlayers, playersQuery, type WikidataPlayer,
+} from './scotland/wikidata.ts';
+import { infoboxPositions, parseSquad, type SquadRow } from './scotland/wikitext.ts';
 
 const refresh = process.argv.includes('--refresh');
 const generatedOnly = process.argv.includes('--generated');
@@ -243,6 +245,15 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
     for (const [title, id] of parsePageProps(JSON.parse(text), batch)) idByArticle.set(title, id);
     if (refresh) await new Promise((resolve) => setTimeout(resolve, 1200));
   }
+  // Each player's own article: its infobox says exactly where they play ("Left-back", "Winger").
+  const infobox = new Map<string, string[]>();
+  for (let i = 0; i < articles.length; i += 50) {
+    const batch = articles.slice(i, i + 50);
+    const url = articlesUrl(batch);
+    const text = await fetchCached(url, `scotland/articles-${hashString(url).toString(16)}.json`, refresh, HEADERS);
+    for (const [title, wikitext] of parseArticles(JSON.parse(text), batch)) infobox.set(title, infoboxPositions(wikitext));
+    if (refresh) await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
   const missing = articles.filter((a) => !idByArticle.has(a));
   if (missing.length > 0) notes.push(`No Wikidata entry found for ${missing.length} linked article(s): ${missing.slice(0, 30).join(', ')}${missing.length > 30 ? ', …' : ''}.`);
   const ids = [...new Set(idByArticle.values())];
@@ -259,7 +270,7 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
   const rows: ReportRow[] = [];
   const usedOverrides = new Set<number>();
   for (const { club, rows: squadRows } of squads.values()) {
-    const built: Array<{ row: SquadRow; input: EstimateInput; position: Position; nation: Nation; dob: string; flags: string[] }> = [];
+    const built: Array<{ row: SquadRow; input: EstimateInput; position: Position; secondary: Position[]; nation: Nation; dob: string; flags: string[] }> = [];
     for (const row of squadRows) {
       const id = `sco-${hashString(row.article ?? `${club.id}:${row.name}`).toString(36)}`;
       const qid = row.article ? idByArticle.get(row.article) : undefined;
@@ -274,12 +285,15 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
         dob = makeDate(2026 - age, 1 + (hashString(`dob:${row.name}`) % 12), 1 + (hashString(`dob-day:${row.name}`) % 28));
       }
       const side = hashString(id) % 2 === 0 ? 'L' : 'R';
-      const position = gamePosition(wd?.positions ?? [], row.pos, side);
-      if (!wd?.positions.length) flags.push('position from squad list only');
+      const fromInfobox = row.article ? infobox.get(row.article) ?? [] : [];
+      const labels = fromInfobox.length > 0 ? fromInfobox : wd?.positions ?? [];
+      const [position, ...secondary] = gamePositions(labels, row.pos, side) as [Position, ...Position[]];
+      if (labels.length === 0) flags.push('position from squad list only');
+      else if (fromInfobox.length === 0) flags.push('position from Wikidata');
       const nat = nationForCode(row.nat, unknownCodes);
       used.set(nat.id, nat);
       built.push({
-        row, position, nation: nat, dob, flags,
+        row, position, secondary, nation: nat, dob, flags,
         input: {
           id, age: ageOn(dob, TODAY), number: row.number, seniorInternational: wd?.seniorInternational ?? false,
           keeper: position === 'GK', loanedIn: /on loan from/i.test(row.other),
@@ -310,7 +324,11 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
         nationId: b.nation.id,
         dateOfBirth: b.dob,
         clubId: club.id,
-        positions: shape.positions,
+        // Other positions named in the sources are well known to the player.
+        positions: {
+          ...shape.positions,
+          ...Object.fromEntries((position === b.position ? b.secondary : []).map((p) => [p, Math.max(shape.positions[p] ?? 0, 17)])),
+        },
         foot: shape.foot,
         attributes: shape.attributes,
         ca: shape.ca,

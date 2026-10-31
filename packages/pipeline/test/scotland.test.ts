@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fitToLevel, headroomFor, relativeAbility } from '../src/scotland/estimate.ts';
-import { gamePosition, isSeniorNationalTeam, pagePropsUrl, parsePageProps, parsePlayers, playersQuery } from '../src/scotland/wikidata.ts';
-import { parseName, parseSquad, splitParams } from '../src/scotland/wikitext.ts';
+import { gamePosition, gamePositions, isSeniorNationalTeam, pagePropsUrl, parseArticles, parsePageProps, parsePlayers, playersQuery } from '../src/scotland/wikidata.ts';
+import { infoboxPositions, parseName, parseSquad, splitParams } from '../src/scotland/wikitext.ts';
 
 const WIKITEXT = `
 == Players ==
@@ -104,5 +104,41 @@ describe('estimated ratings', () => {
     expect(Math.round(best.reduce((a, b) => a + b, 0) / 11)).toBe(120);
     expect(headroomFor(18)).toBeGreaterThan(headroomFor(24));
     expect(headroomFor(30)).toBe(0);
+  });
+});
+
+describe('positions from player articles', () => {
+  it('reads the infobox position field', () => {
+    const tierney = [
+      '{{Short description|Scottish footballer}}',
+      '{{Infobox football biography',
+      '| name = Kieran Tierney',
+      '| position = [[Defender (association football)#Full-back|Left-back]] / [[Defender (association football)#Centre-back|centre-back]]<ref>{{cite web|url=x}}</ref>',
+      '| currentclub = [[Celtic F.C.|Celtic]]',
+      '}}',
+      "'''Kieran Tierney''' is a footballer.",
+    ].join('\n');
+    expect(infoboxPositions(tierney)).toEqual(['Left-back', 'centre-back']);
+    expect(infoboxPositions('{{Infobox football biography|position={{hlist|[[Winger (association football)|Winger]]|[[Forward (association football)|forward]]}}}}')).toEqual(['Winger', 'forward']);
+    expect(infoboxPositions('No infobox here')).toEqual([]);
+  });
+
+  it('turns labels into positions, most important first, preferring precise labels to "defender"', () => {
+    expect(gamePositions(['Left-back', 'centre-back'], 'DF', 'R')).toEqual(['DL', 'DC']);
+    expect(gamePositions(['defender', 'right-back'], 'DF', 'L')).toEqual(['DR']);
+    expect(gamePositions(['Full-back'], 'DF', 'R')).toEqual(['DR']);
+    expect(gamePositions(['defender'], 'DF', 'R')).toEqual(['DC']);
+    expect(gamePositions(['Winger', 'forward'], 'FW', 'L')).toEqual(['AML', 'ST']);
+    expect(gamePosition(['Right winger'], 'MF', 'L')).toBe('AMR');
+  });
+
+  it('maps article texts back to the titles as linked', () => {
+    const texts = parseArticles({
+      query: {
+        redirects: [{ from: 'K. Tierney', to: 'Kieran Tierney' }],
+        pages: [{ title: 'Kieran Tierney', revisions: [{ slots: { main: { content: 'text' } } }] }],
+      },
+    }, ['K. Tierney']);
+    expect(texts.get('K. Tierney')).toBe('text');
   });
 });

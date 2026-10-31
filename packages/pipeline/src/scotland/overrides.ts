@@ -11,4 +11,8 @@ export interface ScottishOverride {
   position?: string;
 }
 
-export const SCOTTISH_OVERRIDES: ScottishOverride[] = [];
+export const SCOTTISH_OVERRIDES: ScottishOverride[] = [
+  { name: 'Kieran Tierney', club: 'celtic', position: 'DL' },
+  { name: 'Colby Donovan', club: 'celtic', position: 'DR' },
+  { name: 'Jordan Lotomba', club: 'celtic', position: 'DR' },
+];

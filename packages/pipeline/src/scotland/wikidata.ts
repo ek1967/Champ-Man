@@ -92,40 +92,103 @@ export function parsePlayers(json: SparqlJson): Map<string, WikidataPlayer> {
   return out;
 }
 
-/**
- * The game's position for a player: Wikidata's detailed labels first, then the GK/DF/MF/FW from
- * the squad list. `side` breaks ties for wide players whose side isn't known.
- */
-export function gamePosition(labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R'): Position {
-  const text = labels.join(' | ').toLowerCase();
-  if (wikiPos === 'GK' || /goalkeeper/.test(text)) return 'GK';
-  const wide = side === 'L' ? 'L' : 'R';
+const ALLOWED: Record<'DF' | 'MF' | 'FW', Position[]> = {
+  DF: ['DC', 'DL', 'DR', 'WBL', 'WBR', 'DM'],
+  MF: ['DM', 'MC', 'AMC', 'AML', 'AMR', 'ML', 'MR', 'WBL', 'WBR'],
+  FW: ['ST', 'AML', 'AMR', 'AMC'],
+};
+
+/** The game's position for one label, e.g. 'Left-back' → DL; null when it says nothing useful. */
+function positionForLabel(label: string, side: 'L' | 'R'): Position | null {
+  const t = label.toLowerCase();
   const rules: Array<[RegExp, Position]> = [
-    [/centre-back|center-back|central defender|sweeper/, 'DC'],
-    [/left-back|left back/, 'DL'],
-    [/right-back|right back/, 'DR'],
-    [/left wing-back/, 'WBL'],
-    [/right wing-back/, 'WBR'],
-    [/wing-back/, wide === 'L' ? 'WBL' : 'WBR'],
-    [/full-back|fullback/, wide === 'L' ? 'DL' : 'DR'],
-    [/defensive midfielder|holding midfielder/, 'DM'],
-    [/attacking midfielder|playmaker/, 'AMC'],
-    [/left winger/, 'AML'],
-    [/right winger/, 'AMR'],
-    [/winger|wide midfielder/, wide === 'L' ? 'AML' : 'AMR'],
-    [/centre-forward|center forward|striker|second striker/, 'ST'],
-    [/central midfielder|box-to-box|midfielder/, 'MC'],
+    [/goalkeeper|goaltender/, 'GK'],
+    [/centre[- ]back|center[- ]back|central defender|sweeper|libero/, 'DC'],
+    [/left wing[- ]back/, 'WBL'],
+    [/right wing[- ]back/, 'WBR'],
+    [/wing[- ]back/, side === 'L' ? 'WBL' : 'WBR'],
+    [/left[- ]back|left full[- ]back/, 'DL'],
+    [/right[- ]back|right full[- ]back/, 'DR'],
+    [/full[- ]back|fullback/, side === 'L' ? 'DL' : 'DR'],
+    [/defensive midfield|holding midfield/, 'DM'],
+    [/attacking midfield|playmaker|number 10/, 'AMC'],
+    [/left wing|left midfield/, 'AML'],
+    [/right wing|right midfield/, 'AMR'],
+    [/winger|wide midfield/, side === 'L' ? 'AML' : 'AMR'],
+    [/centre[- ]forward|center[- ]forward|striker|second striker/, 'ST'],
+    [/central midfield|box-to-box|midfield/, 'MC'],
     [/forward/, 'ST'],
     [/defender/, 'DC'],
   ];
-  // The squad list's broad position decides which labels count (a "midfielder" listed as DF plays at the back).
-  const allowed: Record<string, Position[]> = {
-    DF: ['DC', 'DL', 'DR', 'WBL', 'WBR', 'DM'],
-    MF: ['DM', 'MC', 'AMC', 'AML', 'AMR', 'ML', 'MR', 'WBL', 'WBR'],
-    FW: ['ST', 'AML', 'AMR', 'AMC'],
-  };
-  for (const [re, position] of rules) {
-    if (re.test(text) && allowed[wikiPos]!.includes(position)) return position;
+  for (const [re, position] of rules) if (re.test(t)) return position;
+  return null;
+}
+
+/**
+ * The game's positions for a player, most important first: labels in the order given (the article's
+ * infobox, or Wikidata), kept within the broad position from the squad list (a "midfielder" listed
+ * as DF plays at the back). A bare "defender" only counts when nothing more precise is known.
+ * `side` breaks ties for wide players whose side isn't known.
+ */
+export function gamePositions(labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R'): Position[] {
+  if (wikiPos === 'GK') return ['GK'];
+  const precise = labels.filter((l) => !/^\s*(defender|midfielder|forward)\s*$/i.test(l));
+  const out: Position[] = [];
+  for (const label of [...precise, ...labels]) {
+    // Generic labels are only a fallback.
+    if (out.length > 0 && !precise.includes(label)) break;
+    const p = positionForLabel(label, side);
+    if (p && p !== 'GK' && ALLOWED[wikiPos].includes(p) && !out.includes(p)) out.push(p);
   }
-  return wikiPos === 'DF' ? 'DC' : wikiPos === 'MF' ? 'MC' : 'ST';
+  if (out.length > 0) return out;
+  return [wikiPos === 'DF' ? 'DC' : wikiPos === 'MF' ? 'MC' : 'ST'];
+}
+
+export function gamePosition(labels: readonly string[], wikiPos: 'GK' | 'DF' | 'MF' | 'FW', side: 'L' | 'R'): Position {
+  return gamePositions(labels, wikiPos, side)[0]!;
+}
+
+/** Follows Wikipedia's normalisation and redirects from a title as linked to the page's real title. */
+function resolver(q: { normalized?: Array<{ from: string; to: string }>; redirects?: Array<{ from: string; to: string }> }): (title: string) => string {
+  const normalized = new Map((q.normalized ?? []).map((n) => [n.from, n.to]));
+  const redirects = new Map((q.redirects ?? []).map((r) => [r.from, r.to]));
+  return (title) => {
+    let t = normalized.get(title) ?? title;
+    for (let hops = 0; hops < 3 && redirects.has(t); hops++) t = redirects.get(t)!;
+    return t;
+  };
+}
+
+/** Wikipedia API request for the current text of up to 50 articles (redirects followed). */
+export function articlesUrl(titles: readonly string[]): string {
+  const params = new URLSearchParams({
+    action: 'query', format: 'json', formatversion: '2', prop: 'revisions', rvprop: 'content', rvslots: 'main', redirects: '1',
+    titles: titles.join('|'),
+  });
+  return `https://en.wikipedia.org/w/api.php?${params.toString()}`;
+}
+
+interface RevisionsJson {
+  query?: {
+    normalized?: Array<{ from: string; to: string }>;
+    redirects?: Array<{ from: string; to: string }>;
+    pages?: Array<{ title: string; revisions?: Array<{ slots?: { main?: { content?: string } } }> }>;
+  };
+}
+
+/** Article title as linked → its wikitext. */
+export function parseArticles(json: RevisionsJson, titles: readonly string[]): Map<string, string> {
+  const q = json.query ?? {};
+  const resolve = resolver(q);
+  const texts = new Map<string, string>();
+  for (const page of q.pages ?? []) {
+    const content = page.revisions?.[0]?.slots?.main?.content;
+    if (content) texts.set(page.title, content);
+  }
+  const out = new Map<string, string>();
+  for (const title of titles) {
+    const text = texts.get(resolve(title));
+    if (text) out.set(title, text);
+  }
+  return out;
 }

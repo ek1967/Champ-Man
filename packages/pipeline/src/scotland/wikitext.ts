@@ -53,7 +53,7 @@ export function splitParams(body: string): string[] {
 }
 
 /** All templates whose name matches, with their raw bodies (between the braces), in order, with positions. */
-function findTemplates(text: string, names: RegExp): Array<{ start: number; body: string }> {
+export function findTemplates(text: string, names: RegExp): Array<{ start: number; body: string }> {
   const found: Array<{ start: number; body: string }> = [];
   let i = 0;
   while ((i = text.indexOf('{{', i)) !== -1) {
@@ -148,4 +148,25 @@ export function parseSquad(wikitext: string): ParsedSquad {
     }
   }
   return result;
+}
+
+/**
+ * Positions from the infobox of a player's own article, most important first:
+ * "| position = [[Defender (association football)#Full-back|Left-back]], [[centre-back]]" → ['Left-back', 'centre-back'].
+ */
+export function infoboxPositions(wikitext: string): string[] {
+  const box = findTemplates(wikitext, /^infobox football biography/i)[0];
+  if (!box) return [];
+  const param = splitParams(box.body).slice(1).find((p) => /^\s*position\s*=/i.test(p));
+  if (!param) return [];
+  const value = param
+    .slice(param.indexOf('=') + 1)
+    .replace(/<ref[^>]*\/>|<ref[^>]*>[\s\S]*?<\/ref>|<!--[\s\S]*?-->/g, '')
+    .replace(/\{\{\s*(?:hlist|flatlist|plainlist|ubl|unbulleted list)\s*\|/gi, '')
+    .replace(/\[\[(?:[^\]|]+\|)?([^\]]+)\]\]/g, '$1')
+    .replace(/\{\{[^}]*\}\}|\}\}|'{2,3}/g, '');
+  return value
+    .split(/,|\/|<br\s*\/?>|\bor\b|\band\b|\n|\*|\|/i)
+    .map((x) => x.trim())
+    .filter((x) => x.length > 1 && x.length < 40);
 }

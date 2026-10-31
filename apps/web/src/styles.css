@@ -1519,7 +1519,11 @@ tr.is-sub td:first-child {
   background: var(--panel-alt);
   color: var(--win);
 }
-.tag:not(.listed):not(.free):not(.danger):not(.ok) {
+.tag.abroad {
+  background: var(--panel-alt);
+  color: var(--link);
+}
+.tag:not(.listed):not(.free):not(.abroad):not(.danger):not(.ok) {
   background: var(--panel-alt);
   color: var(--muted);
   margin-left: 6px;

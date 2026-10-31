@@ -5,18 +5,27 @@
  * from knowledge: attribute ranges, estimated ability and a potential range.
  */
 import type { AttributeKey } from './attributes.ts';
-import { addDays, ageOn, formatShort, type ISODate } from './dates.ts';
+import { addDays, ageOn, formatShort, type ISODate, yearOf } from './dates.ts';
 import { addNews, clubLink, playerLink } from './news.ts';
-import { abilityStars, mainPosition, positionRating, shortName } from './players.ts';
+import type { Position } from './attributes.ts';
+import { abilityStars, estimateWage, generatePlayer, mainPosition, positionRating, roundMoney, shortName } from './players.ts';
 import { getClub, squadOf } from './queries.ts';
-import { createRng, hashString, normal, random } from './rng.ts';
+import { createRng, hashString, normal, random, randInt, shuffle } from './rng.ts';
 import { autoTactics, FORMATIONS } from './tactics.ts';
-import { askingPrice, formatMoney, wageDemand, willingToJoin } from './transfers.ts';
+import { ABROAD, askingPrice, attractCeiling, formatMoney, sellerName, wageDemand, willingToJoin } from './transfers.ts';
 import type { GameState, Id, Player } from './types.ts';
+
+/** Countries scouts can travel to (the other countries planned for the game, plus France and Belgium). */
+export const SCOUTING_COUNTRIES = ['esp', 'ita', 'ger', 'fra', 'ned', 'por', 'bel', 'cze', 'arg', 'bra', 'usa'] as const;
+
+/** Days a trip abroad takes, and how long the players found stay available. */
+const COUNTRY_TRIP_DAYS = 14;
+const ABROAD_AVAILABLE_DAYS = 120;
 
 export interface ScoutAssignment {
   id: Id;
-  kind: 'player' | 'club';
+  /** 'country': a trip abroad (targetId is a nation) to find players outside the simulated leagues. */
+  kind: 'player' | 'club' | 'country';
   targetId: Id;
   started: ISODate;
   due: ISODate;
@@ -126,12 +135,31 @@ export function scoutClub(state: GameState, clubId: Id): ScoutResult {
   return assign(state, 'club', clubId, sameLeague(state, clubId) ? 8 : 12, club.shortName);
 }
 
+/** Sends a scout to a country to find players at clubs there who could improve the squad. */
+export function scoutCountry(state: GameState, nationId: Id): ScoutResult {
+  const nation = state.world.nations[nationId];
+  if (!nation || !state.manager.clubId) return { ok: false, message: 'Nowhere to scout.' };
+  return assign(state, 'country', nationId, COUNTRY_TRIP_DAYS, `players in ${nation.name}`);
+}
+
+/** Countries a scout can be sent to in this world. */
+export function scoutingCountries(state: GameState): Array<{ id: Id; name: string }> {
+  return SCOUTING_COUNTRIES.filter((id) => state.world.nations[id]).map((id) => ({ id, name: state.world.nations[id]!.name }));
+}
+
+/** Players found abroad who can still be bought, newest first. */
+export function playersAbroad(state: GameState): Player[] {
+  return Object.values(state.world.players)
+    .filter((p) => p.abroad && !p.retired && p.abroad.until >= state.date)
+    .sort((a, b) => (a.abroad!.until < b.abroad!.until ? 1 : -1));
+}
+
 function sameLeague(state: GameState, clubId: Id | null): boolean {
   if (!clubId || !state.manager.clubId) return false;
   return state.world.clubs[clubId]?.leagueId === state.world.clubs[state.manager.clubId]?.leagueId;
 }
 
-function assign(state: GameState, kind: 'player' | 'club', targetId: Id, days: number, label: string): ScoutResult {
+function assign(state: GameState, kind: ScoutAssignment['kind'], targetId: Id, days: number, label: string): ScoutResult {
   const s = scouting(state);
   if (s.assignments.some((a) => a.targetId === targetId)) return { ok: false, message: `A scout is already watching ${label}.` };
   const { scouts } = scoutingStaff(state);
@@ -201,14 +229,15 @@ function writeReport(state: GameState, player: Player): void {
   s.reports[player.id] = { date: state.date, potentialStars, grade, verdict };
   const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
   const willing = state.manager.clubId ? willingToJoin(state, player, state.manager.clubId) : { ok: true };
+  const where = club ? ` at ${clubLink(club)}` : player.abroad ? `, at ${sellerName(state, ABROAD, player.id)}` : ', free agent';
   addNews(state, {
     category: 'transfer',
     title: `Scout report: ${shortName(player)} (${grade})`,
     body: [
-      `${playerLink(player)}, ${age}, ${mainPosition(player)}${club ? ` at ${clubLink(club)}` : ', free agent'}.`,
+      `${playerLink(player)}, ${age}, ${mainPosition(player)}${where}.`,
       `Ability ${abilityStars(player.ca)}★ · Potential about ${potentialStars}★`,
       `Verdict: ${verdict}`,
-      club ? `${club.shortName} would want around ${formatMoney(askingPrice(state, player))}.` : 'Available on a free transfer.',
+      club || player.abroad ? `${club ? club.shortName : 'Their club'} would want around ${formatMoney(askingPrice(state, player))}.` : 'Available on a free transfer.',
       state.manager.clubId ? `Expected wage demand: ${formatMoney(wageDemand(state, player, state.manager.clubId))} a week.` : '',
       willing.ok ? '' : `Note: the player ${willing.reason}.`,
     ].filter(Boolean).join('\n\n'),
@@ -234,6 +263,96 @@ function writeClubReport(state: GameState, clubId: Id): void {
   });
 }
 
+/** The positions in the manager's best XI with the weakest players, weakest first. */
+function weakestPositions(state: GameState): Position[] {
+  const clubId = state.manager.clubId!;
+  const squad = squadOf(state, clubId);
+  const tactics = state.manager.tactics ?? autoTactics(squad, state.date);
+  const slots = FORMATIONS[tactics.formation];
+  return tactics.lineup
+    .map((id, i) => {
+      const p = squad.find((x) => x.id === id);
+      const position = slots[i]!.position;
+      return { position, rating: p ? positionRating(p, position) : 0 };
+    })
+    .sort((a, b) => a.rating - b.rating)
+    .map((x) => x.position);
+}
+
+/**
+ * A trip abroad: the scout finds four or five players at clubs in that country who would suit the
+ * manager: first-team options for the weakest positions, one cheaper squad player and a prospect.
+ * They're created now (the rest of the world isn't simulated) and kept for a few months.
+ */
+function writeCountryReport(state: GameState, nationId: Id): void {
+  const nation = state.world.nations[nationId];
+  const clubId = state.manager.clubId;
+  if (!nation || !clubId) return;
+  const s = scouting(state);
+  const squad = squadOf(state, clubId);
+  const best = squad.map((p) => p.ca).sort((a, b) => b - a).slice(0, 11);
+  const level = best.reduce((a, b) => a + b, 0) / Math.max(1, best.length);
+  const ceiling = attractCeiling(state, getClub(state, clubId), 8);
+  const weak = weakestPositions(state);
+  const others = shuffle(state.rng, [...new Set(weak.slice(3))]);
+  const targets: Array<{ position: Position; ca: number; age: number }> = [
+    { position: weak[0] ?? 'MC', ca: level + randInt(state.rng, 0, 8), age: randInt(state.rng, 22, 28) },
+    { position: weak[1] ?? 'ST', ca: level + randInt(state.rng, -3, 6), age: randInt(state.rng, 21, 29) },
+    { position: weak[2] ?? 'DC', ca: level + randInt(state.rng, -6, 4), age: randInt(state.rng, 23, 31) },
+    { position: others[0] ?? 'DC', ca: level - randInt(state.rng, 8, 14), age: randInt(state.rng, 22, 30) },
+    { position: others[1] ?? 'AMC', ca: level - randInt(state.rng, 22, 32), age: randInt(state.rng, 17, 19) },
+  ];
+  const found: Player[] = [];
+  const until = addDays(state.date, ABROAD_AVAILABLE_DAYS);
+  for (const t of targets) {
+    s.counter++;
+    const player = generatePlayer(state.rng, {
+      id: `abr-${s.counter}`,
+      position: t.position,
+      ca: Math.min(t.ca, ceiling, 190),
+      age: t.age,
+      nationId,
+      namePool: nation.namePool,
+      clubId: null,
+      today: state.date,
+    });
+    player.abroad = { nationId, until, price: Math.max(100_000, roundMoney(player.value * 1.25)) };
+    player.squadNumber = null;
+    // Their contract with the club abroad (shown on their page; replaced when they sign).
+    player.contract = { wage: estimateWage(player.ca), expires: `${yearOf(state.date) + randInt(state.rng, 1, 4)}-06-30` };
+    state.world.players[player.id] = player;
+    s.knowledge[player.id] = 85;
+    found.push(player);
+  }
+  addNews(state, {
+    category: 'transfer',
+    title: `Scout report: ${found.length} players in ${nation.name}`,
+    body: [
+      `Your scout is back from ${nation.name} with ${found.length} players who could interest you:`,
+      found
+        .map((p) => `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}, ${gradeFor(state, p)}) · their club wants about ${formatMoney(askingPrice(state, p))}`)
+        .join('\n'),
+      `Make offers from their pages. They are available until ${formatShort(until)}; deals go through when the window is open.`,
+    ].join('\n\n'),
+    important: true,
+  });
+}
+
+/** Players found abroad who weren't signed in time move elsewhere. */
+function expireAbroad(state: GameState): void {
+  for (const player of Object.values(state.world.players)) {
+    if (!player.abroad || player.retired || player.abroad.until >= state.date) continue;
+    if (state.transfers.bids.some((b) => b.playerId === player.id && b.status === 'agreed')) continue;
+    player.retired = true;
+    for (const bid of state.transfers.bids) {
+      if (bid.playerId === player.id && ['pending', 'countered', 'accepted'].includes(bid.status)) {
+        bid.status = 'collapsed';
+        bid.note = 'Your scouts lost track of the player.';
+      }
+    }
+  }
+}
+
 /** Opponents are seen at close quarters: everyone who played against the manager's side is better known. */
 export function learnFromMatch(state: GameState, playerIds: readonly Id[]): void {
   if (!state.manager.clubId) return;
@@ -244,6 +363,7 @@ export function learnFromMatch(state: GameState, playerIds: readonly Id[]): void
 /** The daily scouting tick: finished assignments become reports. */
 export function scoutingDay(state: GameState): void {
   if (!state.scouting || !state.manager.clubId) return;
+  expireAbroad(state);
   const done = state.scouting.assignments.filter((a) => a.due <= state.date);
   if (done.length === 0) return;
   state.scouting.assignments = state.scouting.assignments.filter((a) => a.due > state.date);
@@ -251,6 +371,8 @@ export function scoutingDay(state: GameState): void {
     if (a.kind === 'player') {
       const player = state.world.players[a.targetId];
       if (player && !player.retired) writeReport(state, player);
+    } else if (a.kind === 'country') {
+      writeCountryReport(state, a.targetId);
     } else if (state.world.clubs[a.targetId]) {
       writeClubReport(state, a.targetId);
     }

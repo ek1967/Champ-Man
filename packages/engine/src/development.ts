@@ -33,6 +33,7 @@ const PACE_KEYS = new Set(['pace', 'acceleration', 'agility', 'stamina']);
 
 /** Share of their club's league matches a player started this season (0.5 when unknown). */
 export function playingTime(state: GameState, player: Player): number {
+  if (player.abroad) return 0.7;
   if (!player.clubId) return 0.3;
   const club = state.world.clubs[player.clubId];
   const season = club ? currentSeasonOf(state, club.leagueId) : null;
@@ -257,7 +258,7 @@ function endOfSeasonRetirements(state: GameState): void {
  */
 function retireUnsignedFreeAgents(state: GameState): void {
   for (const player of Object.values(state.world.players)) {
-    if (player.retired || player.clubId) continue;
+    if (player.retired || player.clubId || player.abroad) continue;
     if (ageOn(player.dateOfBirth, state.date) >= 30 || player.ca < 125) player.retired = true;
   }
 }

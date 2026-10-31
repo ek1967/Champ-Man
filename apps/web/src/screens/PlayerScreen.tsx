@@ -8,7 +8,7 @@ import { TransferPanel } from '../components/TransferPanel.tsx';
 import { AbilityEstimate, PotentialEstimate, ScoutPanel } from '../components/Scouting.tsx';
 import { AbilityChart } from '../components/AbilityChart.tsx';
 import { DevelopmentSummary } from '../components/Development.tsx';
-import { ClubName } from '../components/ClubName.tsx';
+import { ClubName, PlayerClub } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
 import { positionsLabel } from './SquadScreen.tsx';
@@ -55,7 +55,7 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
           <h1>{name}</h1>
           {player.knownAs && <p className="muted small">{player.firstName} {player.lastName}</p>}
           <p>
-            {positionsLabel(player)} · {club ? <ClubName club={club} /> : 'Free agent'} ·{' '}
+            {positionsLabel(player)} · <PlayerClub game={game} player={player} /> ·{' '}
             {nation && (
               <EntityLink type="nation" id={nation.id}>
                 {nation.name}

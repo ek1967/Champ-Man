@@ -95,8 +95,22 @@ export interface Player {
   abilityHistory: Array<[ISODate, number]>;
   /** Fraction of an ability point carried between monthly updates. */
   growthCarry: number;
-  /** Set while the player is on loan: their parent club and the last day of the loan. */
-  loan?: { fromId: Id; until: ISODate } | null;
+  /** Set while the player is on loan: their parent club, the last day of the loan and any option to buy. */
+  loan?: { fromId: Id; until: ISODate; option?: LoanOption | null } | null;
+  /**
+   * A player found by the manager's scouts at a club abroad (outside the simulated leagues).
+   * They have no club in the game; they can be bought until `until`, then the trail goes cold.
+   */
+  abroad?: { nationId: Id; until: ISODate; /** What their club wants, fixed when the scout found them. */ price: number } | null;
+}
+
+/**
+ * A fee agreed when a loan is arranged. With an option the borrowing club may buy the player for
+ * it at any time during the loan; with an obligation the move becomes permanent when the loan ends.
+ */
+export interface LoanOption {
+  fee: number;
+  obligatory: boolean;
 }
 
 export interface Competition {
@@ -269,6 +283,8 @@ export interface Bid {
   /** A loan rather than a permanent move; the player returns after `loanUntil`. */
   kind?: 'transfer' | 'loan';
   loanUntil?: ISODate;
+  /** Option or obligation to buy at the end of a loan. */
+  option?: LoanOption;
   /** Agreed terms, and the day the player moves. */
   wage?: number;
   years?: number;

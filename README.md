@@ -29,11 +29,12 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
   reports, ability history on player pages
 - **Transfer windows open 1 July and 1 January**. Deals can be agreed at any time; players move
   when the window opens. Pre-contracts from January for players whose deals end in June
-- **Loans** in and out (to 31 December or the end of the season); computer clubs loan out
-  prospects
+- **Loans** in and out (to 31 December or the end of the season), optionally with an **option or
+  obligation to buy** at a fee agreed up front; computer clubs loan out prospects
 - **Scouting**: players outside your club are seen through estimates (ability marked ≈,
   potential and attributes as ranges) until scouts watch them; scout a player or a whole squad,
-  get graded reports, keep a shortlist
+  get graded reports, keep a shortlist. **Scout abroad**: send a scout to Spain, Italy, Brazil and
+  other countries to find players outside the simulated leagues, then bid for them
 - **Scottish Premiership 2026-27**, playable, with the split after 33 rounds, and the Scottish
   Championship in the background with its play-off against the Premiership's 11th-placed club.
   The clubs are real; the players are generated until real squads can be added

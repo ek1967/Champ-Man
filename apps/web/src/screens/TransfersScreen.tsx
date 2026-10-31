@@ -3,12 +3,12 @@ import {
   mainPosition, type Player, POSITION_GROUP, recentTransfers, shortName, wageBill,
 } from '@moc/engine';
 import { useMemo, useState } from 'react';
-import { ClubName } from '../components/ClubName.tsx';
+import { ClubName, PlayerClub } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { AbilityEstimate, PotentialEstimate, ScoutingTab, sortableAbility, sortablePotential } from '../components/Scouting.tsx';
 import { type Column, SortableTable } from '../components/SortableTable.tsx';
 import { Tabs } from '../components/Tabs.tsx';
-import { BID_STATUS_LABEL, windowLine } from '../components/TransferPanel.tsx';
+import { BID_STATUS_LABEL, optionLabel, windowLine } from '../components/TransferPanel.tsx';
 import { act } from '../state/store.ts';
 
 type Tab = 'search' | 'bids' | 'scouting' | 'deals';
@@ -20,7 +20,8 @@ interface Filters {
   maxAge: number;
   maxValue: number;
   minStars: number;
-  where: 'all' | 'eng-1' | 'eng-2' | 'free';
+  /** 'all', 'free', 'abroad' or a league id. */
+  where: string;
   listedOnly: boolean;
   expiringOnly: boolean;
 }
@@ -81,8 +82,10 @@ function Search({ game }: { game: GameState }) {
       .filter((p) => {
         if (p.clubId === clubId || p.retired) return false;
         const club = p.clubId ? game.world.clubs[p.clubId] : undefined;
-        if (filters.where === 'free' && p.clubId) return false;
-        if ((filters.where === 'eng-1' || filters.where === 'eng-2') && club?.leagueId !== filters.where) return false;
+        if (p.abroad && p.abroad.until < game.date) return false;
+        if (filters.where === 'free' && (p.clubId || p.abroad)) return false;
+        if (filters.where === 'abroad' && !p.abroad) return false;
+        if (!['all', 'free', 'abroad'].includes(filters.where) && club?.leagueId !== filters.where) return false;
         if (filters.group !== 'any' && POSITION_GROUP[mainPosition(p)] !== filters.group) return false;
         const age = ageOn(p.dateOfBirth, game.date);
         if (age < filters.minAge || age > filters.maxAge) return false;
@@ -102,11 +105,8 @@ function Search({ game }: { game: GameState }) {
     {
       id: 'club',
       label: 'Club',
-      render: (p) => {
-        const club = p.clubId ? game.world.clubs[p.clubId] : undefined;
-        return club ? <ClubName club={club} short /> : <span className="tag free">Free agent</span>;
-      },
-      sortValue: (p) => (p.clubId ? game.world.clubs[p.clubId]?.shortName ?? '' : ''),
+      render: (p) => <PlayerClub game={game} player={p} short />,
+      sortValue: (p) => (p.clubId ? game.world.clubs[p.clubId]?.shortName ?? '' : p.abroad ? 'zz abroad' : ''),
     },
     { id: 'pos', label: 'Pos', render: (p) => mainPosition(p), sortValue: (p) => mainPosition(p) },
     { id: 'age', label: 'Age', render: (p) => ageOn(p.dateOfBirth, game.date), sortValue: (p) => ageOn(p.dateOfBirth, game.date), align: 'right' },
@@ -175,9 +175,13 @@ function Search({ game }: { game: GameState }) {
           <span>Where</span>
           <select id="f-where" value={filters.where} onChange={(e) => set('where', e.target.value as Filters['where'])}>
             <option value="all">Everywhere</option>
-            <option value="eng-1">Premier League</option>
-            <option value="eng-2">Championship</option>
+            {Object.values(game.world.competitions)
+              .sort((a, b) => a.nationId.localeCompare(b.nationId) || a.tier - b.tier)
+              .map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             <option value="free">Free agents</option>
+            <option value="abroad">Found abroad by your scouts</option>
           </select>
         </label>
         <label className="check-line" htmlFor="f-listed">
@@ -208,9 +212,11 @@ function Bids({ game }: { game: GameState }) {
     const p = game.world.players[b.playerId];
     return p ? <EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> : '';
   };
-  const clubCell = (id: string) => {
+  const clubCell = (id: string, playerId?: string) => {
     const club = game.world.clubs[id];
-    return club ? <ClubName club={club} short /> : '';
+    if (club) return <ClubName club={club} short />;
+    const p = playerId ? game.world.players[playerId] : undefined;
+    return p?.abroad || id === 'abroad' ? <span className="tag abroad">Abroad</span> : '';
   };
   return (
     <>
@@ -265,11 +271,11 @@ function Bids({ game }: { game: GameState }) {
                 <tr key={b.id}>
                   <td>{formatShort(b.created)}</td>
                   <td>{playerCell(b)}</td>
-                  <td>{clubCell(b.sellerId)}</td>
+                  <td>{clubCell(b.sellerId, b.playerId)}</td>
                   <td className="right">{formatMoney(b.fee)}</td>
                   <td>
                     <span className={`bid-pill ${b.status}`}>
-                      {b.kind === 'loan' ? 'Loan · ' : ''}
+                      {b.kind === 'loan' ? `Loan${b.option ? ` (${optionLabel(b.option)})` : ''} · ` : ''}
                       {BID_STATUS_LABEL[b.status]}
                       {b.status === 'agreed' && b.moveOn ? ` (${formatShort(b.moveOn)})` : ''}
                     </span>
@@ -296,7 +302,10 @@ export function LoansSummary({ game }: { game: GameState }) {
       <tr key={p.id}>
         <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
         <td>{other && <ClubName club={other} short />}</td>
-        <td>{formatShort(p.loan!.until)} {p.loan!.until.slice(0, 4)}</td>
+        <td>
+          {formatShort(p.loan!.until)} {p.loan!.until.slice(0, 4)}
+          {p.loan!.option && <span className="muted small"> · {optionLabel(p.loan!.option)}</span>}
+        </td>
         <td className="right">{(() => {
           const s = p.stats.filter((x) => x.clubId === p.clubId).at(-1);
           return s ? `${s.apps} apps, ${s.goals} gls` : '–';

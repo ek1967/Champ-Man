@@ -155,3 +155,23 @@ Scotland stay stable in the long-run harness (Scottish best XIs settle about 6 p
 The demo world's biggest clubs now have a few real stars (bigger spread for starters, a bonus
 for the very biggest clubs), so the long-run check starts near equilibrium; before, the world's
 top 20 kept rising and the CI stability step failed.
+
+## 014 — Loan-to-buy, and buying from abroad
+*Loans with an option or obligation to buy.* The fee is agreed when the loan is arranged. The
+lending club judges it like a bid: it wants about 110% of its asking price for an option and
+90% for an obligation (certain money), and with a fee agreed it will lend first-team players it
+otherwise wouldn't. An option can be taken up at any time during the loan; the player stays and
+gets a new contract. An obligation completes automatically when the loan ends, and its fee is
+set aside from the borrower's budget meanwhile. The manager is reminded two weeks before a loan
+with an option ends. When the manager loans a player out with an option, only clubs that could
+afford it take the player, and they buy at the end if the player has become a regular.
+
+*Buying from abroad.* Only England and Scotland are simulated, while computer clubs already sign
+about 45% of their players from abroad (#010). To give the manager the same market, a scout can
+spend two weeks in one of eleven countries (the others planned for the game, plus France and
+Belgium) and come back with five players at the manager's level: options for the three weakest
+positions in the best XI, a cheaper squad player and a teenage prospect. They are created when
+found, like the computer clubs' imports, and can be bought for about four months at a price fixed
+when found; after that the trail goes cold. They are never free agents and computer clubs can't
+sign them. Deals follow the usual windows. When those countries' leagues are added (as background
+leagues first), real clubs will replace this.

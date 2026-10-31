@@ -1,6 +1,7 @@
 import { formatShort, type GameState } from '@moc/engine';
 import { useEffect } from 'react';
 import { RichText } from '../components/RichText.tsx';
+import { BidActions } from '../components/TransferPanel.tsx';
 import { replaceRoute } from '../state/nav.ts';
 import { touchGame } from '../state/store.ts';
 
@@ -36,6 +37,7 @@ export function InboxScreen({ game, newsId }: { game: GameState; newsId?: string
             <p className="muted small">{formatShort(selected.date)}</p>
             <h2>{selected.title}</h2>
             <RichText text={selected.body} />
+            {selected.bidId && <BidActions key={selected.bidId} game={game} bidId={selected.bidId} />}
           </>
         ) : (
           <p className="muted">Nothing to read.</p>

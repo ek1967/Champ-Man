@@ -84,7 +84,12 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
         label: 'Status',
         render: (p) => {
           const status = statusOf(p, game.date);
-          return status ? <span className="tag danger" title={status}>{status.startsWith('Injured') ? 'Inj' : 'Sus'}</span> : '';
+          return (
+            <>
+              {status && <span className="tag danger" title={status}>{status.startsWith('Injured') ? 'Inj' : 'Sus'}</span>}
+              {p.transferListed && <span className="tag listed">Listed</span>}
+            </>
+          );
         },
         sortValue: (p) => (statusOf(p, game.date) ? 1 : 0),
       },

@@ -80,3 +80,19 @@ no extreme setting gives a decisive edge over balanced play.
 Fitness (`condition`) drops during matches and recovers daily; injuries and bans (a red card, or
 every fifth booking) make players unavailable. The manager's tactics are saved with the game and
 "readied" before each match, replacing anyone who has since become unavailable.
+
+## 009 — Transfer market
+*Phase 7.* Windows run 15 June–1 September and 1 January–2 February. Clubs start with a
+transfer budget from their size (the biggest around €200M) and a wage budget just above their
+wage bill. A selling club's asking price starts from the player's value and goes up for long
+contracts and key players, down for listed players and short contracts. Clubs won't sell
+players signed in the last ten months, or one of their five best players to a smaller club
+unless the fee is at least 60% over the asking price. Players won't drop a division (unless
+modest), or move to a club much smaller than their own, depending on their ambition.
+
+Computer clubs make about one signing a day in summer and one every other day in January,
+each time strengthening the weakest position in their best XI with a player who is clearly
+better and affordable. Contracts end on 30 June; computer clubs renew most of their top 20
+players and release the rest, and thin squads are topped up from free agents. The manager gets
+offers for their players (more for listed ones), answers to their own bids in a day or two,
+and a weekly round-up of other deals. Loans and sell-on clauses are not modelled yet.

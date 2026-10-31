@@ -103,7 +103,7 @@ export function sellerBlocks(state: GameState, player: Player, buyerId: Id, fee:
   const seller = getClub(state, player.clubId);
   const buyer = getClub(state, buyerId);
   if (rank <= 5 && buyer.reputation < seller.reputation + 5 && fee < askingPrice(state, player, rank) * 1.6) {
-    return 'He is a key player and they will not sell to a club of your size.';
+    return 'The player is one of their most important and they will not sell to a club of your size.';
   }
   return null;
 }

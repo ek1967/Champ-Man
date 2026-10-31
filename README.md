@@ -22,6 +22,9 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
 - **Text match engine** with live commentary, speed control, substitutions, in-match instructions,
   live stats and other scores; every Premier League match uses the same engine
 - Fitness, injuries and suspensions
+- **Transfers**: windows, budgets, player search, bids and counter-offers, personal terms,
+  offers for your players, contract renewals and expiry, free agents, and computer clubs
+  trading among themselves
 
 ## Real-player data (personal use only)
 

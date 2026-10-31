@@ -1,4 +1,4 @@
-import { clubFixtures, type GameState, leaguePosition, squadOf } from '@moc/engine';
+import { clubFixtures, financesOf, type GameState, leaguePosition, squadOf, wageBill } from '@moc/engine';
 import { ClubSwatch } from '../components/ClubName.tsx';
 import { EntityLink, RouteLink } from '../components/EntityLink.tsx';
 import { money, ordinal, reputationLabel } from '../components/format.ts';
@@ -38,6 +38,8 @@ export function ClubScreen({ game, id }: { game: GameState; id: string }) {
         <div><span>Founded</span>{club.founded}</div>
         <div><span>Squad</span><RouteLink to={{ screen: 'squad', clubId: club.id }}>{squad.length} players</RouteLink></div>
         <div><span>Squad value</span>{money(squadValue)}</div>
+        <div><span>Transfer budget</span>{money(financesOf(game, club.id).transferBudget)}</div>
+        <div><span>Wages</span>{money(wageBill(game, club.id))} of {money(financesOf(game, club.id).wageBudget)} a week</div>
       </div>
 
       <div className="two-col">

@@ -1,6 +1,6 @@
 import {
   currentSeasonOf, formatLong, formatShort, type GameState, humanFixtureOn, leaguePosition, nextFixture,
-  unreadNewsCount,
+  openWindow, unreadNewsCount,
 } from '@moc/engine';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ReadyDialog } from './components/ReadyDialog.tsx';
@@ -17,6 +17,7 @@ import { PlayerScreen } from './screens/PlayerScreen.tsx';
 import { MatchScreen } from './screens/MatchScreen.tsx';
 import { SquadScreen } from './screens/SquadScreen.tsx';
 import { TacticsScreen } from './screens/TacticsScreen.tsx';
+import { TransfersScreen } from './screens/TransfersScreen.tsx';
 import { StartScreen } from './screens/StartScreen.tsx';
 
 export function App() {
@@ -175,6 +176,7 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
   const clubId = game.manager.clubId;
   const club = clubId ? game.world.clubs[clubId] : undefined;
   const unread = unreadNewsCount(game);
+  const incomingOffers = game.transfers.bids.filter((b) => b.sellerId === clubId && b.status === 'pending').length;
   const competitions = Object.values(game.world.competitions).sort((a, b) => a.tier - b.tier);
 
   return (
@@ -190,6 +192,11 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
             </NavItem>
             <NavItem to={{ screen: 'tactics' }} active={route.screen === 'tactics'}>
               Tactics
+            </NavItem>
+            <NavItem to={{ screen: 'transfers' }} active={route.screen === 'transfers'}>
+              Transfers
+              {openWindow(game.date) && <span className="badge window">Open</span>}
+              {incomingOffers > 0 && <span className="badge">{incomingOffers}</span>}
             </NavItem>
             <NavItem to={{ screen: 'fixtures', clubId: club.id }} active={route.screen === 'fixtures' && route.clubId === club.id}>
               Fixtures
@@ -269,6 +276,8 @@ function Screen({ game, route }: { game: GameState; route: Route }) {
       return <NationScreen game={game} id={route.id} />;
     case 'tactics':
       return <TacticsScreen game={game} />;
+    case 'transfers':
+      return <TransfersScreen game={game} />;
     case 'match':
       return <MatchScreen game={game} />;
   }

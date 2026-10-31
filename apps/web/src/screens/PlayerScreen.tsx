@@ -4,6 +4,7 @@ import {
 } from '@moc/engine';
 import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
 import { statusOf } from './TacticsScreen.tsx';
+import { TransferPanel } from '../components/TransferPanel.tsx';
 import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
@@ -70,6 +71,8 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
         <div><span>Wage</span>{player.contract ? wage(player.contract.wage) : '—'}</div>
         <div><span>Contract ends</span>{player.contract ? formatLong(player.contract.expires).slice(4) : '—'}</div>
       </div>
+
+      <TransferPanel game={game} player={player} />
 
       <div className="attributes">
         {isKeeper ? (

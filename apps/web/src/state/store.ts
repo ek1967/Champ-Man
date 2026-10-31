@@ -145,3 +145,14 @@ export function clearLive(): void {
   live = null;
   emit();
 }
+
+// ---------- Transfers ----------
+
+/** Runs a game action, then refreshes the screens and autosaves. */
+export function act<T>(action: (game: GameState) => T): T | null {
+  if (!game) return null;
+  const result = action(game);
+  emit();
+  scheduleAutosave();
+  return result;
+}

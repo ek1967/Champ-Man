@@ -11,21 +11,37 @@ export const DATA_DIR = join(import.meta.dirname, '../../../data');
 export async function fetchCached(url: string, cacheName: string, refresh: boolean, headers: Record<string, string> = {}): Promise<string> {
   const path = join(DATA_DIR, 'raw', cacheName);
   if (!refresh && existsSync(path)) return readFileSync(path, 'utf8');
-  let text: string;
-  try {
-    const response = await fetch(url, { headers });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    text = await response.text();
-  } catch (error) {
-    // Node's fetch ignores HTTP(S)_PROXY on some setups; curl honours it.
-    try {
-      const headerArgs = Object.entries(headers).flatMap(([k, v]) => ['-H', `${k}: ${v}`]);
-      text = execFileSync('curl', ['-sSfL', ...headerArgs, url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    } catch {
-      throw new Error(`Could not download ${url}: ${String(error)}`);
-    }
-  }
+  const text = await download(url, headers);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, text);
   return text;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Downloads with retries: busy servers (429, 5xx) are given time to recover. */
+async function download(url: string, headers: Record<string, string>): Promise<string> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (attempt > 0) await sleep(2000 * 2 ** (attempt - 1));
+    try {
+      const response = await fetch(url, { headers });
+      if (response.ok) return await response.text();
+      lastError = new Error(`HTTP ${response.status}`);
+      if (response.status !== 429 && response.status < 500) break;
+      const retryAfter = Number(response.headers.get('retry-after'));
+      if (retryAfter > 0) await sleep(Math.min(60, retryAfter) * 1000);
+      continue;
+    } catch (error) {
+      lastError = error;
+    }
+    // Node's fetch ignores HTTP(S)_PROXY on some setups; curl honours it.
+    try {
+      const headerArgs = Object.entries(headers).flatMap(([k, v]) => ['-H', `${k}: ${v}`]);
+      return execFileSync('curl', ['-sSfL', ...headerArgs, url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw new Error(`Could not download ${url}: ${String(lastError)}`);
 }

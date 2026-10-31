@@ -201,6 +201,8 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
   for (const club of [...PREMIERSHIP_CLUBS, ...SCOTTISH_CHAMPIONSHIP_CLUBS]) {
     const url = `https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=wikitext&redirects=1&page=${encodeURIComponent(club.wiki)}`;
     const json = JSON.parse(await fetchCached(url, `scotland/wikipedia-${club.id}.json`, refresh, HEADERS)) as { parse?: { wikitext?: string } };
+    // Be gentle with Wikipedia: one request every second or so.
+    if (refresh) await new Promise((resolve) => setTimeout(resolve, 1200));
     const parsed = parseSquad(json.parse?.wikitext ?? '');
     if (parsed.current.length < 11) notes.push(`${club.name}: only ${parsed.current.length} players found on Wikipedia.`);
     if (parsed.skipped.length > 0) notes.push(`${club.name}: left out sections ${parsed.skipped.map((s) => `"${s}"`).join(', ')}.`);
@@ -225,6 +227,7 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
     const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
     const text = await fetchCached(url, `scotland/wikidata-${hashString(query).toString(16)}.json`, refresh, { ...HEADERS, Accept: 'application/sparql-results+json' });
     for (const [k, v] of parsePlayers(JSON.parse(text))) wikidata.set(k, v);
+    if (refresh) await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 
   const players: PackPlayer[] = [];

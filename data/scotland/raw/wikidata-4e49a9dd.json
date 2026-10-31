@@ -6,6 +6,46 @@
     "bindings" : [ {
       "item" : {
         "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q107558242"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "New Zealand men's national football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "goalkeeper"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-07-04T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q118287620"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "New Zealand men's national football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "winger"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-08-19T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
         "value" : "http://www.wikidata.org/entity/Q123224454"
       },
       "teamLabel" : {
@@ -66,22 +106,22 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q46312338"
+        "value" : "http://www.wikidata.org/entity/Q6276860"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Belgium national under-21 football team"
+        "value" : "England national under-20 association football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "defender"
+        "value" : "full-back"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "1999-11-30T00:00:00Z"
+        "value" : "1993-12-08T00:00:00Z"
       }
     }, {
       "item" : {
@@ -111,46 +151,6 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "England national under-18 association football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "full-back"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1993-12-08T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q56071338"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Wales national under-21 football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "wing half"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "2000-09-09T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q6276860"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
         "value" : "England national under-19 association football team"
       },
       "posLabel" : {
@@ -166,62 +166,22 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q107558242"
+        "value" : "http://www.wikidata.org/entity/Q6775043"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "New Zealand men's national football team"
+        "value" : "Scotland national under-16 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "goalkeeper"
+        "value" : "utility player"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "2002-07-04T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q118287620"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "New Zealand men's national football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "winger"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "2002-08-19T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q6276860"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "England national under-20 association football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "full-back"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1993-12-08T00:00:00Z"
+        "value" : "1993-04-25T00:00:00Z"
       }
     }, {
       "item" : {
@@ -231,7 +191,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Scotland national under-17 football team"
+        "value" : "Scotland national under-16 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -251,7 +211,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "New Zealand national under-17 football team"
+        "value" : "New Zealand national under-23 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -271,7 +231,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "New Zealand national under-17 football team"
+        "value" : "New Zealand national under-23 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -282,26 +242,6 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
         "value" : "2002-08-19T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q123224454"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Canada national under-20 association football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "centre-back"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "2004-12-24T00:00:00Z"
       }
     }, {
       "item" : {
@@ -386,32 +326,12 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q6775043"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Scotland national under-16 football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "utility player"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1993-04-25T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
         "value" : "http://www.wikidata.org/entity/Q13738942"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Scotland national under-16 football team"
+        "value" : "Scotland national under-17 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -431,7 +351,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "New Zealand national under-23 football team"
+        "value" : "New Zealand national under-17 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -451,7 +371,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "New Zealand national under-23 football team"
+        "value" : "New Zealand national under-17 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -462,6 +382,86 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
         "value" : "2002-08-19T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q123224454"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Canada national under-20 association football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "centre-back"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-12-24T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q46312338"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Belgium national under-21 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "defender"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-11-30T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q6276860"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "England national under-18 association football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "full-back"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1993-12-08T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q56071338"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wales national under-21 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "wing half"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-09-09T00:00:00Z"
       }
     }, {
       "item" : {

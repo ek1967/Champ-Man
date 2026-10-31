@@ -95,7 +95,7 @@ each time strengthening the weakest position in their best XI with a player who 
 better and affordable. Contracts end on 30 June; computer clubs renew most of their top 20
 players and release the rest, and thin squads are topped up from free agents. The manager gets
 offers for their players (more for listed ones), answers to their own bids in a day or two,
-and a weekly round-up of other deals. Loans and sell-on clauses are not modelled yet.
+and a weekly round-up of other deals. Sell-on clauses are not modelled yet (loans: see #011).
 
 ## 010 — Development, youth intake, imports from abroad
 *Phase 8.* Development runs on the 1st of each month. Players up to 27 close a share of the gap
@@ -114,3 +114,44 @@ goalkeepers. So about 45% of computer-club signings come from abroad (created wh
 the level of the club's best XI), every computer club keeps two keepers, and clubs can't sell
 or release below that. `packages/harness/src/long-run.ts --check` simulates ten seasons and
 fails if overall quality, the top 20 players, ages, squad sizes or goals per game keep drifting.
+
+## 011 — Windows open 1 July; agreed deals wait for the window; loans
+The summer window runs 1 July – 1 September, January 1 January – 2 February. Offers can be made
+at any time. A deal agreed while the window is shut is marked *agreed* and goes through when it
+opens (1 July or 1 January); its fee and wages count against the buyer's budgets meanwhile, and
+the player can't be sold to anyone else. From 1 January, players whose contracts end on 30 June
+can sign a pre-contract and join on a free on 1 July. Fees agreed without terms lapse after two
+weeks. Loans last until 31 December or the end of the season; the borrowing club pays the wages;
+loanees can't be sold, bid for, released or trimmed, and return automatically.
+
+## 012 — Scouting: estimates, not hidden numbers
+Players at other clubs are shown through what the manager's staff know (0–100%): their own
+players are fully known, players in the same league are partly known from watching them each
+week, others barely. Ability shows as an estimate (marked ≈), potential and attributes as ranges
+that narrow as knowledge grows. Scouts (more and better at bigger clubs) can watch a player
+(3 days in the same league, 6 elsewhere) or a whole squad, and report with a grade A–D measured
+against the manager's current starter in that position. The coaches' view of the manager's own
+players' potential is also slightly uncertain.
+
+## 013 — Scotland: real clubs, generated players, split and cross-league play-off
+No open source of Scottish squads (or the 2026-27 fixture list) is reachable from the build, so
+the Scotland pack has the real 2026-27 clubs (St Johnstone up, Livingston down) with generated
+squads pitched by a judgement of each club's level (`packages/pipeline/src/scotland/clubs.ts`),
+and a generated fixture list. Real squads can replace them when a source is available.
+
+Rules in data: the Premiership plays 33 rounds, then splits into top and bottom six for five more
+(clubs can't leave their half; home games to whoever has had fewer). 12th is relegated; the
+Championship winner goes up; 2nd–4th play off (3rd v 4th, then 2nd, two legs each) and the winner
+meets the Premiership's 11th-placed club over two legs. Play-off ties are settled by strength.
+
+All packs found are merged into one world. Nations have a *wealth* (Scotland 0.3) that scales
+budgets, and clubs in poorer nations can't attract players far above the level their size
+supports (free agents, keepers, signings, imports and loanees); without that, players released
+by English clubs flooded Scotland and its level climbed ten points or more in a few seasons.
+English clubs are unaffected, since their second tier relies on players released from the top
+flight. Computer transfer activity scales with the number of clubs. Eight seasons of England +
+Scotland stay stable in the long-run harness (Scottish best XIs settle about 6 points higher).
+
+The demo world's biggest clubs now have a few real stars (bigger spread for starters, a bonus
+for the very biggest clubs), so the long-run check starts near equilibrium; before, the world's
+top 20 kept rising and the CI stability step failed.

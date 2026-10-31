@@ -67,6 +67,9 @@ export function LeagueTable({ game, seasonId, compact = false }: { game: GameSta
   if (!season || !competition) return null;
   const rows = seasonTable(game, season);
   const zones = competition.rules.zones;
+  const split = competition.rules.split;
+  // Rows after which the table is divided once the league has split.
+  const splitAfter = season.split ? season.split.groups[0]?.length ?? 0 : 0;
   return (
     <>
       <div className="table-wrap">
@@ -95,7 +98,7 @@ export function LeagueTable({ game, seasonId, compact = false }: { game: GameSta
               const club = game.world.clubs[row.clubId];
               const mine = row.clubId === game.manager.clubId;
               return (
-                <tr key={row.clubId} className={`zone-${zoneFor(i + 1, zones)} ${mine ? 'is-mine' : ''}`}>
+                <tr key={row.clubId} className={`zone-${zoneFor(i + 1, zones)} ${mine ? 'is-mine' : ''} ${i + 1 === splitAfter ? 'split-line' : ''}`}>
                   <td className="right pos">{i + 1}</td>
                   <td>{club && <ClubName club={club} short={compact} />}</td>
                   <td className="right">{row.played}</td>
@@ -125,6 +128,13 @@ export function LeagueTable({ game, seasonId, compact = false }: { game: GameSta
           </tbody>
         </table>
       </div>
+      {!compact && split && (
+        <p className="note">
+          {season.split
+            ? `The league has split: clubs stay in their half whatever their points.`
+            : `After ${split.after} rounds the league splits into a top and bottom ${Math.ceil(season.clubIds.length / split.groups)}, who play each other once more.`}
+        </p>
+      )}
       {!compact && zones.length > 0 && (
         <ul className="legend">
           {zones.map((z) => (

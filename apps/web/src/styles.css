@@ -1907,3 +1907,8 @@ tr.group-row td {
     font-size: 1.6rem;
   }
 }
+
+/* League split (Scottish Premiership): a heavier line between the halves. */
+table.league tr.split-line td {
+  border-bottom: 3px solid var(--muted);
+}

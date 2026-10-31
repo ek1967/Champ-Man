@@ -27,6 +27,16 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
   trading among themselves
 - **Player development**: monthly growth and decline, youth intakes, retirements, coaching
   reports, ability history on player pages
+- **Transfer windows open 1 July and 1 January**. Deals can be agreed at any time; players move
+  when the window opens. Pre-contracts from January for players whose deals end in June
+- **Loans** in and out (to 31 December or the end of the season); computer clubs loan out
+  prospects
+- **Scouting**: players outside your club are seen through estimates (ability marked ≈,
+  potential and attributes as ranges) until scouts watch them; scout a player or a whole squad,
+  get graded reports, keep a shortlist
+- **Scottish Premiership 2026-27**, playable, with the split after 33 rounds, and the Scottish
+  Championship in the background with its play-off against the Premiership's 11th-placed club.
+  The clubs are real; the players are generated until real squads can be added
 
 ## Real-player data (personal use only)
 
@@ -41,6 +51,12 @@ npm run data:england -- --refresh  # download fresh data first
 The review report (`data/reports/england-2026-27-ratings.md`) lists every rating. Corrections go
 in `packages/pipeline/src/england/overrides.ts`.
 
+```sh
+npm run data:scotland              # build data/packs/scotland-2026-27.json (real clubs, generated players)
+```
+
+The game plays every pack it finds as one world, so players move between England and Scotland.
+
 ## Running it
 
 Needs Node 22.18 or newer.
@@ -53,6 +69,7 @@ npm run calibrate  # simulate 40 seasons and check results look like real footba
                    # (add -- --pack data/packs/england-2026-27.json for the real league)
 npm run check      # typecheck + tests + calibration (what CI runs)
 node packages/harness/src/long-run.ts 10 --demo --check  # ten seasons stay stable
+node packages/harness/src/long-run.ts 8 --scotland --league sco-1  # England + Scotland, report on Scotland
 npm run build      # production build in apps/web/dist
 ```
 

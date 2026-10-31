@@ -177,7 +177,11 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
   const club = clubId ? game.world.clubs[clubId] : undefined;
   const unread = unreadNewsCount(game);
   const incomingOffers = game.transfers.bids.filter((b) => b.sellerId === clubId && b.status === 'pending').length;
-  const competitions = Object.values(game.world.competitions).sort((a, b) => a.tier - b.tier);
+  // Grouped by country (the manager's first), top division first.
+  const home = club?.nationId;
+  const competitions = Object.values(game.world.competitions).sort(
+    (a, b) => Number(b.nationId === home) - Number(a.nationId === home) || a.nationId.localeCompare(b.nationId) || a.tier - b.tier,
+  );
 
   return (
     <nav className="sidenav" aria-label="Main">

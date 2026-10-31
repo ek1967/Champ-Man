@@ -1,8 +1,9 @@
 import {
-  boardExpectation, createGame, currentSeasonOf, type GameState, takeJob, type WorldPack,
+  boardExpectation, type Competition, createGame, currentSeasonOf, type GameState, mergePacks, takeJob, type WorldPack,
 } from '@moc/engine';
 import { useEffect, useState } from 'react';
 import { ClubSwatch } from '../components/ClubName.tsx';
+import { Tabs } from '../components/Tabs.tsx';
 import { reputationLabel } from '../components/format.ts';
 import { resetNavigation } from '../state/nav.ts';
 import { deleteCareer, loadCareer, loadCareerSummary, type SaveSummary, saveCareer } from '../state/persistence.ts';
@@ -12,12 +13,12 @@ function randomSeed(): string {
   return Math.random().toString(36).slice(2, 8);
 }
 
-const REAL_PACK_URL = './packs/england-2026-27.json';
+/** Real-world packs, built locally by `npm run data:england` and `npm run data:scotland`. */
+const PACK_URLS = ['./packs/england-2026-27.json', './packs/scotland-2026-27.json'];
 
-/** The real-world pack is built locally by `npm run data:england`; without it only the demo world is offered. */
-async function loadRealPack(): Promise<WorldPack | null> {
+async function loadPack(url: string): Promise<WorldPack | null> {
   try {
-    const response = await fetch(REAL_PACK_URL);
+    const response = await fetch(url);
     if (!response.ok) return null;
     return (await response.json()) as WorldPack;
   } catch {
@@ -25,8 +26,20 @@ async function loadRealPack(): Promise<WorldPack | null> {
   }
 }
 
-function topDivision(state: GameState) {
-  return Object.values(state.world.competitions).find((c) => c.tier === 1 && c.mode === 'playable');
+/** Every pack that has been built, played together as one world; null when there are none. */
+async function loadRealPack(): Promise<WorldPack | null> {
+  const packs = (await Promise.all(PACK_URLS.map(loadPack))).filter((p): p is WorldPack => p !== null);
+  return packs.length > 0 ? mergePacks(packs) : null;
+}
+
+function playableLeagues(state: GameState): Competition[] {
+  return Object.values(state.world.competitions)
+    .filter((c) => c.tier === 1 && c.mode === 'playable')
+    .sort((a, b) => leagueSize(state, b) - leagueSize(state, a));
+}
+
+function leagueSize(state: GameState, c: Competition): number {
+  return Object.values(state.world.clubs).filter((club) => club.leagueId === c.id).length;
 }
 
 export function StartScreen() {
@@ -37,6 +50,7 @@ export function StartScreen() {
   const [error, setError] = useState<string | null>(null);
   const [realPack, setRealPack] = useState<WorldPack | null>(null);
   const [worldChoice, setWorldChoice] = useState<'real' | 'demo'>('real');
+  const [leagueId, setLeagueId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadCareerSummary().then(setSummary);
@@ -56,7 +70,9 @@ export function StartScreen() {
 
   function buildWorld() {
     const pack = worldChoice === 'real' && realPack ? realPack : undefined;
-    setDraft(createGame({ seed, managerName: managerName.trim() || 'The Gaffer', pack }));
+    const state = createGame({ seed, managerName: managerName.trim() || 'The Gaffer', pack });
+    setLeagueId(playableLeagues(state)[0]?.id ?? null);
+    setDraft(state);
   }
 
   async function chooseClub(clubId: string) {
@@ -69,7 +85,8 @@ export function StartScreen() {
   }
 
   if (draft) {
-    const competition = topDivision(draft);
+    const leagues = playableLeagues(draft);
+    const competition = leagues.find((c) => c.id === leagueId) ?? leagues[0];
     const season = competition ? currentSeasonOf(draft, competition.id) : null;
     const clubs = (season?.clubIds ?? [])
       .map((id) => draft.world.clubs[id])
@@ -79,6 +96,9 @@ export function StartScreen() {
       <div className="start">
         <div className="start-card wide">
           <h1>Choose your club</h1>
+          {leagues.length > 1 && competition && (
+            <Tabs tabs={leagues.map((c) => ({ id: c.id, label: c.name }))} active={competition.id} onChange={setLeagueId} />
+          )}
           <p className="muted">
             {competition?.name}, {season?.label}. Bigger clubs have better players and higher expectations.
           </p>
@@ -164,8 +184,8 @@ export function StartScreen() {
                 onChange={() => setWorldChoice('real')}
               />
               <span>
-                <strong>Premier League 2026-27</strong>
-                <small>{realPack ? realPack.notice : 'Not built yet. Run npm run data:england to create it.'}</small>
+                <strong>{realPack ? `${realPack.name.replace(/ 2026-27/g, '')} 2026-27` : 'Real world 2026-27'}</strong>
+                <small>{realPack ? realPack.notice : 'Not built yet. Run npm run data:england and npm run data:scotland to create it.'}</small>
               </span>
             </label>
             <label className="choice">

@@ -25,12 +25,12 @@ const LINES = {
   ],
   chance: [
     '{q} slips the ball through to {p}…',
-    '{p} finds a yard of space in the box…',
     '{q} picks out {p} with a fine pass…',
-    '{p} cuts inside…',
-    '{p} is in on goal…',
+    '{q} squares it for {p}…',
   ],
+  soloChance: ['{p} finds a yard of space in the box…', '{p} cuts inside…', '{p} is in on goal…', '{p} wins it back and goes for goal…'],
   crossChance: ['{q} whips in a cross… {p} rises…', 'A dangerous ball in from {q}… {p} gets on the end of it…'],
+  soloCross: ['A ball is swung into the box… {p} rises…', 'The ball drops in the box… {p} gets a head to it…'],
   longShot: ['{p} tries one from distance…', '{p} lets fly from 25 yards…'],
   goal: [
     'GOAL! {p} finishes it off!',

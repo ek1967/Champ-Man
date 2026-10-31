@@ -506,8 +506,8 @@ function attack(ctx: MatchContext, live: LiveMatch, side: Side, mine: UnitRating
   xg = Math.min(0.7, Math.max(0.01, xg));
 
   if (live.commentary) {
-    const lineKey = kind === 'header' ? 'crossChance' : kind === 'long' ? 'longShot' : 'chance';
-    push(ctx, live, { side, kind: 'chance', key: false, text: say(live.rng, lineKey, { p: name(ctx, shooter), q: name(ctx, assist) || name(ctx, shooter) }) });
+    const lineKey = kind === 'long' ? 'longShot' : kind === 'header' ? (assist ? 'crossChance' : 'soloCross') : assist ? 'chance' : 'soloChance';
+    push(ctx, live, { side, kind: 'chance', key: false, text: say(live.rng, lineKey, { p: name(ctx, shooter), q: name(ctx, assist) }) });
   }
   shoot(ctx, live, side, shooter, assist, xg, kind);
 }
@@ -523,7 +523,8 @@ function corner(ctx: MatchContext, live: LiveMatch, side: Side, theirs: UnitRati
   if (!header) return;
   const xg = 0.075 * (delivery / 12) * Math.min(1.5, mine.aerial / Math.max(1, theirs.aerial));
   if (live.commentary) {
-    push(ctx, live, { side, kind: 'chance', key: false, text: say(live.rng, 'crossChance', { p: name(ctx, header), q: name(ctx, taker ?? undefined) || teamName(ctx, live, side) }) });
+    const takerName = taker && taker !== header ? name(ctx, taker) : '';
+    push(ctx, live, { side, kind: 'chance', key: false, text: say(live.rng, takerName ? 'crossChance' : 'soloCross', { p: name(ctx, header), q: takerName }) });
   }
   shoot(ctx, live, side, header, taker && taker !== header ? taker : undefined, xg, 'header');
 }

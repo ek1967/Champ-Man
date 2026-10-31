@@ -2,7 +2,8 @@ import {
   currentSeasonOf, formatLong, formatShort, type GameState, humanFixtureOn, leaguePosition, nextFixture,
   unreadNewsCount,
 } from '@moc/engine';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { ReadyDialog } from './components/ReadyDialog.tsx';
 import { ClubSwatch } from './components/ClubName.tsx';
 import { EntityLink } from './components/EntityLink.tsx';
 import { ordinal } from './components/format.ts';
@@ -23,10 +24,14 @@ export function App() {
   return game ? <Career game={game} /> : <StartScreen />;
 }
 
-function handleContinue(game: GameState): void {
-  // On match day (or mid-match) Continue goes to the match instead of moving time on.
-  if (getLiveMatch() || humanFixtureOn(game, game.date)) {
+function handleContinue(game: GameState, askReady: () => void): void {
+  // Mid-match, Continue goes back to the match; on match day it first asks if you're ready.
+  if (getLiveMatch()) {
     navigate({ screen: 'match' });
+    return;
+  }
+  if (humanFixtureOn(game, game.date)) {
+    askReady();
     return;
   }
   const reason = continueOnce();
@@ -38,14 +43,20 @@ function handleContinue(game: GameState): void {
 function Career({ game }: { game: GameState }) {
   const { route } = useRoute();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [readyOpen, setReadyOpen] = useState(false);
+  const readyRef = useRef(readyOpen);
+  readyRef.current = readyOpen;
+  const onContinue = () => handleContinue(game, () => setReadyOpen(true));
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
+      // The match-day dialog handles its own keys.
+      if (readyRef.current) return;
       if (e.code === 'Space' && !e.altKey && !e.ctrlKey && !e.metaKey && route.screen !== 'match') {
         e.preventDefault();
-        handleContinue(game);
+        handleContinue(game, () => setReadyOpen(true));
       } else if (e.altKey && e.key === 'ArrowLeft') {
         e.preventDefault();
         back();
@@ -63,16 +74,30 @@ function Career({ game }: { game: GameState }) {
 
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
-      <TopBar game={game} onMenu={() => setMenuOpen((o) => !o)} />
+      <TopBar game={game} onMenu={() => setMenuOpen((o) => !o)} onContinue={onContinue} />
       <SideNav game={game} route={route} />
       <main className="main" id="main">
         <Screen game={game} route={route} />
       </main>
+      {readyOpen && (
+        <ReadyDialog
+          game={game}
+          onClose={() => setReadyOpen(false)}
+          onReview={() => {
+            setReadyOpen(false);
+            navigate({ screen: 'tactics' });
+          }}
+          onGo={() => {
+            setReadyOpen(false);
+            navigate({ screen: 'match' });
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function TopBar({ game, onMenu }: { game: GameState; onMenu: () => void }) {
+function TopBar({ game, onMenu, onContinue }: { game: GameState; onMenu: () => void; onContinue: () => void }) {
   const { canBack, canForward } = useRoute();
   const clubId = game.manager.clubId;
   const club = clubId ? game.world.clubs[clubId] : undefined;
@@ -121,7 +146,7 @@ function TopBar({ game, onMenu }: { game: GameState; onMenu: () => void }) {
           )
         )}
       </div>
-      <button className="continue" onClick={() => handleContinue(game)} title="Continue (Space)">
+      <button className="continue" onClick={onContinue} title="Continue (Space)">
         {getLiveMatch() ? 'Back to match' : today ? 'Match day' : 'Continue'} <span aria-hidden="true">▶</span>
       </button>
     </header>

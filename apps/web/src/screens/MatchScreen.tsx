@@ -154,6 +154,42 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
     };
   }, [paused, speed, live.period, mySide]);
 
+  const finishedNow = live.period === 'full';
+  // One central button that always does the obvious next thing.
+  const mainLabel = finishedNow
+    ? 'Continue'
+    : !paused
+      ? 'Pause'
+      : live.period === 'half'
+        ? 'Start second half'
+        : live.period === 'pre'
+          ? 'Kick off'
+          : 'Resume';
+  const mainAction = () => {
+    if (live.period === 'full') {
+      const newsId = finishLive();
+      navigate(newsId ? { screen: 'inbox', newsId } : { screen: 'inbox' });
+      return;
+    }
+    setPaused((p) => !p);
+  };
+  const mainActionRef = useRef(mainAction);
+  mainActionRef.current = mainAction;
+
+  // Space presses the main button while watching a match.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        mainActionRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const changeSpeed = (next: Speed) => {
     setSpeed(next);
     try {
@@ -195,34 +231,8 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
       </div>
       <p className={`latest ${latest?.key ? 'is-key' : ''}`}>{latest?.text ?? 'The teams are out.'}</p>
 
-      <div className="match-controls">
-        {finished ? (
-          <button
-            className="btn primary"
-            onClick={() => {
-              const newsId = finishLive();
-              navigate(newsId ? { screen: 'inbox', newsId } : { screen: 'inbox' });
-            }}
-          >
-            Finish
-          </button>
-        ) : (
-          <>
-            <button className="btn primary" onClick={() => setPaused((p) => !p)}>
-              {paused ? (live.period === 'pre' ? 'Kick off' : live.period === 'half' ? 'Second half' : 'Resume') : 'Pause'}
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                playLiveToEnd();
-                setPaused(true);
-              }}
-            >
-              Instant result
-            </button>
-          </>
-        )}
-        <label className="field inline">
+      <div className="match-controls" role="group" aria-label="Match controls">
+        <label className="field inline control-side">
           <span>Speed</span>
           <select id="match-speed" value={speed} onChange={(e) => changeSpeed(e.target.value as Speed)}>
             {SPEEDS.map((s) => (
@@ -232,6 +242,22 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
             ))}
           </select>
         </label>
+        <button className={`btn primary main-action ${!paused && !finished ? 'is-running' : ''}`} onClick={mainAction} title="Space">
+          {mainLabel}
+        </button>
+        <div className="control-side right">
+          {!finished && (
+            <button
+              className="btn"
+              onClick={() => {
+                playLiveToEnd();
+                setPaused(true);
+              }}
+            >
+              Instant result
+            </button>
+          )}
+        </div>
       </div>
 
       <Tabs

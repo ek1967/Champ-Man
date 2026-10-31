@@ -326,6 +326,46 @@
     }, {
       "item" : {
         "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q10520024"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Scotland national under-17 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "forward"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1991-01-06T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18128654"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Scotland national under-17 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-07-04T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
         "value" : "http://www.wikidata.org/entity/Q165679"
       },
       "teamLabel" : {
@@ -452,46 +492,6 @@
         "xml:lang" : "en",
         "type" : "literal",
         "value" : "Scotland national under-19 football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "midfielder"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1995-07-04T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q10520024"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Scotland national under-17 football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "forward"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1991-01-06T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q18128654"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Scotland national under-17 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",

@@ -16,7 +16,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "defender"
+        "value" : "centre-back"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -36,7 +36,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "centre-back"
+        "value" : "defender"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -66,22 +66,22 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q16888045"
+        "value" : "http://www.wikidata.org/entity/Q28027213"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Germany national under-20 football team"
+        "value" : "Republic of Ireland national under-21 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "goalkeeper"
+        "value" : "winger"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "1993-07-12T00:00:00Z"
+        "value" : "1998-03-06T00:00:00Z"
       }
     }, {
       "item" : {
@@ -96,7 +96,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "defender"
+        "value" : "centre-back"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -116,7 +116,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "centre-back"
+        "value" : "defender"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -226,22 +226,22 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q23007748"
+        "value" : "http://www.wikidata.org/entity/Q16888045"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Scotland national under-19 football team"
+        "value" : "Germany national under-20 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "defender"
+        "value" : "goalkeeper"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "1995-05-29T00:00:00Z"
+        "value" : "1993-07-12T00:00:00Z"
       }
     }, {
       "item" : {
@@ -256,7 +256,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "defender"
+        "value" : "centre-back"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -276,7 +276,7 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "centre-back"
+        "value" : "defender"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -406,22 +406,22 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q28027213"
+        "value" : "http://www.wikidata.org/entity/Q23007748"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Republic of Ireland national under-21 football team"
+        "value" : "Scotland national under-19 football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "winger"
+        "value" : "defender"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "1998-03-06T00:00:00Z"
+        "value" : "1995-05-29T00:00:00Z"
       }
     }, {
       "item" : {
@@ -821,21 +821,6 @@
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "winger"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "2003-10-10T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q110622354"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
         "value" : "left winger"
       },
       "dob" : {
@@ -882,6 +867,21 @@
         "xml:lang" : "en",
         "type" : "literal",
         "value" : "left wing"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-10-10T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q110622354"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "winger"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",

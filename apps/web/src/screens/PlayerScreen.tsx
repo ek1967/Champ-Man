@@ -1,7 +1,9 @@
 import {
-  ageOn, ATTRIBUTE_LABELS, type AttributeKey, attributeBand, formatLong, type GameState, GOALKEEPING,
+  abilityStars, ageOn, ATTRIBUTE_LABELS, type AttributeKey, attributeBand, formatLong, type GameState, GOALKEEPING,
   mainPosition, MENTAL, PHYSICAL, TECHNICAL,
 } from '@moc/engine';
+import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
+import { statusOf } from './TacticsScreen.tsx';
 import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
@@ -52,6 +54,14 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
           </p>
         </div>
       </header>
+
+      <div className="facts">
+        <div><span>Ability</span><Stars value={abilityStars(player.ca)} /></div>
+        <div><span>Potential</span><Stars value={abilityStars(player.pa)} label="Potential" /></div>
+        <div><span>Fitness</span><ConditionBar value={player.condition} /></div>
+        <div><span>Form (last 5)</span><FormChips form={player.form} /></div>
+        <div><span>Status</span>{statusOf(player, game.date) ?? 'Available'}</div>
+      </div>
 
       <div className="facts">
         <div><span>Age</span>{ageOn(player.dateOfBirth, game.date)} ({formatLong(player.dateOfBirth).slice(4)})</div>

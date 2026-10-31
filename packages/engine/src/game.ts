@@ -15,7 +15,7 @@ import type {
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { createDemoWorld } from './worldgen.ts';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const GAME_START_DATE: ISODate = '2026-06-15';
 
 export interface NewGameOptions {
@@ -234,6 +234,7 @@ export function completeMatch(state: GameState, fixture: Fixture, live: LiveMatc
       else if (lp.yellow > 0 && entry.yellow % YELLOWS_FOR_BAN === 0) player.suspension += 1;
     }
     player.condition = Math.max(30, Math.round(lp.energy * 100));
+    player.form = [...player.form, lp.rating].slice(-5);
     const injury = live.injuries[lp.id];
     if (injury) player.injury = { name: injury.name, until: injuryEnd(state.date, injury.days) };
   }

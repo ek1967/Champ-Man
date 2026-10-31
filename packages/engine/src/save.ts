@@ -23,6 +23,11 @@ function migrate(state: GameState): GameState {
     state.manager.tactics ??= null;
     state.version = 2;
   }
+  if (state.version === 2) {
+    // v3: recent form; new instructions are filled in when tactics are next used.
+    for (const player of Object.values(state.world.players)) player.form ??= [];
+    state.version = 3;
+  }
   return state;
 }
 

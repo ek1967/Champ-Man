@@ -82,6 +82,8 @@ export interface Player {
   injury: Injury | null;
   /** Matches still to sit out through suspension. */
   suspension: number;
+  /** Match ratings from the last five games, oldest first. */
+  form: number[];
 }
 
 export interface Competition {

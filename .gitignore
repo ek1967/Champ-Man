@@ -10,3 +10,6 @@ data/raw/
 data/packs/
 data/reports/
 apps/web/public/packs/
+
+# Local scratch files (screenshots, test scripts)
+.work/

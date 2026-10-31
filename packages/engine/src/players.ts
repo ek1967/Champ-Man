@@ -145,6 +145,7 @@ export function generatePlayer(rng: Rng, spec: NewPlayerSpec): Player {
     condition: 100,
     injury: null,
     suspension: 0,
+    form: [],
   };
   if (knownAs) player.knownAs = knownAs;
   return player;
@@ -177,4 +178,23 @@ export function positionRating(player: Player, position: Position): number {
   const familiarity = player.positions[position];
   const factor = familiarity === undefined ? 0.55 : 0.55 + 0.45 * (familiarity / 20);
   return player.ca * factor;
+}
+
+/**
+ * Star rating for quick comparison: Current (or Potential) Ability on a half-star scale.
+ * 5 stars ≈ world class (CA 185+), 3 stars ≈ solid Premier League player (CA 135).
+ */
+export function abilityStars(ability: number): number {
+  const stars = (ability - 60) / 25;
+  return Math.round(Math.max(0.5, Math.min(5, stars)) * 2) / 2;
+}
+
+/** How good a player is in a particular position, in stars (ability adjusted for familiarity). */
+export function positionStars(player: Player, position: Position): number {
+  return abilityStars(positionRating(player, position));
+}
+
+export function averageForm(player: Player): number | null {
+  if (player.form.length === 0) return null;
+  return player.form.reduce((a, b) => a + b, 0) / player.form.length;
 }

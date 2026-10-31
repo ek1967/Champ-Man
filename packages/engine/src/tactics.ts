@@ -66,7 +66,8 @@ export const FORMATIONS: Record<FormationId, FormationSlot[]> = {
 
 export const FORMATION_IDS = Object.keys(FORMATIONS) as FormationId[];
 
-export type Mentality = 'defensive' | 'cautious' | 'balanced' | 'positive' | 'attacking';
+export type Mentality =
+  | 'ultra-defensive' | 'defensive' | 'cautious' | 'balanced' | 'positive' | 'attacking' | 'ultra-attacking';
 export type Level3<A extends string, B extends string, C extends string> = A | B | C;
 
 export interface TeamInstructions {
@@ -77,6 +78,10 @@ export interface TeamInstructions {
   pressing: Level3<'low', 'medium', 'high'>;
   line: Level3<'deep', 'normal', 'high'>;
   tackling: Level3<'easy', 'normal', 'hard'>;
+  /** Sit a little deeper and break quickly when the ball is won. */
+  counter: 'off' | 'on';
+  /** Defenders step up together to catch forwards offside; quick forwards can beat it. */
+  offsideTrap: 'off' | 'on';
 }
 
 export const DEFAULT_INSTRUCTIONS: TeamInstructions = {
@@ -87,17 +92,39 @@ export const DEFAULT_INSTRUCTIONS: TeamInstructions = {
   pressing: 'medium',
   line: 'normal',
   tackling: 'normal',
+  counter: 'off',
+  offsideTrap: 'off',
 };
 
 /** Choices shown on the tactics screen, in display order. */
 export const INSTRUCTION_OPTIONS: { [K in keyof TeamInstructions]: ReadonlyArray<TeamInstructions[K]> } = {
-  mentality: ['defensive', 'cautious', 'balanced', 'positive', 'attacking'],
+  mentality: ['ultra-defensive', 'defensive', 'cautious', 'balanced', 'positive', 'attacking', 'ultra-attacking'],
   passing: ['short', 'mixed', 'direct'],
   tempo: ['slow', 'normal', 'fast'],
   width: ['narrow', 'normal', 'wide'],
   pressing: ['low', 'medium', 'high'],
   line: ['deep', 'normal', 'high'],
   tackling: ['easy', 'normal', 'hard'],
+  counter: ['off', 'on'],
+  offsideTrap: ['off', 'on'],
+};
+
+/** Individual instructions, as in the classic games: what each player does on top of the team plan. */
+export interface PlayerInstructions {
+  /** Join attacks or hold position. */
+  runs: 'stay' | 'mixed' | 'forward';
+  /** How readily they shoot from distance. */
+  shooting: 'rarely' | 'normal' | 'often';
+  /** How hard they press the player on the ball. */
+  closingDown: 'less' | 'normal' | 'more';
+}
+
+export const DEFAULT_PLAYER_INSTRUCTIONS: PlayerInstructions = { runs: 'mixed', shooting: 'normal', closingDown: 'normal' };
+
+export const PLAYER_INSTRUCTION_OPTIONS: { [K in keyof PlayerInstructions]: ReadonlyArray<PlayerInstructions[K]> } = {
+  runs: ['stay', 'mixed', 'forward'],
+  shooting: ['rarely', 'normal', 'often'],
+  closingDown: ['less', 'normal', 'more'],
 };
 
 export const MAX_BENCH = 9;
@@ -113,6 +140,17 @@ export interface Tactics {
   penaltyTakerId: Id | null;
   freeKickTakerId: Id | null;
   cornerTakerId: Id | null;
+  /** Individual instructions by player; players not listed use the defaults. */
+  players?: Record<Id, PlayerInstructions>;
+}
+
+export function playerInstructions(tactics: Tactics, id: Id): PlayerInstructions {
+  return { ...DEFAULT_PLAYER_INSTRUCTIONS, ...tactics.players?.[id] };
+}
+
+/** Fills in settings added since the tactics were saved. */
+export function normalizeTactics(tactics: Tactics): Tactics {
+  return { ...tactics, instructions: { ...DEFAULT_INSTRUCTIONS, ...tactics.instructions }, players: tactics.players ?? {} };
 }
 
 export function isAvailable(player: Player, date: ISODate): boolean {
@@ -212,8 +250,9 @@ export function autoTactics(
     formation: formation ?? '4-4-2',
     lineup,
     bench: bestBench(available, chosen),
-    instructions: options.instructions ?? { ...DEFAULT_INSTRUCTIONS },
+    instructions: { ...DEFAULT_INSTRUCTIONS, ...options.instructions },
     ...setPieceTakers(onPitch),
+    players: {},
   };
 }
 
@@ -222,7 +261,8 @@ export function autoTactics(
  * best available option for their slot, and the bench is topped up. The manager's choices stay
  * wherever they're still possible.
  */
-export function readyTactics(tactics: Tactics, players: readonly Player[], date: ISODate): Tactics {
+export function readyTactics(saved: Tactics, players: readonly Player[], date: ISODate): Tactics {
+  const tactics = normalizeTactics(saved);
   const byId = new Map(players.map((p) => [p.id, p]));
   const ok = (id: Id | null): id is Id => id !== null && byId.has(id) && isAvailable(byId.get(id) as Player, date);
   const slots = FORMATIONS[tactics.formation];

@@ -11,7 +11,8 @@ import { addDays, type ISODate } from './dates.ts';
 import { shortName } from './players.ts';
 import { chance, forkRng, normal, random, randInt, type Rng, weightedPick } from './rng.ts';
 import {
-  FORMATIONS, MAX_SUBSTITUTIONS, type Mentality, selectionRating, type Tactics, type TeamInstructions,
+  FORMATIONS, MAX_SUBSTITUTIONS, type Mentality, normalizeTactics, type PlayerInstructions, playerInstructions,
+  selectionRating, type Tactics, type TeamInstructions,
 } from './tactics.ts';
 import type { Club, GoalEvent, Id, Player, TeamMatchStats } from './types.ts';
 
@@ -24,7 +25,7 @@ export const MATCH = {
   chanceExponent: 0.9,
   qualityExponent: 0.5,
   /** Typical shot quality (expected goals) and its spread. */
-  xgMedian: 0.16,
+  xgMedian: 0.165,
   xgSpread: 0.75,
   finishingExponent: 0.8,
   keeperExponent: 0.8,
@@ -108,7 +109,25 @@ export interface MatchContext {
   clubs: Record<Id, Club>;
 }
 
-const MENTALITY_INDEX: Record<Mentality, number> = { defensive: -2, cautious: -1, balanced: 0, positive: 1, attacking: 2 };
+const MENTALITY_INDEX: Record<Mentality, number> = {
+  'ultra-defensive': -3, defensive: -2, cautious: -1, balanced: 0, positive: 1, attacking: 2, 'ultra-attacking': 3,
+};
+
+/** How a player's individual instructions change their share of each phase of play. */
+function roleScale(pi: PlayerInstructions) {
+  const runs = pi.runs === 'forward' ? { attack: 1.15, shoot: 1.35, defence: 0.85, drain: 1.08 }
+    : pi.runs === 'stay' ? { attack: 0.85, shoot: 0.65, defence: 1.15, drain: 0.95 }
+    : { attack: 1, shoot: 1, defence: 1, drain: 1 };
+  const press = pi.closingDown === 'more' ? { defence: 1.06, drain: 1.1, fouls: 1.25 }
+    : pi.closingDown === 'less' ? { defence: 0.95, drain: 0.93, fouls: 0.8 }
+    : { defence: 1, drain: 1, fouls: 1 };
+  const longShots = pi.shooting === 'often' ? 2 : pi.shooting === 'rarely' ? 0.35 : 1;
+  return { attack: runs.attack, shoot: runs.shoot, defence: runs.defence * press.defence, drain: runs.drain * press.drain, fouls: press.fouls, longShots };
+}
+
+function scaleOf(live: LiveMatch, side: Side, id: Id) {
+  return roleScale(playerInstructions(live[side].tactics, id));
+}
 
 // How much each position contributes to each phase of play.
 const W_CONTROL: Record<Position, number> = {
@@ -153,7 +172,8 @@ export function displayMinute(live: Pick<LiveMatch, 'minute' | 'period'>): strin
 
 // ---------- Setup ----------
 
-function sideState(clubId: Id, tactics: Tactics, human: boolean): MatchSideState {
+function sideState(clubId: Id, saved: Tactics, human: boolean): MatchSideState {
+  const tactics = normalizeTactics(saved);
   const slots = FORMATIONS[tactics.formation];
   const onPitch = tactics.lineup
     .map((id, i) => ({ id, position: slots[i]?.position as Position }))
@@ -249,9 +269,10 @@ function unitRatings(ctx: MatchContext, live: LiveMatch, side: Side): UnitRating
     if (!p) continue;
     const a = p.attributes;
     const m = effectiveness(ctx, live, id, position);
+    const role = scaleOf(live, side, id);
     control += W_CONTROL[position] * m * avg(a.passing, a.decisions, a.teamwork, a.firstTouch, a.vision, a.workRate, a.anticipation);
-    attack += W_ATTACK[position] * m * avg(a.dribbling, a.passing, a.vision, a.flair, a.firstTouch, a.movement, a.pace, a.finishing);
-    defence += W_DEFENCE[position] * m * avg(a.tackling, a.marking, a.positioning, a.anticipation, a.heading, a.strength, a.bravery, a.pace);
+    attack += W_ATTACK[position] * role.attack * m * avg(a.dribbling, a.passing, a.vision, a.flair, a.firstTouch, a.movement, a.pace, a.finishing);
+    defence += W_DEFENCE[position] * role.defence * m * avg(a.tackling, a.marking, a.positioning, a.anticipation, a.heading, a.strength, a.bravery, a.pace);
     aerial += W_DEFENCE[position] * m * avg(a.heading, a.jumping, a.strength);
     if (position === 'GK') keeper = m * avg(a.reflexes, a.handling, a.oneOnOnes, a.commandOfArea, a.positioning);
   }
@@ -285,6 +306,8 @@ function unitRatings(ctx: MatchContext, live: LiveMatch, side: Side): UnitRating
   if (ins.width === 'wide') attack *= 1.02;
   if (ins.tackling === 'hard') defence *= 1.03;
   if (ins.tackling === 'easy') defence *= 0.97;
+  // Counter-attacking sides concede some of the ball.
+  if (ins.counter === 'on') control *= 0.96;
   if (side === 'home') {
     control *= MATCH.homeAdvantage;
     attack *= MATCH.homeAdvantage;
@@ -295,14 +318,16 @@ function unitRatings(ctx: MatchContext, live: LiveMatch, side: Side): UnitRating
 /** A high line is exposed by quick attackers; a deep line isn't. */
 function paceThreat(ctx: MatchContext, live: LiveMatch, attacking: Side): number {
   const defending: Side = attacking === 'home' ? 'away' : 'home';
-  if (live[defending].tactics.instructions.line !== 'high') return 1;
+  const { line, offsideTrap } = live[defending].tactics.instructions;
+  if (line !== 'high' && offsideTrap !== 'on') return 1;
   const pace = (side: Side, positions: (p: Position) => boolean) => {
     const values = live[side].onPitch.filter((x) => positions(x.position)).map((x) => ctx.players[x.id]?.attributes.pace ?? 10);
     return values.length > 0 ? avg(...values) : 10;
   };
   const attackers = pace(attacking, (p) => ['ST', 'AML', 'AMR', 'AMC', 'ML', 'MR'].includes(p));
   const defenders = pace(defending, (p) => ['DC', 'DL', 'DR', 'WBL', 'WBR'].includes(p));
-  return 1 + Math.max(0, (attackers - defenders) / 40);
+  const exposure = (line === 'high' ? 1 : 0) + (offsideTrap === 'on' ? 1.5 : 0);
+  return 1 + Math.max(0, (attackers - defenders) / 40) * exposure;
 }
 
 // ---------- Events ----------
@@ -413,19 +438,24 @@ function shoot(ctx: MatchContext, live: LiveMatch, side: Side, shooter: Id, assi
   }
 }
 
-function attack(ctx: MatchContext, live: LiveMatch, side: Side, mine: UnitRatings, theirs: UnitRatings): void {
+function attack(ctx: MatchContext, live: LiveMatch, side: Side, mine: UnitRatings, theirs: UnitRatings, possession: number): void {
   const other: Side = side === 'home' ? 'away' : 'home';
   const ins = live[side].tactics.instructions;
+  const trap = live[other].tactics.instructions.offsideTrap === 'on';
+  // A counter-attacking side is most dangerous when breaking against the run of play.
+  const breaking = ins.counter === 'on' && possession < 0.5;
   const balance = (mine.attack / Math.max(1, theirs.defence)) * paceThreat(ctx, live, side);
   let pChance = MATCH.chanceBase * balance ** MATCH.chanceExponent;
   if (ins.passing === 'short') pChance *= 0.93;
+  if (breaking) pChance *= 1.12;
+  if (trap) pChance *= 0.94;
   pChance = Math.min(0.85, Math.max(0.05, pChance));
 
   if (!chance(live.rng, pChance)) {
     // The move breaks down: a corner, an offside, or the defence wins it back.
     if (chance(live.rng, 0.22)) {
       corner(ctx, live, side, theirs);
-    } else if (chance(live.rng, ins.tempo === 'fast' ? 0.07 : 0.05)) {
+    } else if (chance(live.rng, (ins.tempo === 'fast' ? 0.07 : 0.05) * (trap ? 2 : 1))) {
       const runner = pickWeighted(ctx, live, side, (_p, pos) => W_SHOOT[pos]);
       push(ctx, live, { side, kind: 'offside', key: false, text: say(live.rng, 'offside', { p: name(ctx, runner) }) });
     } else {
@@ -448,12 +478,19 @@ function attack(ctx: MatchContext, live: LiveMatch, side: Side, mine: UnitRating
   }
 
   const crossChance = 0.22 * (ins.width === 'wide' ? 1.5 : ins.width === 'narrow' ? 0.6 : 1);
-  const kind: ShotKind = chance(live.rng, crossChance) ? 'header' : chance(live.rng, 0.22) ? 'long' : 'open';
+  // Players told to shoot on sight (or not to) shift how often attacks end in a long shot.
+  const longBias = live[side].onPitch.reduce((sum, x) => {
+    const shooting = playerInstructions(live[side].tactics, x.id).shooting;
+    return sum + (shooting === 'often' ? 0.03 : shooting === 'rarely' ? -0.02 : 0);
+  }, 0);
+  const longShare = Math.min(0.4, Math.max(0.1, 0.22 + longBias));
+  const kind: ShotKind = chance(live.rng, crossChance) ? 'header' : chance(live.rng, longShare) ? 'long' : 'open';
   const shooter = pickWeighted(ctx, live, side, (p, pos) => {
     const a = p.attributes;
-    if (kind === 'header') return W_SHOOT[pos] * ((a.heading + a.jumping) / 20) ** 2;
-    if (kind === 'long') return (W_SHOOT[pos] + W_CONTROL[pos]) * (a.longShots / 10) ** 2;
-    return W_SHOOT[pos] * ((a.finishing + a.movement) / 20);
+    const role = scaleOf(live, side, p.id);
+    if (kind === 'header') return W_SHOOT[pos] * role.shoot * ((a.heading + a.jumping) / 20) ** 2;
+    if (kind === 'long') return (W_SHOOT[pos] + W_CONTROL[pos]) * role.longShots * (a.longShots / 10) ** 2;
+    return W_SHOOT[pos] * role.shoot * ((a.finishing + a.movement) / 20);
   });
   if (!shooter) return;
   const assist = chance(live.rng, kind === 'long' ? 0.35 : 0.8)
@@ -465,6 +502,7 @@ function attack(ctx: MatchContext, live: LiveMatch, side: Side, mine: UnitRating
   if (kind === 'header') xg *= Math.min(1.4, mine.aerial / Math.max(1, theirs.aerial)) * 0.85;
   if (ins.passing === 'short') xg *= 1.05;
   if (ins.passing === 'direct') xg *= 0.94;
+  if (breaking) xg *= 1.06;
   xg = Math.min(0.7, Math.max(0.01, xg));
 
   if (live.commentary) {
@@ -497,7 +535,8 @@ function foul(ctx: MatchContext, live: LiveMatch, side: Side): void {
   live[side].stats.fouls++;
   // Booked players tread carefully.
   const offender = pickWeighted(ctx, live, side, (p, pos) =>
-    (W_DEFENCE[pos] + 0.3) * (p.attributes.aggression + 4) * (21 - p.hidden.sportsmanship) / 10 * ((live.players[p.id]?.yellow ?? 0) > 0 ? 0.35 : 1));
+    (W_DEFENCE[pos] + 0.3) * (p.attributes.aggression + 4) * (21 - p.hidden.sportsmanship) / 10 * ((live.players[p.id]?.yellow ?? 0) > 0 ? 0.35 : 1) *
+    scaleOf(live, side, p.id).fouls);
   const victim = pickWeighted(ctx, live, other, (p, pos) => (W_ATTACK[pos] + 0.3) * p.attributes.dribbling);
   if (!offender) return;
   rate(live, offender, -0.05);
@@ -650,7 +689,8 @@ function computerManager(ctx: MatchContext, live: LiveMatch, side: Side): void {
 // ---------- The minute ----------
 
 function drainFor(ins: TeamInstructions): number {
-  return (ins.pressing === 'high' ? 1.25 : ins.pressing === 'low' ? 0.85 : 1) * (ins.tempo === 'fast' ? 1.15 : ins.tempo === 'slow' ? 0.9 : 1);
+  const mentality = Math.abs(MENTALITY_INDEX[ins.mentality]) === 3 ? 1.08 : 1;
+  return (ins.pressing === 'high' ? 1.25 : ins.pressing === 'low' ? 0.85 : 1) * (ins.tempo === 'fast' ? 1.15 : ins.tempo === 'slow' ? 0.9 : 1) * mentality;
 }
 
 function playMinute(ctx: MatchContext, live: LiveMatch): void {
@@ -667,8 +707,8 @@ function playMinute(ctx: MatchContext, live: LiveMatch): void {
   // Attacks follow possession, but less than fully: sides without the ball still break.
   const attackHome = 0.5 + (pHome - 0.5) * MATCH.attackShareOfPossession;
   if (chance(live.rng, rate)) {
-    if (chance(live.rng, attackHome)) attack(ctx, live, 'home', home, away);
-    else attack(ctx, live, 'away', away, home);
+    if (chance(live.rng, attackHome)) attack(ctx, live, 'home', home, away, pHome);
+    else attack(ctx, live, 'away', away, home, 1 - pHome);
   } else if (live.commentary && chance(live.rng, 0.12)) {
     const side: Side = chance(live.rng, pHome) ? 'home' : 'away';
     const p = pickWeighted(ctx, live, side, (_p, pos) => W_CONTROL[pos]);
@@ -689,7 +729,7 @@ function playMinute(ctx: MatchContext, live: LiveMatch): void {
       const lp = live.players[id];
       if (!p || !lp) continue;
       const stamina = (p.attributes.stamina + p.attributes.fitness) / 2;
-      lp.energy = Math.max(0, lp.energy - MATCH.drain * (1.35 - stamina / 20 * 0.7) * drain);
+      lp.energy = Math.max(0, lp.energy - MATCH.drain * (1.35 - stamina / 20 * 0.7) * drain * scaleOf(live, side, id).drain);
     }
     injuries(ctx, live, side, drain);
     computerManager(ctx, live, side);

@@ -3,7 +3,7 @@ import { completeMatch, createGame, matchContext, startMatch, takeJob } from '..
 import { kickOff, type LiveMatch, playToEnd, stepMatch, substitute } from '../src/match.ts';
 import { currentSeasonOf, seasonFixtures, squadOf } from '../src/queries.ts';
 import { createRng } from '../src/rng.ts';
-import { autoTactics, DEFAULT_INSTRUCTIONS, type TeamInstructions } from '../src/tactics.ts';
+import { autoTactics, DEFAULT_INSTRUCTIONS, FORMATIONS, type TeamInstructions } from '../src/tactics.ts';
 import { DEMO_TOP_DIVISION } from '../src/worldgen.ts';
 
 const state = createGame({ seed: 'match-test', managerName: 'Test' });
@@ -97,9 +97,34 @@ describe('match engine', () => {
     const extremes: Array<Partial<TeamInstructions>> = [
       { mentality: 'attacking', pressing: 'high', tempo: 'fast', line: 'high', tackling: 'hard', passing: 'direct', width: 'wide' },
       { mentality: 'defensive', pressing: 'low', tempo: 'slow', line: 'deep', width: 'narrow' },
-      { mentality: 'attacking' },
+      { mentality: 'ultra-attacking' },
+      { mentality: 'ultra-defensive', counter: 'on' },
+      { line: 'high', offsideTrap: 'on', pressing: 'high' },
     ];
     for (const extreme of extremes) expect(pointsWith(extreme) - balanced).toBeLessThan(0.2);
+  });
+});
+
+describe('player instructions', () => {
+  it('make a striker told to get forward score more than one told to stay back', () => {
+    const tactics = autoTactics(squadOf(state, homeId), state.date);
+    const slot = tactics.lineup.findIndex((_, i) => ['ST', 'AMC', 'AML', 'AMR'].includes(String(FORMATIONS[tactics.formation][i]?.position)));
+    const striker = tactics.lineup[slot]!;
+    const goalsWith = (runs: 'forward' | 'stay') => {
+      let goals = 0;
+      for (let i = 0; i < 150; i++) {
+        const live = kickOff(ctx, {
+          fixtureId: 't', date: state.date,
+          home: { clubId: homeId, human: true, tactics: { ...tactics, players: { [striker]: { runs, shooting: 'normal', closingDown: 'normal' } } } },
+          away: { clubId: awayId, human: false, tactics: autoTactics(squadOf(state, awayId), state.date) },
+          rng: createRng(7000 + i), commentary: false,
+        });
+        playToEnd(ctx, live);
+        goals += live.players[striker]?.goals ?? 0;
+      }
+      return goals;
+    };
+    expect(goalsWith('forward')).toBeGreaterThan(goalsWith('stay'));
   });
 });
 
@@ -119,6 +144,7 @@ describe('completing a match', () => {
     const p = game.world.players[starters[3]!]!;
     expect(p.stats[0]?.apps).toBe(1);
     expect(p.condition).toBeLessThan(100);
+    expect(p.form).toHaveLength(1);
     expect(game.news[0]?.category).toBe('result');
   });
 });

@@ -1,6 +1,7 @@
 import {
-  ageOn, attributeBand, type GameState, mainPosition, type Player, type Position, POSITIONS, squadOf,
+  abilityStars, ageOn, attributeBand, type GameState, mainPosition, type Player, type Position, POSITIONS, squadOf,
 } from '@moc/engine';
+import { FormChips, Stars } from '../components/Ratings.tsx';
 import { useState } from 'react';
 import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
@@ -58,11 +59,14 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
       render: positionsLabel,
       sortValue: (p) => POSITION_INDEX.get(mainPosition(p)) ?? 0,
     },
+    { id: 'ability', label: 'Ability', render: (p) => <Stars value={abilityStars(p.ca)} />, sortValue: (p) => p.ca },
   ];
 
   const views: Record<View, Column<Player>[]> = {
     general: [
       ...base,
+      { id: 'potential', label: 'Potential', render: (p) => <Stars value={abilityStars(p.pa)} label="Potential" />, sortValue: (p) => p.pa },
+      { id: 'form', label: 'Form', render: (p) => <FormChips form={p.form} />, sortValue: (p) => (p.form.length ? p.form.reduce((a, b) => a + b, 0) / p.form.length : 0) },
       { id: 'age', label: 'Age', render: (p) => ageOn(p.dateOfBirth, game.date), sortValue: (p) => ageOn(p.dateOfBirth, game.date), align: 'right' },
       {
         id: 'nat',

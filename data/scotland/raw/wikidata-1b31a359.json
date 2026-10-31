@@ -6,46 +6,6 @@
     "bindings" : [ {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q5249348"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Wales men's national association football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "full-back"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1995-06-30T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q17144215"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Northern Ireland men's national association football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "defender"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1996-03-07T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
         "value" : "http://www.wikidata.org/entity/Q26251698"
       },
       "teamLabel" : {
@@ -86,22 +46,42 @@
     }, {
       "item" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q119079226"
+        "value" : "http://www.wikidata.org/entity/Q5249348"
       },
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Canadian men's national soccer team"
+        "value" : "Wales men's national association football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "goalkeeper"
+        "value" : "full-back"
       },
       "dob" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
-        "value" : "2003-11-27T00:00:00Z"
+        "value" : "1995-06-30T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q17144215"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Northern Ireland men's national association football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "defender"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1996-03-07T00:00:00Z"
       }
     }, {
       "item" : {
@@ -111,7 +91,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "England national under-18 association football team"
+        "value" : "DR Congo men's national football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -131,7 +111,7 @@
       "teamLabel" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "DR Congo men's national football team"
+        "value" : "England national under-18 association football team"
       },
       "posLabel" : {
         "xml:lang" : "en",
@@ -222,26 +202,6 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
         "value" : "1996-03-07T00:00:00Z"
-      }
-    }, {
-      "item" : {
-        "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q5249348"
-      },
-      "teamLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "Wales national under-21 football team"
-      },
-      "posLabel" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "full-back"
-      },
-      "dob" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
-        "type" : "literal",
-        "value" : "1995-06-30T00:00:00Z"
       }
     }, {
       "item" : {
@@ -342,6 +302,46 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
         "type" : "literal",
         "value" : "1996-03-07T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q119079226"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Canadian men's national soccer team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "goalkeeper"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-11-27T00:00:00Z"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q5249348"
+      },
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wales national under-21 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "full-back"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-06-30T00:00:00Z"
       }
     }, {
       "item" : {

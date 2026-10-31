@@ -175,3 +175,19 @@ found, like the computer clubs' imports, and can be bought for about four months
 when found; after that the trail goes cold. They are never free agents and computer clubs can't
 sign them. Deals follow the usual windows. When those countries' leagues are added (as background
 leagues first), real clubs will replace this.
+
+## 015 — Real Scottish squads from Wikipedia and Wikidata, with estimated ratings
+`npm run data:scotland` now reads each club's current squad from its English Wikipedia article
+(the {{Fs player}} rows under the first-team heading: name, number, broad position, country),
+and looks each linked player up on Wikidata for date of birth, detailed positions and whether
+they have played for a senior national team. Players out on loan elsewhere are left out; players
+on loan in count for the club they play at. Both sources are openly licensed (CC BY-SA, CC0), so
+unlike the FPL data this pack is not personal-use only.
+
+There are no open match statistics for Scotland, so ability is estimated: relative to a typical
+first-team player at the club, adjusted for age (young players lower), squad number (1–11 up,
+40+ down; a keeper wearing 1 up), senior caps (up) and a small fixed random spread, then shifted
+so each club's best eleven matches its level in `scotland/clubs.ts`. Attributes and secondary
+positions are generated to fit. Every rating is in the review report, and hand corrections go in
+`scotland/overrides.ts`. Squads under 22 (Premiership) or 20 (Championship) are topped up with
+generated reserves, and every club keeps two keepers. `--generated` keeps the old made-up squads.

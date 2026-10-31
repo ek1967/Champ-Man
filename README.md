@@ -37,7 +37,7 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
   other countries to find players outside the simulated leagues, then bid for them
 - **Scottish Premiership 2026-27**, playable, with the split after 33 rounds, and the Scottish
   Championship in the background with its play-off against the Premiership's 11th-placed club.
-  The clubs are real; the players are generated until real squads can be added
+  Real squads come from Wikipedia and Wikidata (`npm run data:scotland`); ratings are estimates
 
 ## Real-player data (personal use only)
 
@@ -53,8 +53,14 @@ The review report (`data/reports/england-2026-27-ratings.md`) lists every rating
 in `packages/pipeline/src/england/overrides.ts`.
 
 ```sh
-npm run data:scotland              # build data/packs/scotland-2026-27.json (real clubs, generated players)
+npm run data:scotland                 # real squads from Wikipedia + Wikidata, estimated ratings, review report
+npm run data:scotland -- --refresh    # download fresh squads first
+npm run data:scotland -- --generated  # made-up squads, no network needed
 ```
+
+The real Scottish squads need `en.wikipedia.org` and `query.wikidata.org` to be reachable. The
+review report (`data/reports/scotland-2026-27-squads.md`) lists every estimated rating;
+corrections go in `packages/pipeline/src/scotland/overrides.ts`.
 
 The game plays every pack it finds as one world, so players move between England and Scotland.
 

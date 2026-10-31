@@ -21,7 +21,7 @@ import {
 } from '@moc/engine';
 import { DATA_DIR, fetchCached } from './fetch.ts';
 import { FPL_REGIONS } from './nations.ts';
-import { PREMIERSHIP_CLUBS, SCOTTISH_CHAMPIONSHIP_CLUBS, type ScottishClub } from './scotland/clubs.ts';
+import { PREMIERSHIP_CLUBS, SCOTTISH_CHAMPIONSHIP_CLUBS, SCOTTISH_OWNERS, type ScottishClub } from './scotland/clubs.ts';
 import { type EstimateInput, fitToLevel, headroomFor, relativeAbility } from './scotland/estimate.ts';
 import { SCOTTISH_OVERRIDES } from './scotland/overrides.ts';
 import {
@@ -105,6 +105,8 @@ function toClub(info: ScottishClub, leagueId: string): Club {
     founded: info.founded,
     colours: { primary: info.colours[0], secondary: info.colours[1] },
     leagueId,
+    ...(SCOTTISH_OWNERS[info.id] ? { owner: SCOTTISH_OWNERS[info.id]!.owner } : {}),
+    ...(SCOTTISH_OWNERS[info.id]?.cash !== undefined ? { startingCash: SCOTTISH_OWNERS[info.id]!.cash } : {}),
   };
 }
 

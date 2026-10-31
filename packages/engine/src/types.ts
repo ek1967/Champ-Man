@@ -3,6 +3,7 @@ import type { ISODate } from './dates.ts';
 import type { LeagueRules } from './rules.ts';
 import type { Rng } from './rng.ts';
 import type { BoardState } from './board.ts';
+import type { OwnerKind } from './finance.ts';
 import type { ScoutingState } from './scouting.ts';
 import type { Tactics } from './tactics.ts';
 
@@ -31,6 +32,10 @@ export interface Club {
   colours: { primary: string; secondary: string };
   /** Competition the club's league football is played in. */
   leagueId: Id;
+  /** Who owns the club, which decides how it spends (guessed from its size when not given). */
+  owner?: OwnerKind;
+  /** Cash in the bank at the start of the game, in euros (estimated when not given). */
+  startingCash?: number;
 }
 
 export interface Contract {
@@ -250,6 +255,8 @@ export interface GameState {
   scouting?: ScoutingState;
   /** The board's view of the manager, budgets requests and facilities; created when first needed. */
   board?: BoardState;
+  /** TV and prize money per league each season; set up when the game is created. */
+  economy?: { tv: Record<Id, number> };
 }
 
 export interface ClubFinances {
@@ -257,6 +264,24 @@ export interface ClubFinances {
   transferBudget: number;
   /** The most the club will pay in wages per week, in euros. */
   wageBudget: number;
+  /** Cash in the bank (can go negative: an overdraft). */
+  cash?: number;
+  /** The club's own income each season (matchday, commercial), before TV money. */
+  ownIncome?: number;
+  /** Transfer money this financial year. */
+  season?: { spent: number; received: number };
+  /** Last year's accounts. */
+  accounts?: {
+    year: string;
+    income: number;
+    wages: number;
+    costs: number;
+    /** Owner money in (+) or debt repayments (−). */
+    funding: number;
+    transfersSpent: number;
+    transfersReceived: number;
+    cash: number;
+  };
 }
 
 export type BidStatus =

@@ -6,6 +6,7 @@
  * Each spring every club takes on a youth intake; each summer older players retire.
  */
 import { facilityLevel } from './board.ts';
+import { recordCost } from './finance.ts';
 import {
   ALL_ATTRIBUTES, type AttributeKey, clampAttribute, GOALKEEPING, MENTAL, PHYSICAL, type Position,
   POSITION_PROFILES,
@@ -309,6 +310,7 @@ export function releaseByManager(state: GameState, playerId: Id): { ok: boolean;
   const finances = financesOf(state, clubId);
   if (cost > finances.transferBudget) return { ok: false, message: 'You cannot afford to pay up the contract.', cost };
   finances.transferBudget -= cost;
+  recordCost(state, player.clubId!, cost);
   releasePlayer(state, player);
   return { ok: true, message: `${player.knownAs ?? player.lastName} has been released${cost > 0 ? ` at a cost of €${Math.round(cost / 1000)}K` : ''}.`, cost };
 }

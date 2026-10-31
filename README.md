@@ -29,6 +29,9 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
   reports, ability history on player pages
 - **Transfer windows open 1 July and 1 January**. Deals can be agreed at any time; players move
   when the window opens. Pre-contracts from January for players whose deals end in June
+- **Club finances**: every club has an owner type (wealthy owner, company, self-sustaining PLC,
+  fan owned, in debt), cash in the bank, TV and club income, and yearly accounts; budgets for every
+  club come from them each summer
 - **The board**: confidence in you based on results and expectations, summer budgets, moving
   money between transfer and wage budgets, and requests (more money, stadium expansion, training
   facilities, youth academy, a new contract)

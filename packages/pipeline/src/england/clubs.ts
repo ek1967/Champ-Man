@@ -1,3 +1,4 @@
+import type { OwnerKind } from '@moc/engine';
 /**
  * English clubs for the 2026-27 season (membership confirmed by the openfootball fixture lists).
  * Reputation (1–100) is a design judgement of club size, used for board expectations, finances
@@ -68,3 +69,20 @@ export const CHAMPIONSHIP_CLUBS: ClubInfo[] = [
 export function findClub(clubs: readonly ClubInfo[], name: string): ClubInfo | undefined {
   return clubs.find((c) => c.name === name || c.shortName === name || c.aliases.includes(name));
 }
+
+/**
+ * How each club is owned and funded, which decides how it spends (see the engine's finance.ts).
+ * A judgement as of summer 2026, meant to be reviewed. Clubs not listed are guessed from their size.
+ */
+export const ENGLISH_OWNERS: Record<string, OwnerKind> = {
+  'man-city': 'benefactor', newcastle: 'benefactor', chelsea: 'benefactor', 'aston-villa': 'benefactor', 'nottm-forest': 'benefactor',
+  fulham: 'benefactor', wrexham: 'benefactor', birmingham: 'benefactor', 'bristol-city': 'benefactor', middlesbrough: 'benefactor',
+  stoke: 'benefactor', preston: 'benefactor',
+  arsenal: 'company', everton: 'company', bournemouth: 'company', brentford: 'company', brighton: 'company', 'crystal-palace': 'company',
+  coventry: 'company', hull: 'company', ipswich: 'company', leeds: 'company', sunderland: 'company', 'west-ham': 'company',
+  wolves: 'company', southampton: 'company', 'sheffield-utd': 'company', norwich: 'company', portsmouth: 'company', watford: 'company',
+  'west-brom': 'company', millwall: 'company', derby: 'company', cardiff: 'company', blackburn: 'company', bolton: 'company',
+  charlton: 'company', swansea: 'company', lincoln: 'company',
+  liverpool: 'plc', tottenham: 'plc',
+  'man-utd': 'indebted', burnley: 'indebted', qpr: 'indebted',
+};

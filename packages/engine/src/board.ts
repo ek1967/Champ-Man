@@ -8,6 +8,7 @@ import { roundMoney } from './players.ts';
 import { currentSeasonOf, getClub, getCompetition, leaguePosition, squadIndex } from './queries.ts';
 import { chance } from './rng.ts';
 import { pickBestLineup } from './selection.ts';
+import { accountsNews, OWNER_POLICY, ownerOf, setBudgets, settleAccounts } from './finance.ts';
 import { committed, financesOf, formatMoney, wageBill } from './transfers.ts';
 import type { GameState, Id } from './types.ts';
 
@@ -123,21 +124,6 @@ export function boardAfterMatch(state: GameState, goalsFor: number, goalsAgainst
 
 // ---------- Money ----------
 
-/** The board's normal summer allocation for a club's transfer budget. */
-function seasonAllocation(state: GameState, clubId: Id): number {
-  const club = getClub(state, clubId);
-  const r = club.reputation / 100;
-  const wealth = state.world.nations[club.nationId]?.wealth ?? 1;
-  return roundMoney(Math.max(500_000, 230_000_000 * r ** 4.5 * wealth));
-}
-
-/**
- * Computer clubs are not topped up each summer yet: the transfer market was tuned with budgets
- * that run down, and even small top-ups make leagues slowly stronger year on year (the long-run
- * harness shows it). Giving every club a yearly income needs the market retuned with it.
- */
-const AI_TOP_UP = 0;
-
 /** €1K a week in wages for a season is worth this much transfer budget. */
 export const WEEKS_PER_SEASON = 52;
 
@@ -164,31 +150,32 @@ export function shiftBudget(state: GameState, perWeek: number): { ok: boolean; m
   return { ok: true, message: `Moved ${formatMoney(-perWeek)} a week out of wages: ${formatMoney(lump)} more for transfers.` };
 }
 
+/** How much more (or less) than the owner's usual share the board lets the manager spend. */
+export function confidenceScale(confidence: number): number {
+  return 0.6 + (confidence / 100) * 0.8;
+}
+
 /**
- * The summer budgets (28 June, before the window opens). The manager's club keeps half of what's
- * left and gets an allocation (20–70% of a big first summer's budget) that grows with the board's
- * confidence and the stadium; the wage budget always covers the wage bill.
+ * The summer budgets (28 June, the day after the accounts): every club gets a transfer budget from
+ * its cash in the bank and a wage budget from its income, by its owner's policy (finance.ts). The
+ * manager's board gives more or less than usual depending on its confidence.
  */
 function setSeasonBudgets(state: GameState): void {
   const humanId = state.manager.clubId;
   for (const club of Object.values(state.world.clubs)) {
-    const f = financesOf(state, club.id);
-    const base = seasonAllocation(state, club.id);
-    const bill = wageBill(state, club.id);
     if (club.id !== humanId) {
-      if (AI_TOP_UP > 0) f.transferBudget = Math.max(f.transferBudget, roundMoney(base * AI_TOP_UP));
-      f.wageBudget = Math.max(f.wageBudget, roundMoney(bill * 1.05));
+      setBudgets(state, club.id);
       continue;
     }
     const b = board(state);
-    const allocation = roundMoney(base * (0.2 + (b.confidence / 100) * 0.5) * (1 + 0.08 * b.facilities.stadium));
-    f.transferBudget = roundMoney(Math.max(0, f.transferBudget) * 0.5 + allocation);
-    f.wageBudget = Math.max(roundMoney(f.wageBudget * 1.03), roundMoney(bill * 1.05));
+    const f = setBudgets(state, club.id, confidenceScale(b.confidence), b.facilities.stadium);
+    accountsNews(state, club.id);
     addNews(state, {
       category: 'club',
       title: `Budgets for ${yearOf(state.date)}-${String((yearOf(state.date) + 1) % 100).padStart(2, '0')}`,
       body: [
-        `The board has set your budgets for the new season: ${formatMoney(f.transferBudget)} for transfers (half of last season's unspent money plus ${formatMoney(allocation)}) and ${formatMoney(f.wageBudget)} a week for wages.`,
+        `The board has set your budgets for the new season: ${formatMoney(f.transferBudget)} for transfers and ${formatMoney(f.wageBudget)} a week for wages.`,
+        `The club has ${formatMoney(f.cash ?? 0)} in the bank. ${OWNER_POLICY[ownerOf(club)].label}: ${OWNER_POLICY[ownerOf(club)].description}`,
         `The board is ${confidenceLabel(b.confidence).toLowerCase()} with your work. You can move money between the budgets, or ask for more, on the Board screen.`,
       ].join('\n\n'),
       important: true,
@@ -209,7 +196,7 @@ export interface RequestOption {
 const REQUEST_TEXT: Record<BoardRequestKind, [string, string]> = {
   transfer: ['More transfer money', 'Ask for extra funds to spend on fees.'],
   wages: ['A bigger wage budget', 'Ask for more room to pay players.'],
-  stadium: ['Expand the stadium', 'Bigger crowds bring more money each summer and make the club more attractive. Takes about ten months.'],
+  stadium: ['Expand the stadium', 'Bigger crowds bring in more money every season and make the club more attractive. Takes about ten months.'],
   training: ['Better training facilities', 'Players develop faster. Takes about four months.'],
   youth: ['Invest in the youth academy', 'Better and more youngsters in each intake. Takes about five months.'],
   contract: ['A new contract for you', 'Ask for a longer deal on better terms.'],
@@ -248,12 +235,15 @@ export function requestFromBoard(state: GameState, kind: BoardRequestKind): { ok
   let note: string;
   switch (kind) {
     case 'transfer': {
-      const base = seasonAllocation(state, clubId);
-      if (c >= 60 || (c >= 45 && chance(state.rng, 0.4))) {
-        const extra = roundMoney(base * Math.max(0.05, 0.1 + (c - 60) / 100));
+      const cash = f.cash ?? 0;
+      const free = cash - f.transferBudget;
+      if (free <= 1_000_000) {
+        note = 'The board say there is no more money in the bank to give you.';
+      } else if (c >= 60 || (c >= 45 && chance(state.rng, 0.4))) {
+        const extra = roundMoney(Math.max(500_000, free * Math.min(0.5, 0.15 + (c - 60) / 100)));
         f.transferBudget += extra;
         granted = true;
-        note = `The board has found an extra ${formatMoney(extra)} for transfers.`;
+        note = `The board has found an extra ${formatMoney(extra)} for transfers from the club's ${formatMoney(cash)} in the bank.`;
         adjust(state, -3);
       } else {
         note = 'The board want to see better results before they spend more.';
@@ -384,5 +374,7 @@ export function boardDay(state: GameState): void {
   finishProjects(state);
   monthlyReview(state);
   judgeSeason(state);
-  if (monthDay(state.date) === '06-28') setSeasonBudgets(state);
+  if (monthDay(state.date) === '06-27') settleAccounts(state, (id) => facilityLevel(state, id, 'stadium'));
+  // The first summer's budgets are the ones the game starts with.
+  if (monthDay(state.date) === '06-28' && Object.values(state.seasons).some((s) => s.status === 'finished')) setSeasonBudgets(state);
 }

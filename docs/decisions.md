@@ -249,3 +249,30 @@ months), training facilities (faster development; four months), the youth academ
 rating, so better and bigger intakes; five months), each up to three times, and a new contract
 for the manager (two more years, 25% more). The manager can't be sacked yet; the board warn when
 confidence falls very low.
+
+## 019 — Club finances for every club
+Every club has an owner type, cash in the bank and an income, and every club's budgets are set
+from them each summer, so the manager and the computer clubs play by the same rules.
+
+Owner types (`finance.ts`): a wealthy owner (puts in 25% of income a year, lets 60% of cash be
+spent on fees, wages up to 80% of income), company owned (8%, 45%, 70%), a self-sustaining PLC
+(nothing in, 35%, 60%), fan owned (nothing in, 25%, 55%) and in debt (8% of income out to
+lenders, 20%, 55%). Real clubs are set in the data (`england/clubs.ts`, `scotland/clubs.ts`; e.g.
+Celtic a PLC with €80M in the bank, Rangers company owned); other clubs are guessed from size.
+
+Money is on the game's own scale (wages come from ability), so income is calibrated to the
+starting wage bills: each club starts just inside its owner's wage limit. Half of a league's
+average income is TV and prize money for that league (from +15% for the champions to −15% for
+the bottom club, and half of the TV money lost as a parachute for a season after relegation);
+the rest is the club's own income (+8% per stadium expansion). Running costs are 20% of income.
+
+Fees move cash between clubs as they happen. On 27 June the year's accounts are settled (income
+in, wages and costs out, owner money in or out); on 28 June each club's transfer budget is its
+owner's share of its cash and its wage budget its owner's share of next season's income, never
+below the current wage bill. The manager's board gives 60–140% of the usual share depending on
+its confidence. Nothing happens in the summer the game starts: the starting budgets apply.
+
+Computer clubs must now fit signings into their wage budgets (first-team imports included), and
+wages no longer creep upwards each year: these were what kept leagues stable once every club had
+money coming in. Eight seasons of the demo world, England and England + Scotland stay stable,
+and Scotland's titles go to Celtic and Rangers.

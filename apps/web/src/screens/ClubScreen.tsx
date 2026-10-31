@@ -1,4 +1,5 @@
-import { academyRating, clubFixtures, financesOf, type GameState, leaguePosition, squadOf, wageBill } from '@moc/engine';
+import { academyRating, clubFixtures, currentSeasonOf, financesOf, type GameState, leaguePosition, squadOf, wageBill } from '@moc/engine';
+import { ClubFinancesPanel } from '../components/Finances.tsx';
 import { ClubSwatch } from '../components/ClubName.tsx';
 import { EntityLink, RouteLink } from '../components/EntityLink.tsx';
 import { money, ordinal, reputationLabel } from '../components/format.ts';
@@ -9,7 +10,9 @@ export function ClubScreen({ game, id }: { game: GameState; id: string }) {
   const club = game.world.clubs[id];
   if (!club) return <p>Unknown club.</p>;
   const competition = game.world.competitions[club.leagueId];
-  const position = leaguePosition(game, id);
+  // No position before a ball has been kicked.
+  const started = game.world.clubs[id] ? currentSeasonOf(game, game.world.clubs[id]!.leagueId)?.status !== 'scheduled' : false;
+  const position = started ? leaguePosition(game, id) : null;
   const squad = squadOf(game, id);
   const squadValue = squad.reduce((sum, p) => sum + p.value, 0);
   const fixtures = clubFixtures(game, id);
@@ -44,6 +47,7 @@ export function ClubScreen({ game, id }: { game: GameState; id: string }) {
         <div><span>Transfer budget</span>{money(financesOf(game, club.id).transferBudget)}</div>
         <div><span>Wages</span>{money(wageBill(game, club.id))} of {money(financesOf(game, club.id).wageBudget)} a week</div>
       </div>
+      <ClubFinancesPanel game={game} clubId={club.id} />
 
       <div className="two-col">
         <section>

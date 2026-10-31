@@ -16,6 +16,7 @@ import type {
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
 import { developmentDay } from './development.ts';
 import { board, boardAfterMatch, boardDay, boardTarget } from './board.ts';
+import { initEconomy } from './finance.ts';
 import { learnFromMatch, scoutingDay } from './scouting.ts';
 import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
@@ -54,6 +55,7 @@ export function createGame(options: NewGameOptions): GameState {
   };
   // Budgets are set from the squads clubs start with.
   for (const club of Object.values(world.clubs)) financesOf(state, club.id);
+  initEconomy(state);
   for (const competition of Object.values(world.competitions)) {
     const fixtures = options.pack?.fixtures.filter((f) => f.competitionId === competition.id);
     createSeason(

@@ -16,7 +16,7 @@ import {
   type PackFixture, type PackPlayer, type Position, randInt, validatePack, weightedPick, type WorldPack,
 } from '@moc/engine';
 import { parseCsv } from './csv.ts';
-import { CHAMPIONSHIP_CLUBS, type ClubInfo, findClub, PREMIER_LEAGUE_CLUBS } from './england/clubs.ts';
+import { CHAMPIONSHIP_CLUBS, type ClubInfo, ENGLISH_OWNERS, findClub, PREMIER_LEAGUE_CLUBS } from './england/clubs.ts';
 import { DATA_DIR, fetchCached } from './fetch.ts';
 import { FPL_REGIONS, UNKNOWN_NATION } from './nations.ts';
 import { OVERRIDES } from './england/overrides.ts';
@@ -100,6 +100,7 @@ function toClub(info: ClubInfo, leagueId: string): Club {
     founded: info.founded,
     colours: { primary: info.colours[0], secondary: info.colours[1] },
     leagueId,
+    ...(ENGLISH_OWNERS[info.id] ? { owner: ENGLISH_OWNERS[info.id] } : {}),
   };
 }
 

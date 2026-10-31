@@ -1,3 +1,4 @@
+import type { OwnerKind } from '@moc/engine';
 /**
  * Scottish clubs for the 2026-27 season: the Premiership (St Johnstone up, Livingston down from
  * 2025-26) and the Championship. Membership was checked against the SPFL's 2026-27 fixture news.
@@ -47,3 +48,34 @@ export const SCOTTISH_CHAMPIONSHIP_CLUBS: ScottishClub[] = [
   { id: 'arbroath', name: 'Arbroath', shortName: 'Arbroath', stadium: 'Gayfield Park', founded: 1878, colours: ['#800000', '#ffffff'], reputation: 25, xi: 80, wiki: 'Arbroath F.C.' },
   { id: 'stenhousemuir', name: 'Stenhousemuir', shortName: 'Stenhousemuir', stadium: 'Ochilview Park', founded: 1884, colours: ['#7a2531', '#ffffff'], reputation: 22, xi: 78, wiki: 'Stenhousemuir F.C.' },
 ];
+
+/**
+ * How each club is owned and funded, and any known cash reserves (euros), which decide how it
+ * spends (see the engine's finance.ts). A judgement as of summer 2026, meant to be reviewed.
+ */
+export const SCOTTISH_OWNERS: Record<string, { owner: OwnerKind; cash?: number }> = {
+  // A PLC with a wealthy major shareholder but run to pay its own way, with large reserves.
+  celtic: { owner: 'plc', cash: 80_000_000 },
+  // Owned by an investment group that puts money in.
+  rangers: { owner: 'company', cash: 15_000_000 },
+  hearts: { owner: 'company' },
+  aberdeen: { owner: 'company' },
+  hibernian: { owner: 'company' },
+  'dundee-united': { owner: 'company' },
+  dundee: { owner: 'company' },
+  'st-johnstone': { owner: 'company' },
+  kilmarnock: { owner: 'plc' },
+  falkirk: { owner: 'plc' },
+  motherwell: { owner: 'fans' },
+  'st-mirren': { owner: 'fans' },
+  livingston: { owner: 'company' },
+  'partick-thistle': { owner: 'company' },
+  dunfermline: { owner: 'company' },
+  'inverness-ct': { owner: 'indebted' },
+  'ayr-united': { owner: 'company' },
+  'raith-rovers': { owner: 'company' },
+  'greenock-morton': { owner: 'fans' },
+  'queens-park': { owner: 'fans' },
+  arbroath: { owner: 'fans' },
+  stenhousemuir: { owner: 'fans' },
+};

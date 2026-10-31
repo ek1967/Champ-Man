@@ -3,6 +3,7 @@ import {
   type GameState, leaguePosition, MAX_FACILITY_LEVEL, requestFromBoard, requestOptions, shiftBudget, wageBill, WEEKS_PER_SEASON,
 } from '@moc/engine';
 import { useState } from 'react';
+import { ClubFinancesPanel } from '../components/Finances.tsx';
 import { ordinal } from '../components/format.ts';
 import { act } from '../state/store.ts';
 
@@ -51,6 +52,7 @@ export function BoardScreen({ game }: { game: GameState }) {
       </p>
 
       <Budgets game={game} clubId={clubId} onDone={setFeedback} />
+      <ClubFinancesPanel game={game} clubId={clubId} />
 
       <h2>Requests</h2>
       <div className="request-list">

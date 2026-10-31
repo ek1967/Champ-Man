@@ -3,6 +3,7 @@
  * terms, contract renewals and expiry, free agents, and the computer clubs trading among
  * themselves. Everything is driven from the daily tick (`transferDay`).
  */
+import { recordFee } from './finance.ts';
 import type { Position } from './attributes.ts';
 import { addDays, ageOn, formatShort, type ISODate, makeDate, monthDay, yearOf } from './dates.ts';
 import { addNews, clubLink, playerLink } from './news.ts';
@@ -84,6 +85,7 @@ export function sellerName(state: GameState, sellerId: Id, playerId?: Id): strin
 }
 
 export function formatMoney(amount: number): string {
+  if (amount < 0) return `−${formatMoney(-amount)}`;
   if (amount >= 1_000_000) return `€${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1)}M`;
   if (amount >= 1_000) return `€${Math.round(amount / 1_000)}K`;
   return `€${amount}`;
@@ -91,6 +93,11 @@ export function formatMoney(amount: number): string {
 
 export function wageBill(state: GameState, clubId: Id): number {
   return squadOf(state, clubId).reduce((sum, p) => sum + (p.contract?.wage ?? 0), 0);
+}
+
+/** How much more a club can add to its weekly wage bill. */
+export function wageRoom(state: GameState, clubId: Id): number {
+  return financesOf(state, clubId).wageBudget - wageBill(state, clubId) - committed(state, clubId).wages;
 }
 
 /** Starting budgets from club size: the biggest clubs can spend well over €150M in a summer. */
@@ -220,6 +227,7 @@ export function completeTransfer(state: GameState, player: Player, toId: Id, fee
     if (fromId === state.manager.clubId) removeFromTactics(state, player.id);
   }
   financesOf(state, toId).transferBudget -= fee;
+  recordFee(state, fromId, toId, fee);
   const fromAbroad = !!player.abroad;
   player.clubId = toId;
   player.loan = null;
@@ -731,6 +739,7 @@ function aiSigning(state: GameState): void {
   const buyer = weightedPick(state.rng, clubs, (c) => Math.sqrt(Math.max(0, financesOf(state, c.id).transferBudget) / 1_000_000) * c.reputation);
   if (!buyer) return;
   const budget = financesOf(state, buyer.id).transferBudget;
+  const room = wageRoom(state, buyer.id);
   const squad = squads.get(buyer.id) ?? [];
   const tactics = autoTactics(squad, state.date);
   const slots = FORMATIONS[tactics.formation];
@@ -760,7 +769,7 @@ function aiSigning(state: GameState): void {
     if (p.clubId && (squads.get(p.clubId)?.length ?? 0) <= MIN_SQUAD) return false;
     if (p.clubId && isKeeper(p) && (squads.get(p.clubId) ?? []).filter(isKeeper).length <= 2) return false;
     if (!willingToJoin(state, p, buyer.id).ok) return false;
-    if (price(p) > budget) return false;
+    if (price(p) > budget || wageDemand(state, p, buyer.id) > room) return false;
     return !sellerBlocks(state, p, buyer.id, price(p), ranks.get(p.id));
   });
   // About half of real Premier League signings come from abroad; the rest of the world isn't
@@ -806,7 +815,8 @@ function signFromAbroad(state: GameState, buyer: Club, position: Position, curre
       position, ca, age, nationId: nation.id, namePool: nation.namePool, clubId: buyer.id, today: state.date,
     });
     const fee = roundMoney(player.value * (1 + 0.3 * random(state.rng)));
-    if (fee > budget) {
+    // First-team signings must fit the wage budget too; backups are cheap enough not to matter.
+    if (fee > budget || (!backup && wageDemand(state, player, buyer.id) > wageRoom(state, buyer.id))) {
       ca -= 6;
       continue;
     }
@@ -814,6 +824,7 @@ function signFromAbroad(state: GameState, buyer: Club, position: Position, curre
     player.squadNumber = nextSquadNumber(state, buyer.id);
     state.world.players[player.id] = player;
     financesOf(state, buyer.id).transferBudget -= fee;
+    recordFee(state, null, buyer.id, fee);
     state.transfers.history.push({ date: state.date, playerId: player.id, fromId: null, toId: buyer.id, fee, kind: 'import' });
     return;
   }

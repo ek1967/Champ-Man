@@ -61,9 +61,13 @@ describe('buying a player', () => {
     expect(bid.moveOn).toBe('2026-07-01');
     expect(target.clubId).not.toBe(clubId);
     expect(availableBudget(state, clubId)).toBe(budgetBefore - bid.fee);
+    // The board sets new budgets on 28 June; the fee comes off when the player moves.
+    until(state, '2026-06-30');
+    const budgetJune = financesOf(state, clubId).transferBudget;
+    expect(budgetBefore).toBeGreaterThan(0);
     until(state, '2026-07-01');
     expect(target.clubId).toBe(clubId);
-    expect(financesOf(state, clubId).transferBudget).toBe(budgetBefore - bid.fee);
+    expect(financesOf(state, clubId).transferBudget).toBe(budgetJune - bid.fee);
     expect(bid.status).toBe('completed');
   });
 

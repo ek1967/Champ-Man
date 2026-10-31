@@ -23,3 +23,4 @@ export * from './transfers.ts';
 export * from './development.ts';
 export * from './scouting.ts';
 export * from './board.ts';
+export * from './finance.ts';

@@ -254,7 +254,7 @@ confidence falls very low.
 Every club has an owner type, cash in the bank and an income, and every club's budgets are set
 from them each summer, so the manager and the computer clubs play by the same rules.
 
-Owner types (`finance.ts`): a wealthy owner (puts in 25% of income a year, lets 60% of cash be
+Owner types (`finance.ts`): a wealthy owner (puts in 15% of income a year, lets 60% of cash be
 spent on fees, wages up to 80% of income), company owned (8%, 45%, 70%), a self-sustaining PLC
 (nothing in, 35%, 60%), fan owned (nothing in, 25%, 55%) and in debt (8% of income out to
 lenders, 20%, 55%). Real clubs are set in the data (`england/clubs.ts`, `scotland/clubs.ts`; e.g.
@@ -262,7 +262,7 @@ Celtic a PLC with €80M in the bank, Rangers company owned); other clubs are gu
 
 Money is on the game's own scale (wages come from ability), so income is calibrated to the
 starting wage bills: each club starts just inside its owner's wage limit. Half of a league's
-average income is TV and prize money for that league (from +15% for the champions to −15% for
+average income is TV and prize money for that league (from +8% for the champions to −8% for
 the bottom club, and half of the TV money lost as a parachute for a season after relegation);
 the rest is the club's own income (+8% per stadium expansion). Running costs are 20% of income.
 
@@ -272,7 +272,18 @@ owner's share of its cash and its wage budget its owner's share of next season's
 below the current wage bill. The manager's board gives 60–140% of the usual share depending on
 its confidence. Nothing happens in the summer the game starts: the starting budgets apply.
 
-Computer clubs must now fit signings into their wage budgets (first-team imports included), and
-wages no longer creep upwards each year: these were what kept leagues stable once every club had
-money coming in. Eight seasons of the demo world, England and England + Scotland stay stable,
-and Scotland's titles go to Celtic and Rangers.
+Keeping leagues stable once every club has money every summer took several changes, each found
+with the long-run harness (now with `--seed` to compare several worlds):
+- clubs start at their owner's wage limit, and wage budgets follow income rather than creeping
+  up with the wage bill;
+- computer clubs must fit signings into their wage budgets (first-team imports too), counting
+  half the wage of the player being replaced, who usually moves on; without that allowance the
+  biggest club won the title 64% of the time in calibration instead of about a third to a half;
+- TV money varies by position by ±8% and wealthy owners put in 15% of income a year (more fed
+  success on itself);
+- a third of computer signings, not 45%, come from abroad, and they are pitched around the
+  side's level;
+- the demo world is generated a little stronger, nearer the level the game settles at.
+Eight seasons of England stay flat (147 → 148); England + Scotland and the demo world (three
+seeds) pass the stability check; calibration passes. In Scotland Celtic, with €80M in the bank,
+win most titles, with Rangers the main challengers.

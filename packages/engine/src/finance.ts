@@ -29,7 +29,7 @@ export const OWNER_POLICY: Record<OwnerKind, OwnerPolicy> = {
   benefactor: {
     label: 'Wealthy owner',
     description: 'A rich owner puts money in every year and covers losses.',
-    funding: 0.25, spend: 0.6, wageRatio: 0.8,
+    funding: 0.15, spend: 0.6, wageRatio: 0.8,
   },
   company: {
     label: 'Company owned',
@@ -53,8 +53,15 @@ export const OWNER_POLICY: Record<OwnerKind, OwnerPolicy> = {
   },
 };
 
-/** Clubs start this far inside their owner's wage limit (1.03 = 3% of room). */
-const STARTING_HEADROOM = 1.03;
+/** Clubs start this far inside their owner's wage limit (1 = right at it; more gives room to grow, and leagues drift upwards). */
+const STARTING_HEADROOM = 1;
+
+/**
+ * TV and prize money varies by league position by this much either way (0.08: +8% for the
+ * champions, −8% for the bottom club). Much more and success feeds on itself: the richest clubs
+ * win ever more often (the calibration harness checks how often the biggest club wins).
+ */
+const MERIT = 0.08;
 
 /** Share of a league's average income that is TV and prize money (the rest is the club's own). */
 const TV_SHARE = 0.5;
@@ -134,8 +141,8 @@ export interface SeasonIncome {
 }
 
 /**
- * A season's income: the league's TV money (more for finishing higher: from +15% for the champions
- * to −15% for the bottom club), the club's own income (bigger with an expanded stadium), and half
+ * A season's income: the league's TV money (more for finishing higher: from +8% for the champions
+ * to −8% for the bottom club), the club's own income (bigger with an expanded stadium), and half
  * the TV money lost for a season after relegation.
  */
 export function seasonIncome(state: GameState, clubId: Id, stadiumLevel = 0): SeasonIncome {
@@ -148,7 +155,7 @@ export function seasonIncome(state: GameState, clubId: Id, stadiumLevel = 0): Se
   if (last) {
     const leagueTv = eco.tv[last.season.competitionId] ?? tv;
     const n = last.season.final!.order.length;
-    const merit = 1.15 - (0.3 * (last.position - 1)) / Math.max(1, n - 1);
+    const merit = 1 + MERIT - (2 * MERIT * (last.position - 1)) / Math.max(1, n - 1);
     if (last.season.competitionId === club.leagueId) tv *= merit;
     else if (leagueTv > tv) parachute = (leagueTv - tv) * 0.5;
   }
@@ -226,7 +233,7 @@ export function setBudgets(state: GameState, clubId: Id, scale = 1, stadiumLevel
   const income = seasonIncome(state, clubId, stadiumLevel).total;
   f.transferBudget = roundMoney(Math.max(0, (f.cash ?? 0) * policy.spend * scale));
   // Never below the current bill (contracts must be paid), but no automatic rise: wages follow income.
-  f.wageBudget = roundMoney(Math.max(wageBillOf(state, clubId), (income * policy.wageRatio) / 52));
+  f.wageBudget = Math.max(wageBillOf(state, clubId), roundMoney((income * policy.wageRatio) / 52));
   return f;
 }
 

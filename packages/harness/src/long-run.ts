@@ -2,7 +2,8 @@
  * Long-run stability check (PLAN §10, Phase 8): simulate many seasons and watch for ability
  * inflation or deflation, shrinking squads and ageing leagues.
  *   node packages/harness/src/long-run.ts [seasons] [--demo] [--check] [--scotland] [--league sco-1]
- * --scotland adds the Scotland pack to the England one; --league picks the league to report on.
+ * --scotland adds the Scotland pack to the England one; --league picks the league to report on;
+ * --seed runs a different world (the demo world) or different events.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,7 +18,8 @@ const loadPack = (id: string) => JSON.parse(readFileSync(join(import.meta.dirnam
 const pack = demo
   ? undefined
   : mergePacks(['england-2026-27', ...(process.argv.includes('--scotland') ? ['scotland-2026-27'] : [])].map(loadPack));
-const state: GameState = createGame({ seed: 'long-run', managerName: 'Harness', pack });
+const seedArg = process.argv.indexOf('--seed');
+const state: GameState = createGame({ seed: seedArg >= 0 ? process.argv[seedArg + 1]! : 'long-run', managerName: 'Harness', pack });
 const leagueArg = process.argv[process.argv.indexOf('--league') + 1];
 const top = (process.argv.includes('--league') && leagueArg ? state.world.competitions[leagueArg] : undefined)
   ?? Object.values(state.world.competitions).find((c) => c.tier === 1 && c.mode === 'playable')!;

@@ -739,19 +739,20 @@ function aiSigning(state: GameState): void {
   const buyer = weightedPick(state.rng, clubs, (c) => Math.sqrt(Math.max(0, financesOf(state, c.id).transferBudget) / 1_000_000) * c.reputation);
   if (!buyer) return;
   const budget = financesOf(state, buyer.id).transferBudget;
-  const room = wageRoom(state, buyer.id);
   const squad = squads.get(buyer.id) ?? [];
   const tactics = autoTactics(squad, state.date);
   const slots = FORMATIONS[tactics.formation];
-  let weakest: { position: Position; rating: number } | null = null;
+  let weakest: { position: Position; rating: number; wage: number } | null = null;
   tactics.lineup.forEach((id, i) => {
     const p = squad.find((x) => x.id === id);
     const position = slots[i]!.position;
     const rating = p ? positionRating(p, position) : 0;
-    if (!weakest || rating < weakest.rating) weakest = { position, rating };
+    if (!weakest || rating < weakest.rating) weakest = { position, rating, wage: p?.contract?.wage ?? 0 };
   });
   if (!weakest) return;
-  const need = weakest as { position: Position; rating: number };
+  const need = weakest as { position: Position; rating: number; wage: number };
+  // The player being replaced usually moves on in time, so half their wage counts as available.
+  const room = wageRoom(state, buyer.id) + need.wage * 0.5;
   // Squad ranks once, rather than per candidate.
   const ranks = new Map<Id, number>();
   for (const members of squads.values()) {
@@ -775,7 +776,7 @@ function aiSigning(state: GameState): void {
   // About half of real Premier League signings come from abroad; the rest of the world isn't
   // simulated, so those players are created when they're signed.
   if (candidates.length === 0 || chance(state.rng, IMPORT_SHARE)) {
-    signFromAbroad(state, buyer, need.position, need.rating);
+    signFromAbroad(state, buyer, need.position, need.rating, false, need.wage * 0.5);
     return;
   }
   const target = weightedPick(state.rng, candidates, (p) => (positionRating(p, need.position) - need.rating) / Math.sqrt(1 + price(p) / 1_000_000));
@@ -783,7 +784,7 @@ function aiSigning(state: GameState): void {
   completeTransfer(state, target, buyer.id, fee, wageDemand(state, target, buyer.id), randInt(state.rng, 2, 5));
 }
 
-const IMPORT_SHARE = 0.45;
+const IMPORT_SHARE = 0.35;
 
 /** Countries clubs sign from abroad, weighted roughly by how often Premier League clubs do. */
 const IMPORT_NATIONS: Array<[string, number]> = [
@@ -793,7 +794,7 @@ const IMPORT_NATIONS: Array<[string, number]> = [
 ];
 
 /** A computer club signs a player from a league outside the game, created to fit the need. */
-function signFromAbroad(state: GameState, buyer: Club, position: Position, current: number, backup = false): void {
+function signFromAbroad(state: GameState, buyer: Club, position: Position, current: number, backup = false, extraRoom = 0): void {
   const budget = financesOf(state, buyer.id).transferBudget;
   const nations = IMPORT_NATIONS.filter(([id]) => state.world.nations[id]);
   if (nations.length === 0) return;
@@ -805,7 +806,8 @@ function signFromAbroad(state: GameState, buyer: Club, position: Position, curre
   const best = squadCa[0] ?? 100;
   // A first-team signing is pitched at the level of the club's best XI, not at a stand-in.
   const level = squadCa.slice(0, 11).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(11, squadCa.length));
-  let ca = Math.round(Math.max(current, level - 4) + randInt(state.rng, 3, 12));
+  // Pitched around the side's level: higher, and with money every summer leagues ratchet upwards.
+  let ca = Math.round(Math.max(current, level - 6) + randInt(state.rng, 2, 10));
   ca = Math.min(ca, best + randInt(state.rng, -4, 6), 185, attractCeiling(state, buyer, 2));
   if (backup) ca = Math.round(level - randInt(state.rng, 12, 25));
   state.transfers.counter++;
@@ -816,7 +818,7 @@ function signFromAbroad(state: GameState, buyer: Club, position: Position, curre
     });
     const fee = roundMoney(player.value * (1 + 0.3 * random(state.rng)));
     // First-team signings must fit the wage budget too; backups are cheap enough not to matter.
-    if (fee > budget || (!backup && wageDemand(state, player, buyer.id) > wageRoom(state, buyer.id))) {
+    if (fee > budget || (!backup && wageDemand(state, player, buyer.id) > wageRoom(state, buyer.id) + extraRoom)) {
       ca -= 6;
       continue;
     }

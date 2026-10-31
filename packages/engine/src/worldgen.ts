@@ -153,7 +153,8 @@ export function createDemoWorld(rng: Rng, today: ISODate): World {
     clubs[club.id] = club;
 
     // A club's level of player follows its size; the very biggest clubs pull further ahead.
-    const meanCa = 55 + reputation + Math.max(0, reputation - 75) * 0.6;
+    // Pitched near the level the game settles at over the years, so long careers don't start with a climb.
+    const meanCa = 59 + reputation + Math.max(0, reputation - 75) * 0.6;
     const squad: Player[] = [];
     for (const slot of SQUAD_TEMPLATE) {
       if (slot.fullOnly && tier !== 1) continue;

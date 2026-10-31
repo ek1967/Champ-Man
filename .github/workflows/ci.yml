@@ -17,4 +17,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run calibrate -- --check
+      - run: node packages/harness/src/long-run.ts 8 --demo --check
       - run: npm run build

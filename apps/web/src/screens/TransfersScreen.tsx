@@ -77,7 +77,7 @@ function Search({ game }: { game: GameState }) {
     const text = filters.text.trim().toLowerCase();
     return Object.values(game.world.players)
       .filter((p) => {
-        if (p.clubId === clubId) return false;
+        if (p.clubId === clubId || p.retired) return false;
         const club = p.clubId ? game.world.clubs[p.clubId] : undefined;
         if (filters.where === 'free' && p.clubId) return false;
         if ((filters.where === 'eng-1' || filters.where === 'eng-2') && club?.leagueId !== filters.where) return false;
@@ -304,7 +304,7 @@ function Deals({ game }: { game: GameState }) {
                   <tr key={i}>
                     <td>{formatShort(r.date)}</td>
                     <td>{p && <EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink>}</td>
-                    <td>{from ? <ClubName club={from} short /> : <span className="muted">Free agent</span>}</td>
+                    <td>{from ? <ClubName club={from} short /> : <span className="muted">{r.kind === 'import' ? 'Abroad' : 'Free agent'}</span>}</td>
                     <td>{to && <ClubName club={to} short />}</td>
                     <td className="right">{r.fee > 0 ? formatMoney(r.fee) : 'Free'}</td>
                   </tr>

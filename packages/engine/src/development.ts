@@ -196,9 +196,9 @@ function youthIntake(state: GameState): void {
       const best = [...intake].sort((a, b) => b.pa - a.pa)[0]!;
       addNews(state, {
         category: 'club',
-        title: `Youth intake: ${intake.length} players join from the academy`,
+        title: `Youth intake: ${intake.length} player${intake.length > 1 ? 's join' : ' joins'} from the academy`,
         body: [
-          `This year's academy graduates have joined your squad:`,
+          intake.length > 1 ? `This year's academy graduates have joined your squad:` : `This year's academy graduate has joined your squad:`,
           intake.map((p) => `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}) potential ${abilityStars(p.pa)}★`).join('\n'),
           `Your youth coach rates ${playerLink(best)} as the pick of the bunch.`,
           'Young players develop fastest when they play. You can release any you do not want to keep.',

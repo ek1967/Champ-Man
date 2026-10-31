@@ -96,3 +96,21 @@ better and affordable. Contracts end on 30 June; computer clubs renew most of th
 players and release the rest, and thin squads are topped up from free agents. The manager gets
 offers for their players (more for listed ones), answers to their own bids in a day or two,
 and a weekly round-up of other deals. Loans and sell-on clauses are not modelled yet.
+
+## 010 — Development, youth intake, imports from abroad
+*Phase 8.* Development runs on the 1st of each month. Players up to 27 close a share of the gap
+to their Potential Ability (about 3% a month at 17, falling to almost nothing at 27), scaled by
+attitude (professionalism and determination), playing time and club size. From 30 (33 for
+keepers) players lose ability, faster with age and slower for the naturally fit. Changes in
+ability are spread over attributes: growth follows the position profile, decline hits pace,
+acceleration, agility and stamina first.
+
+Each club takes on one to four 16 and 17-year-olds on 20 March; academy quality (1–20) comes from
+club size. Players retire from 33 (keepers two years later). Free agents nobody signs by the end
+of a window leave the game unless they're good enough to be wanted later.
+
+Because only the English leagues are simulated, the world would slowly run out of talent and
+goalkeepers. So about 45% of computer-club signings come from abroad (created when signed, at
+the level of the club's best XI), every computer club keeps two keepers, and clubs can't sell
+or release below that. `packages/harness/src/long-run.ts --check` simulates ten seasons and
+fails if overall quality, the top 20 players, ages, squad sizes or goals per game keep drifting.

@@ -25,6 +25,8 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
 - **Transfers**: windows, budgets, player search, bids and counter-offers, personal terms,
   offers for your players, contract renewals and expiry, free agents, and computer clubs
   trading among themselves
+- **Player development**: monthly growth and decline, youth intakes, retirements, coaching
+  reports, ability history on player pages
 
 ## Real-player data (personal use only)
 
@@ -50,6 +52,7 @@ npm test           # unit tests
 npm run calibrate  # simulate 40 seasons and check results look like real football
                    # (add -- --pack data/packs/england-2026-27.json for the real league)
 npm run check      # typecheck + tests + calibration (what CI runs)
+node packages/harness/src/long-run.ts 10 --demo --check  # ten seasons stay stable
 npm run build      # production build in apps/web/dist
 ```
 

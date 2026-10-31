@@ -5,6 +5,8 @@ import {
 import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
 import { statusOf } from './TacticsScreen.tsx';
 import { TransferPanel } from '../components/TransferPanel.tsx';
+import { AbilityChart } from '../components/AbilityChart.tsx';
+import { DevelopmentSummary } from '../components/Development.tsx';
 import { ClubName } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
@@ -72,7 +74,15 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
         <div><span>Contract ends</span>{player.contract ? formatLong(player.contract.expires).slice(4) : '—'}</div>
       </div>
 
-      <TransferPanel game={game} player={player} />
+      {player.retired ? <p className="warning">Retired.</p> : <TransferPanel game={game} player={player} />}
+
+      <section className="development">
+        <h2>Development</h2>
+        <div className="development-grid">
+          <AbilityChart player={player} />
+          <DevelopmentSummary game={game} player={player} />
+        </div>
+      </section>
 
       <div className="attributes">
         {isKeeper ? (

@@ -1,5 +1,5 @@
 import {
-  activeBidFor, ageOn, answerIncomingBid, askingPrice, type Bid, type ContractOffer, formatLong, formatMoney, formatShort,
+  activeBidFor, ageOn, answerIncomingBid, releaseByManager, releaseCost, askingPrice, type Bid, type ContractOffer, formatLong, formatMoney, formatShort,
   type GameState, makeBid, nextWindowOpens, offerContract, openWindow, type Player, renewContract, setTransferListed,
   wageDemand, willingToJoin,
 } from '@moc/engine';
@@ -62,6 +62,7 @@ export function TransferPanel({ game, player }: { game: GameState; player: Playe
         {incoming.map((bid) => (
           <IncomingBid key={bid.id} game={game} bid={bid} onDone={setFeedback} />
         ))}
+        <ReleaseControl game={game} player={player} onDone={setFeedback} />
         <h3>Offer a new contract</h3>
         <ContractForm
           idPrefix="renew"
@@ -194,6 +195,37 @@ export function BidActions({ game, bidId }: { game: GameState; bidId: string }) 
       <p>
         <RouteLink to={{ screen: 'player', id: player.id }}>Go to {player.knownAs ?? player.lastName}'s page →</RouteLink>
       </p>
+    </div>
+  );
+}
+
+/** Releasing needs a second click, with the cost shown, since it can't be undone. */
+function ReleaseControl({ game, player, onDone }: { game: GameState; player: Player; onDone: (f: Feedback) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const cost = releaseCost(game, player);
+  if (!confirming) {
+    return (
+      <p>
+        <button className="btn small ghost" onClick={() => setConfirming(true)}>
+          Release player…
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="warning release-confirm">
+      <p>
+        Release {player.knownAs ?? player.lastName}? Paying up the contract costs {cost > 0 ? formatMoney(cost) : 'nothing'}, taken from your
+        transfer budget. This can't be undone.
+      </p>
+      <div className="button-row">
+        <button className="btn primary" onClick={() => onDone(act((g) => releaseByManager(g, player.id)))}>
+          Release
+        </button>
+        <button className="btn" onClick={() => setConfirming(false)}>
+          Keep
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,38 @@
+{
+  "head" : {
+    "vars" : [ "article", "dob", "posLabel", "teamLabel" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Louis_Lloyd"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-10-15T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Oscar_MacIntyre"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-07-23T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Oscar_MacIntyre"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-12-21T00:00:00Z"
+      }
+    } ]
+  }
+}

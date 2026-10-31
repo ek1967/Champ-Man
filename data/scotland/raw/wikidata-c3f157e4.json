@@ -1,0 +1,463 @@
+{
+  "head" : {
+    "vars" : [ "article", "dob", "posLabel", "teamLabel" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Scotland national under-16 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "forward"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Craig_Sibbald"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-05-18T00:00:00Z"
+      }
+    }, {
+      "teamLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Scotland national under-17 football team"
+      },
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "forward"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Craig_Sibbald"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-05-18T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "wing half"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Drey_Wright"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-04-30T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "centre-back"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Coll_Donaldson"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1995-04-09T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "goalkeeper"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Scott_Bain"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1991-11-22T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "full-back"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Scott_Tanser"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1994-10-23T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Alan_Forrest"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1996-09-09T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "forward"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Simon_Murray_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1992-03-15T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "defender"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Jack_McMillan_(Scottish_footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1997-12-18T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "defender"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ryan_Strain"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1997-04-02T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ross_MacIver"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-02-28T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ethan_Hamilton"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-10-18T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Finlay_Robertson_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-11-12T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Lewis_Neilson"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-05-15T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Brad_Spencer_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1996-05-16T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ryan_Finnigan"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-09-23T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Harrison_Sharp"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-04-04T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Bradley_Fink"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-03-17T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Bradley_Fink"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-04-17T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "defender"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Matai_Akinmboni"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-10-17T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Nicky_Hogarth"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-01-01T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Imari_Samuels"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-02-05T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "midfielder"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Deniss_Me%C4%BC%C5%86iks"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-09-07T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ethan_Laidlaw_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-01-02T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Charlie_Reilly_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-12-05T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Bobby_Wales"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-06-23T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ben_Parkinson_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-03-10T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Ashley_Hay_(footballer)"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Joe_Westley"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-10-18T00:00:00Z"
+      }
+    }, {
+      "posLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "forward"
+      },
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Joe_Gardner_(footballer)"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-06-05T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Joe_Bevan"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-07-15T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Finley_Barbrook"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-12-04T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Keelan_Adams"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-11-13T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Leon_McCann"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-03-16T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Finn_Yeats"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-04-19T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/%C5%BDan_Be%C5%A1ir"
+      },
+      "dob" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-10-17T00:00:00Z"
+      }
+    }, {
+      "article" : {
+        "type" : "uri",
+        "value" : "https://en.wikipedia.org/wiki/Connor_Allan"
+      }
+    } ]
+  }
+}

@@ -14,7 +14,9 @@ const strength = new Map(pl.map((c) => {
 const ranked = [...pl].sort((a, b) => strength.get(b.id)! - strength.get(a.id)!).map((c) => c.id);
 const top = new Set(ranked.slice(0, 4));
 const bottom = new Set(ranked.slice(-6));
-const r = { home: [0, 0, 0], away: [0, 0, 0], goalsFor: 0, goalsAgainst: 0, n: 0 };
+const r: { home: [number, number, number]; away: [number, number, number]; goalsFor: number; goalsAgainst: number; n: number } = {
+  home: [0, 0, 0], away: [0, 0, 0], goalsFor: 0, goalsAgainst: 0, n: 0,
+};
 for (let i = 0; i < seasons; i++) {
   const s = createGame({ seed: `sc-${i}`, managerName: 'x', pack });
   while (s.date < '2027-06-01') advanceDay(s);

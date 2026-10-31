@@ -146,6 +146,7 @@ export function generatePlayer(rng: Rng, spec: NewPlayerSpec): Player {
     injury: null,
     suspension: 0,
     form: [],
+    transferListed: false,
   };
   if (knownAs) player.knownAs = knownAs;
   return player;

@@ -99,6 +99,7 @@ export function worldFromPack(pack: WorldPack, seed: string, today: ISODate): Wo
       injury: null,
       suspension: 0,
       form: [],
+      transferListed: false,
     };
     if (source.knownAs) player.knownAs = source.knownAs;
     world.players[player.id] = player;

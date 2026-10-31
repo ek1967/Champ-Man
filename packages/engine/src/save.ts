@@ -28,6 +28,13 @@ function migrate(state: GameState): GameState {
     for (const player of Object.values(state.world.players)) player.form ??= [];
     state.version = 3;
   }
+  if (state.version === 3) {
+    // v4: transfer market. Budgets are created from each club's current squad when first needed.
+    for (const player of Object.values(state.world.players)) player.transferListed ??= false;
+    state.finances ??= {};
+    state.transfers ??= { bids: [], history: [], counter: 0 };
+    state.version = 4;
+  }
   return state;
 }
 

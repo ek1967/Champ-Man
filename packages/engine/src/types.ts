@@ -84,6 +84,8 @@ export interface Player {
   suspension: number;
   /** Match ratings from the last five games, oldest first. */
   form: number[];
+  /** Put up for sale by their club. */
+  transferListed: boolean;
 }
 
 export interface Competition {
@@ -167,7 +169,7 @@ export interface CompetitionSeason {
   } | null;
 }
 
-export type NewsCategory = 'welcome' | 'result' | 'competition' | 'season' | 'club';
+export type NewsCategory = 'welcome' | 'result' | 'competition' | 'season' | 'club' | 'transfer';
 
 /**
  * News body text can contain entity links written as [[type:id|label]],
@@ -182,6 +184,8 @@ export interface NewsItem {
   read: boolean;
   /** Important items stop Continue so the manager sees them. */
   important: boolean;
+  /** A transfer offer the manager can act on from the inbox. */
+  bidId?: Id;
 }
 
 export interface Manager {
@@ -206,6 +210,55 @@ export interface GameState {
   news: NewsItem[];
   manager: Manager;
   counters: { fixture: number; news: number; season: number };
+  finances: Record<Id, ClubFinances>;
+  transfers: TransferMarket;
+}
+
+export interface ClubFinances {
+  /** Money available for transfer fees, in euros. */
+  transferBudget: number;
+  /** The most the club will pay in wages per week, in euros. */
+  wageBudget: number;
+}
+
+export type BidStatus =
+  | 'pending' // waiting for the selling club
+  | 'countered' // the seller named a higher price
+  | 'rejected'
+  | 'accepted' // fee agreed; the buyer now needs to agree terms with the player
+  | 'completed'
+  | 'collapsed' // fee agreed but the player turned the move down, or the window shut
+  | 'withdrawn';
+
+export interface Bid {
+  id: Id;
+  playerId: Id;
+  buyerId: Id;
+  sellerId: Id;
+  fee: number;
+  status: BidStatus;
+  /** The price the seller wants when they counter. */
+  asking?: number;
+  created: ISODate;
+  /** When the other side will answer. */
+  respondOn: ISODate;
+  /** Short explanation for the manager. */
+  note?: string;
+}
+
+export interface TransferRecord {
+  date: ISODate;
+  playerId: Id;
+  fromId: Id | null;
+  toId: Id | null;
+  fee: number;
+  kind: 'transfer' | 'free' | 'released';
+}
+
+export interface TransferMarket {
+  bids: Bid[];
+  history: TransferRecord[];
+  counter: number;
 }
 
 export type EntityType = 'club' | 'player' | 'competition' | 'nation';

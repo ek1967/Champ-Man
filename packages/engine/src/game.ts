@@ -13,9 +13,10 @@ import type {
   CompetitionSeason, Fixture, GameState, Id, MatchResult, Player, PlayerSeasonStats, World,
 } from './types.ts';
 import { type PackFixture, type WorldPack, worldFromPack } from './pack.ts';
+import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const GAME_START_DATE: ISODate = '2026-06-15';
 
 export interface NewGameOptions {
@@ -44,7 +45,11 @@ export function createGame(options: NewGameOptions): GameState {
     news: [],
     manager: { name: options.managerName, clubId: null, tactics: null },
     counters: { fixture: 0, news: 0, season: 0 },
+    finances: {},
+    transfers: { bids: [], history: [], counter: 0 },
   };
+  // Budgets are set from the squads clubs start with.
+  for (const club of Object.values(world.clubs)) financesOf(state, club.id);
   for (const competition of Object.values(world.competitions)) {
     const fixtures = options.pack?.fixtures.filter((f) => f.competitionId === competition.id);
     createSeason(
@@ -483,6 +488,7 @@ function recoverFitness(state: GameState): void {
 
 function dailyTasks(state: GameState): void {
   recoverFitness(state);
+  transferDay(state);
   const md = monthDay(state.date);
   const nations = new Set<Id>();
   for (const competition of Object.values(state.world.competitions)) {

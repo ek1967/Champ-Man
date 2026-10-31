@@ -19,3 +19,4 @@ export * from './pack.ts';
 export * from './commentary.ts';
 export * from './match.ts';
 export * from './tactics.ts';
+export * from './transfers.ts';

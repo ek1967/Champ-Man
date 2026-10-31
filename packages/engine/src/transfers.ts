@@ -16,7 +16,7 @@ import type { Bid, Club, ClubFinances, GameState, Id, Player, TransferRecord } f
 
 /** English windows ('MM-DD', inclusive). Other nations get their own when they arrive. */
 export const TRANSFER_WINDOWS: ReadonlyArray<{ name: string; open: string; close: string }> = [
-  { name: 'summer', open: '06-15', close: '09-01' },
+  { name: 'summer', open: '07-01', close: '09-01' },
   { name: 'January', open: '01-01', close: '02-02' },
 ];
 
@@ -32,6 +32,32 @@ export function nextWindowOpens(date: ISODate): ISODate {
   const year = yearOf(date);
   const candidates = TRANSFER_WINDOWS.flatMap((w) => [`${year}-${w.open}`, `${year + 1}-${w.open}`]).filter((d) => d > date).sort();
   return candidates[0] ?? date;
+}
+
+/** When a deal agreed today takes effect: straight away during a window, otherwise when the next one opens. */
+export function moveDate(date: ISODate): ISODate {
+  return openWindow(date) ? date : nextWindowOpens(date);
+}
+
+/** The deal a player has agreed (to move or go on loan), if any. */
+export function agreedMoveFor(state: GameState, playerId: Id): Bid | undefined {
+  return state.transfers.bids.find((b) => b.playerId === playerId && b.status === 'agreed');
+}
+
+/** Fees and wages already promised for players arriving when the window opens. */
+export function committed(state: GameState, clubId: Id): { fees: number; wages: number } {
+  let fees = 0;
+  let wages = 0;
+  for (const b of state.transfers.bids) {
+    if (b.status !== 'agreed' || b.buyerId !== clubId) continue;
+    if (b.kind !== 'loan') fees += b.fee;
+    wages += b.wage ?? 0;
+  }
+  return { fees, wages };
+}
+
+export function availableBudget(state: GameState, clubId: Id): number {
+  return financesOf(state, clubId).transferBudget - committed(state, clubId).fees;
 }
 
 // ---------- Money ----------
@@ -105,6 +131,9 @@ export function recentlySigned(state: GameState, playerId: Id): boolean {
  */
 export function sellerBlocks(state: GameState, player: Player, buyerId: Id, fee: number, rank = squadRank(state, player)): string | null {
   if (!player.clubId) return null;
+  if (player.loan) return 'The player is only there on loan.';
+  const agreed = agreedMoveFor(state, player.id);
+  if (agreed && agreed.buyerId !== buyerId) return `The player has already agreed to join ${getClub(state, agreed.buyerId).shortName}.`;
   if (recentlySigned(state, player.id)) return 'They only signed the player recently and will not sell.';
   if (isKeeper(player) && keeperCount(state, player.clubId) <= 2) return 'They cannot spare a goalkeeper.';
   const seller = getClub(state, player.clubId);
@@ -169,6 +198,7 @@ export function completeTransfer(state: GameState, player: Player, toId: Id, fee
   }
   financesOf(state, toId).transferBudget -= fee;
   player.clubId = toId;
+  player.loan = null;
   player.transferListed = false;
   player.squadNumber = nextSquadNumber(state, toId);
   player.contract = { wage, expires: contractEnd(state.date, years) };
@@ -176,7 +206,7 @@ export function completeTransfer(state: GameState, player: Player, toId: Id, fee
   state.transfers.history.push(record);
   // Pending bids for this player from anyone else lapse.
   for (const bid of state.transfers.bids) {
-    if (bid.playerId === player.id && (bid.status === 'pending' || bid.status === 'countered' || bid.status === 'accepted')) {
+    if (bid.playerId === player.id && ['pending', 'countered', 'accepted', 'agreed'].includes(bid.status) && bid.buyerId !== toId) {
       bid.status = 'collapsed';
       bid.note = `${player.knownAs ?? player.lastName} has joined ${getClub(state, toId).shortName}.`;
     }
@@ -186,6 +216,7 @@ export function completeTransfer(state: GameState, player: Player, toId: Id, fee
 
 export function releasePlayer(state: GameState, player: Player): void {
   const fromId = player.clubId;
+  player.loan = null;
   if (fromId === state.manager.clubId) removeFromTactics(state, player.id);
   player.clubId = null;
   player.contract = null;
@@ -216,13 +247,14 @@ export function makeBid(state: GameState, playerId: Id, fee: number): ActionResu
   if (!buyerId || !player) return { ok: false, message: 'You need a club to make offers.' };
   if (!player.clubId) return { ok: false, message: 'Free agents need a contract offer, not a fee.' };
   if (player.clubId === buyerId) return { ok: false, message: 'They already play for you.' };
-  if (!openWindow(state.date)) return { ok: false, message: `The transfer window is closed. It opens on ${formatShort(nextWindowOpens(state.date))}.` };
-  if (fee > financesOf(state, buyerId).transferBudget) return { ok: false, message: 'That is more than your transfer budget.' };
+  if (player.loan) return { ok: false, message: `${player.knownAs ?? player.lastName} is only on loan at ${getClub(state, player.clubId).shortName}.` };
+  if (fee > availableBudget(state, buyerId)) return { ok: false, message: 'That is more than you have left to spend.' };
   const existing = activeBidFor(state, playerId, buyerId);
   if (existing && existing.status === 'pending') return { ok: false, message: 'You are already waiting for an answer on this player.' };
   if (existing) existing.status = 'withdrawn';
   newBid(state, { playerId, buyerId, sellerId: player.clubId, fee, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)) });
-  return { ok: true, message: `Offer of ${formatMoney(fee)} sent to ${getClub(state, player.clubId).shortName}. Expect an answer in a day or two.` };
+  const when = openWindow(state.date) ? '' : ` If you agree a deal, the player joins when the window opens on ${formatShort(nextWindowOpens(state.date))}.`;
+  return { ok: true, message: `Offer of ${formatMoney(fee)} sent to ${getClub(state, player.clubId).shortName}. Expect an answer in a day or two.${when}` };
 }
 
 /** How a selling club answers a bid. */
@@ -268,19 +300,51 @@ export interface ContractOffer {
   years: number;
 }
 
+/** True when a player's contract runs out this June and the manager may agree a pre-contract (from 1 January). */
+export function preContractAllowed(state: GameState, player: Player): boolean {
+  if (!player.clubId || !player.contract || player.loan) return false;
+  const md = monthDay(state.date);
+  return md >= '01-01' && md <= '06-30' && player.contract.expires <= `${yearOf(state.date)}-06-30`;
+}
+
+/** Moves now, or records the agreement for when the window opens. */
+function settleAgreed(state: GameState, bid: Bid, player: Player): 'now' | ISODate {
+  const on = bid.kind !== 'loan' && !player.clubId ? state.date : moveDate(state.date);
+  // Pre-contracts always wait for 1 July, when the old contract has ended.
+  const when = bid.fee === 0 && bid.kind !== 'loan' && player.clubId && preContractAllowed(state, player) ? `${yearOf(state.date)}-07-01` : on;
+  if (when <= state.date) {
+    carryOut(state, bid, player);
+    return 'now';
+  }
+  bid.status = 'agreed';
+  bid.moveOn = when;
+  return when;
+}
+
+/** Executes an agreed transfer or loan. */
+function carryOut(state: GameState, bid: Bid, player: Player): void {
+  if (bid.kind === 'loan') {
+    startLoan(state, player, bid.buyerId, bid.loanUntil ?? loanEnd(state.date, 'season'));
+  } else {
+    completeTransfer(state, player, bid.buyerId, bid.fee, bid.wage ?? wageDemand(state, player, bid.buyerId), bid.years ?? 3);
+  }
+  bid.status = 'completed';
+}
+
 /**
- * Personal terms: after a fee is agreed (or for a free agent), offer the player a contract.
- * Completes the move on the spot if they accept.
+ * Personal terms: after a fee is agreed, for a free agent, or for a pre-contract with a player
+ * whose deal ends in June. The move happens straight away during a window, otherwise when it opens.
  */
 export function offerContract(state: GameState, playerId: Id, offer: ContractOffer): ActionResult {
   const buyerId = state.manager.clubId;
   const player = state.world.players[playerId];
   if (!buyerId || !player) return { ok: false, message: 'You need a club to sign players.' };
-  if (!openWindow(state.date) && player.clubId) return { ok: false, message: 'The transfer window is closed.' };
-  const bid = player.clubId ? state.transfers.bids.find((b) => b.playerId === playerId && b.buyerId === buyerId && b.status === 'accepted') : undefined;
-  if (player.clubId && !bid) return { ok: false, message: 'Agree a fee with their club first.' };
+  let bid = player.clubId ? state.transfers.bids.find((b) => b.playerId === playerId && b.buyerId === buyerId && b.status === 'accepted') : undefined;
+  const preContract = !bid && preContractAllowed(state, player);
+  if (player.clubId && !bid && !preContract) return { ok: false, message: 'Agree a fee with their club first.' };
+  if (preContract && agreedMoveFor(state, playerId)) return { ok: false, message: 'The player has already agreed to move.' };
   const finances = financesOf(state, buyerId);
-  if (wageBill(state, buyerId) + offer.wage > finances.wageBudget) {
+  if (wageBill(state, buyerId) + committed(state, buyerId).wages + offer.wage > finances.wageBudget) {
     return { ok: false, message: `That would take your wage bill over the budget of ${formatMoney(finances.wageBudget)} a week.` };
   }
   const willing = willingToJoin(state, player, buyerId);
@@ -296,14 +360,29 @@ export function offerContract(state: GameState, playerId: Id, offer: ContractOff
   if (offer.wage < demand * 0.97) return { ok: false, message: `${name} wants at least ${formatMoney(demand)} a week.` };
   const age = ageOn(player.dateOfBirth, state.date);
   if (age >= 32 && offer.years > 2) return { ok: false, message: `At ${age}, the club would not offer more than two years.` };
-  completeTransfer(state, player, buyerId, bid?.fee ?? 0, offer.wage, offer.years);
-  if (bid) bid.status = 'completed';
+
+  bid ??= newBid(state, {
+    playerId, buyerId, sellerId: player.clubId ?? buyerId, fee: 0, status: 'accepted', created: state.date, respondOn: state.date,
+    note: preContract ? 'Pre-contract agreement.' : 'Free agent.',
+  });
+  bid.wage = offer.wage;
+  bid.years = offer.years;
+  const fee = bid.fee;
+  const result = settleAgreed(state, bid, player);
+  if (result === 'now') {
+    addNews(state, {
+      category: 'transfer',
+      title: `${name} signs`,
+      body: `${playerLink(player)} has signed a ${offer.years}-year contract worth ${formatMoney(offer.wage)} a week${fee > 0 ? ` after a ${formatMoney(fee)} transfer` : ' on a free transfer'}.`,
+    });
+    return { ok: true, message: `${name} has signed!` };
+  }
   addNews(state, {
     category: 'transfer',
-    title: `${name} signs`,
-    body: `${playerLink(player)} has signed a ${offer.years}-year contract worth ${formatMoney(offer.wage)} a week${bid ? ` after a ${formatMoney(bid.fee)} transfer` : ' on a free transfer'}.`,
+    title: `${name} agrees to join on ${formatShort(result)}`,
+    body: `${playerLink(player)} has agreed a ${offer.years}-year contract worth ${formatMoney(offer.wage)} a week${fee > 0 ? ` after a ${formatMoney(fee)} fee was agreed` : preContract ? ' on a pre-contract' : ''}. The move goes through on ${formatShort(result)}.`,
   });
-  return { ok: true, message: `${name} has signed!` };
+  return { ok: true, message: `Agreed! ${name} joins on ${formatShort(result)}.` };
 }
 
 /** New contract for one of the manager's own players. */
@@ -332,7 +411,7 @@ export function setTransferListed(state: GameState, playerId: Id, listed: boolea
 function aiBidForHumanPlayer(state: GameState): void {
   const humanId = state.manager.clubId;
   if (!humanId) return;
-  const squad = squadOf(state, humanId);
+  const squad = squadOf(state, humanId).filter((p) => !p.loan && !agreedMoveFor(state, p.id));
   if (squad.length === 0) return;
   const target = weightedPick(state.rng, squad, (p) => (p.transferListed ? 8 : 1) * (p.ca / 100) ** 2);
   if (!target || state.transfers.bids.some((b) => b.playerId === target.id && b.status === 'pending')) return;
@@ -367,13 +446,12 @@ export function answerIncomingBid(state: GameState, bidId: Id, accept: boolean):
     bid.status = 'rejected';
     return { ok: true, message: 'Offer rejected.' };
   }
-  if (!openWindow(state.date)) {
-    bid.status = 'collapsed';
-    return { ok: false, message: 'The transfer window has closed.' };
-  }
-  completeTransfer(state, player, bid.buyerId, bid.fee, wageDemand(state, player, bid.buyerId), randInt(state.rng, 2, 5));
-  bid.status = 'completed';
-  return { ok: true, message: `${player.knownAs ?? player.lastName} has joined ${getClub(state, bid.buyerId).shortName} for ${formatMoney(bid.fee)}.` };
+  bid.wage = wageDemand(state, player, bid.buyerId);
+  bid.years = randInt(state.rng, 2, 5);
+  const result = settleAgreed(state, bid, player);
+  const name = player.knownAs ?? player.lastName;
+  if (result === 'now') return { ok: true, message: `${name} has joined ${getClub(state, bid.buyerId).shortName} for ${formatMoney(bid.fee)}.` };
+  return { ok: true, message: `Agreed: ${name} joins ${getClub(state, bid.buyerId).shortName} for ${formatMoney(bid.fee)} on ${formatShort(result)}.` };
 }
 
 // ---------- Computer clubs ----------
@@ -408,9 +486,11 @@ function aiSigning(state: GameState): void {
     [...members].sort((a, b) => b.ca - a.ca).forEach((p, i) => ranks.set(p.id, i + 1));
   }
   const price = (p: Player) => (p.clubId ? askingPrice(state, p, ranks.get(p.id)) : 0);
+  const agreedIds = new Set(state.transfers.bids.filter((b) => b.status === 'agreed').map((b) => b.playerId));
 
   const candidates = Object.values(state.world.players).filter((p) => {
-    if (p.clubId === buyer.id || p.clubId === humanId || p.retired) return false;
+    if (p.clubId === buyer.id || p.clubId === humanId || p.retired || p.loan) return false;
+    if (agreedIds.has(p.id)) return false;
     if (ageOn(p.dateOfBirth, state.date) > 31) return false;
     if (positionRating(p, need.position) < need.rating + 5) return false;
     if (p.clubId && (squads.get(p.clubId)?.length ?? 0) <= MIN_SQUAD) return false;
@@ -575,13 +655,36 @@ function weeklyRoundUp(state: GameState): void {
 /** The daily transfer tick, run before the day's matches. */
 export function transferDay(state: GameState): void {
   const md = monthDay(state.date);
+  // Order matters on 1 July: loans end, agreed moves (including pre-contracts) go through,
+  // then any contracts left running out expire.
+  endLoans(state);
+  for (const bid of state.transfers.bids) {
+    if (bid.status !== 'agreed' || !bid.moveOn || bid.moveOn > state.date) continue;
+    const player = state.world.players[bid.playerId];
+    if (!player || player.retired || (bid.kind !== 'loan' && player.clubId !== bid.sellerId && player.clubId !== null)) {
+      bid.status = 'collapsed';
+      bid.note = 'The deal fell through.';
+      continue;
+    }
+    carryOut(state, bid, player);
+    if (bid.buyerId === state.manager.clubId || bid.sellerId === state.manager.clubId) {
+      const toHuman = bid.buyerId === state.manager.clubId;
+      addNews(state, {
+        category: 'transfer',
+        title: `${player.knownAs ?? player.lastName} ${toHuman ? 'arrives' : 'leaves'}${bid.kind === 'loan' ? ' on loan' : ''}`,
+        body: `${playerLink(player)} has ${toHuman ? 'joined you' : `joined ${clubLink(getClub(state, bid.buyerId))}`}${bid.kind === 'loan' ? ` on loan until ${formatShort(bid.loanUntil ?? state.date)}` : ''}, as agreed.`,
+      });
+    }
+  }
   if (md === '07-01') expireContracts(state);
   if (md === '01-02' || md === '05-01') contractReminder(state);
 
-  // Answers to the manager's bids, and offers for their players that were left unanswered.
+  // Answers to the manager's offers, and offers for their players left unanswered.
   for (const bid of state.transfers.bids) {
     if (bid.status !== 'pending' || bid.respondOn > state.date) continue;
-    if (bid.buyerId === state.manager.clubId) {
+    if (bid.kind === 'loan') {
+      answerLoan(state, bid);
+    } else if (bid.buyerId === state.manager.clubId) {
       const verdict = sellerVerdict(state, bid);
       bid.status = verdict.status;
       bid.asking = verdict.asking;
@@ -592,26 +695,189 @@ export function transferDay(state: GameState): void {
       bid.note = 'No answer in time; the offer lapsed.';
     }
   }
-
-  const window = openWindow(state.date);
-  if (!window) {
-    // Deals not completed by the deadline fall through.
-    for (const bid of state.transfers.bids) {
-      if (bid.status === 'accepted' || bid.status === 'countered') {
-        bid.status = 'collapsed';
-        bid.note = 'The transfer window closed before the deal was done.';
-      }
+  // Agreed fees and counter-offers don't wait for ever.
+  const lapse = addDays(state.date, -14);
+  for (const bid of state.transfers.bids) {
+    if ((bid.status === 'accepted' || bid.status === 'countered') && bid.respondOn < lapse) {
+      bid.status = 'collapsed';
+      bid.note = 'Nothing was agreed in time and the deal lapsed.';
     }
-    return;
   }
 
+  const window = openWindow(state.date);
+  if (!window) return;
+
   const summer = window.name === 'summer';
-  const deals = poisson(state.rng, summer ? 1.2 : 0.6);
+  const deals = poisson(state.rng, summer ? 1.5 : 0.6);
   for (let i = 0; i < deals; i++) aiSigning(state);
   if (md === '07-15' || md === '08-20' || md === '01-25') aiFreeAgents(state);
   if (md === '07-03' || md === '08-25' || md === '01-05') ensureKeepers(state);
+  if (chance(state.rng, summer ? 0.6 : 0.3)) aiLoan(state);
   if (state.manager.clubId && chance(state.rng, summer ? 0.05 : 0.035)) aiBidForHumanPlayer(state);
   if (state.manager.clubId && new Date(`${state.date}T00:00:00Z`).getUTCDay() === 1) weeklyRoundUp(state);
+}
+
+// ---------- Loans ----------
+
+export type LoanLength = 'january' | 'season';
+
+/** Last day of a loan: the end of December, or the end of the season. */
+export function loanEnd(date: ISODate, length: LoanLength): ISODate {
+  const year = yearOf(date);
+  const inFirstHalf = monthDay(date) >= '06-01';
+  if (length === 'january' && inFirstHalf) return `${year}-12-31`;
+  return `${inFirstHalf ? year + 1 : year}-06-30`;
+}
+
+/** Where a player would rank by ability if they joined a club (1 = best). */
+function rankIfJoined(state: GameState, player: Player, clubId: Id): number {
+  return squadOf(state, clubId).filter((p) => p.id !== player.id && p.ca > player.ca).length + 1;
+}
+
+export function startLoan(state: GameState, player: Player, toId: Id, until: ISODate): void {
+  const fromId = player.clubId!;
+  if (fromId === state.manager.clubId) removeFromTactics(state, player.id);
+  player.clubId = toId;
+  player.loan = { fromId, until };
+  player.transferListed = false;
+  player.squadNumber = nextSquadNumber(state, toId);
+  state.transfers.history.push({ date: state.date, playerId: player.id, fromId, toId, fee: 0, kind: 'loan' });
+}
+
+/** Players whose loans have finished go back to their clubs. */
+function endLoans(state: GameState): void {
+  const humanId = state.manager.clubId;
+  for (const player of Object.values(state.world.players)) {
+    if (!player.loan || player.loan.until >= state.date) continue;
+    const { fromId } = player.loan;
+    const atId = player.clubId;
+    if (atId === humanId) removeFromTactics(state, player.id);
+    player.clubId = fromId;
+    player.loan = null;
+    player.squadNumber = nextSquadNumber(state, fromId);
+    state.transfers.history.push({ date: state.date, playerId: player.id, fromId: atId, toId: fromId, fee: 0, kind: 'loanReturn' });
+    if (fromId === humanId) {
+      addNews(state, { category: 'transfer', title: `${player.knownAs ?? player.lastName} returns from loan`, body: `${playerLink(player)} is back after a loan spell${atId ? ` at ${clubLink(getClub(state, atId))}` : ''}.` });
+    }
+  }
+}
+
+/** The manager asks to borrow a player. Their club answers in a day or two. */
+export function requestLoan(state: GameState, playerId: Id, length: LoanLength): ActionResult {
+  const buyerId = state.manager.clubId;
+  const player = state.world.players[playerId];
+  if (!buyerId || !player?.clubId) return { ok: false, message: 'You can only borrow players from other clubs.' };
+  if (player.clubId === buyerId) return { ok: false, message: 'They already play for you.' };
+  if (player.loan) return { ok: false, message: 'The player is already out on loan.' };
+  if (activeBidFor(state, playerId, buyerId)) return { ok: false, message: 'You are already in talks about this player.' };
+  if (agreedMoveFor(state, playerId)) return { ok: false, message: 'The player has already agreed a move.' };
+  const wage = player.contract?.wage ?? 0;
+  const finances = financesOf(state, buyerId);
+  if (wageBill(state, buyerId) + committed(state, buyerId).wages + wage > finances.wageBudget) {
+    return { ok: false, message: `You would pay the player's ${formatMoney(wage)} a week, which takes you over your wage budget.` };
+  }
+  newBid(state, {
+    playerId, buyerId, sellerId: player.clubId, fee: 0, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)),
+    kind: 'loan', loanUntil: loanEnd(moveDate(state.date), length), wage,
+  });
+  return { ok: true, message: `Loan request sent to ${getClub(state, player.clubId).shortName}. You would pay the player's wages.` };
+}
+
+/** The manager offers one of their players out on loan; the best club that would play them answers. */
+export function offerLoanOut(state: GameState, playerId: Id, length: LoanLength): ActionResult {
+  const humanId = state.manager.clubId;
+  const player = state.world.players[playerId];
+  if (!humanId || !player || player.clubId !== humanId) return { ok: false, message: 'Only your own players can be loaned out.' };
+  if (player.loan) return { ok: false, message: 'You are only borrowing this player.' };
+  if (squadOf(state, humanId).length <= 18) return { ok: false, message: 'Your squad is too small to loan players out.' };
+  if (isKeeper(player) && keeperCount(state, humanId) <= 2) return { ok: false, message: 'You need to keep at least two goalkeepers.' };
+  if (state.transfers.bids.some((b) => b.playerId === playerId && ['pending', 'agreed'].includes(b.status))) {
+    return { ok: false, message: 'There is already a deal in progress for this player.' };
+  }
+  const takers = Object.values(state.world.clubs).filter(
+    (c) => c.id !== humanId && squadOf(state, c.id).length < MAX_SQUAD && rankIfJoined(state, player, c.id) <= 13,
+  );
+  if (takers.length === 0) return { ok: false, message: `No clubs are interested in taking ${player.knownAs ?? player.lastName} on loan right now.` };
+  // The biggest club where the player would get games.
+  const club = [...takers].sort((a, b) => b.reputation - a.reputation)[0]!;
+  newBid(state, {
+    playerId, buyerId: club.id, sellerId: humanId, fee: 0, status: 'pending', created: state.date, respondOn: addDays(state.date, randInt(state.rng, 1, 2)),
+    kind: 'loan', loanUntil: loanEnd(moveDate(state.date), length), wage: player.contract?.wage ?? 0,
+  });
+  return { ok: true, message: `Offered to clubs. ${club.shortName} are interested; expect an answer in a day or two.` };
+}
+
+/** Answers a loan request (from the manager) or completes a loan the manager offered out. */
+function answerLoan(state: GameState, bid: Bid): void {
+  const player = state.world.players[bid.playerId];
+  if (!player) return;
+  const name = player.knownAs ?? player.lastName;
+  if (bid.buyerId === state.manager.clubId) {
+    const rank = squadRank(state, player);
+    const age = ageOn(player.dateOfBirth, state.date);
+    let refusal: string | null = null;
+    if (rank <= 14) refusal = 'They see the player as part of their first team.';
+    else if (age > 24 && rank <= 18) refusal = 'They want to keep the player for squad depth.';
+    else if (isKeeper(player) && keeperCount(state, bid.sellerId) <= 2) refusal = 'They cannot spare a goalkeeper.';
+    else if (rankIfJoined(state, player, bid.buyerId) > 18) refusal = `${name} would not get enough games at your club.`;
+    const seller = getClub(state, bid.sellerId);
+    if (refusal) {
+      bid.status = 'rejected';
+      bid.note = refusal;
+      const n = addNews(state, { category: 'transfer', title: `${seller.shortName} turn down your loan request for ${name}`, body: `${refusal}` , important: true });
+      n.bidId = bid.id;
+      return;
+    }
+    const when = settleAgreed(state, bid, player);
+    const n = addNews(state, {
+      category: 'transfer',
+      title: `${name} ${when === 'now' ? 'joins on loan' : `joins on loan on ${formatShort(when)}`}`,
+      body: `${clubLink(seller)} have agreed to loan you ${playerLink(player)} until ${formatShort(bid.loanUntil ?? state.date)} ${yearOf(bid.loanUntil ?? state.date)}. You pay the wages of ${formatMoney(bid.wage ?? 0)} a week.`,
+      important: true,
+    });
+    n.bidId = bid.id;
+    return;
+  }
+  // A loan the manager offered out: the interested club confirms if they still have room.
+  if (squadOf(state, bid.buyerId).length >= MAX_SQUAD) {
+    bid.status = 'collapsed';
+    bid.note = 'The club no longer has room in their squad.';
+  } else {
+    const when = settleAgreed(state, bid, player);
+    const n = addNews(state, {
+      category: 'transfer',
+      title: `${name} ${when === 'now' ? 'goes' : 'will go'} on loan to ${getClub(state, bid.buyerId).shortName}`,
+      body: `${playerLink(player)} ${when === 'now' ? 'has joined' : `joins on ${formatShort(when)}`} ${clubLink(getClub(state, bid.buyerId))} on loan until ${formatShort(bid.loanUntil ?? state.date)} ${yearOf(bid.loanUntil ?? state.date)}. They pay the wages, and regular games should help the player develop.`,
+      important: true,
+    });
+    n.bidId = bid.id;
+  }
+}
+
+/** Computer clubs send young players out to get games, usually to smaller clubs or a division down. */
+function aiLoan(state: GameState): void {
+  const humanId = state.manager.clubId;
+  const squads = squadIndex(state);
+  const prospects: Player[] = [];
+  for (const [clubId, squad] of squads) {
+    if (clubId === humanId || squad.length <= 20) continue;
+    const ranked = [...squad].sort((a, b) => b.ca - a.ca);
+    ranked.forEach((p, i) => {
+      if (i >= 16 && !p.loan && !isKeeper(p) && ageOn(p.dateOfBirth, state.date) <= 21 && p.pa - p.ca >= 12) prospects.push(p);
+    });
+  }
+  if (prospects.length === 0) return;
+  const player = weightedPick(state.rng, prospects, (p) => p.pa - p.ca);
+  const parent = getClub(state, player.clubId!);
+  if (agreedMoveFor(state, player.id)) return;
+  const homes = Object.values(state.world.clubs).filter((c) => {
+    if (c.id === parent.id || c.id === humanId || c.reputation > parent.reputation) return false;
+    const squad = squads.get(c.id) ?? [];
+    return squad.length < MAX_SQUAD - 1 && squad.filter((p) => p.ca > player.ca).length < 12;
+  });
+  if (homes.length === 0) return;
+  const home = weightedPick(state.rng, homes, (c) => c.reputation);
+  startLoan(state, player, home.id, loanEnd(state.date, 'season'));
 }
 
 /** Recent deals, newest first, for the transfers screen. */

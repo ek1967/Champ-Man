@@ -36,7 +36,12 @@ export function playingTime(state: GameState, player: Player): number {
   if (!player.clubId) return 0.3;
   const club = state.world.clubs[player.clubId];
   const season = club ? currentSeasonOf(state, club.leagueId) : null;
-  if (!season || state.world.competitions[season.competitionId]?.mode !== 'playable') return 0.5;
+  if (!season) return 0.5;
+  if (state.world.competitions[season.competitionId]?.mode !== 'playable') {
+    // No match stats in background leagues: judge by where the player stands in the squad.
+    const rank = squadOf(state, player.clubId).filter((p) => p.ca > player.ca).length + 1;
+    return rank <= 11 ? 0.9 : rank <= 16 ? 0.5 : 0.2;
+  }
   const played = season.fixtureIds.filter((id) => {
     const f = state.fixtures[id];
     return f?.result && (f.homeId === player.clubId || f.awayId === player.clubId);
@@ -277,6 +282,7 @@ function trimSquads(state: GameState): void {
     const surplus = [...squad]
       .sort((a, b) => keepScore(a) - keepScore(b))
       .filter((p) => {
+        if (p.loan) return false;
         if ((p.positions.GK ?? 0) < 18) return true;
         if (keepers <= 2) return false;
         keepers--;

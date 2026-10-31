@@ -92,6 +92,8 @@ export interface Player {
   abilityHistory: Array<[ISODate, number]>;
   /** Fraction of an ability point carried between monthly updates. */
   growthCarry: number;
+  /** Set while the player is on loan: their parent club and the last day of the loan. */
+  loan?: { fromId: Id; until: ISODate } | null;
 }
 
 export interface Competition {
@@ -232,6 +234,7 @@ export type BidStatus =
   | 'countered' // the seller named a higher price
   | 'rejected'
   | 'accepted' // fee agreed; the buyer now needs to agree terms with the player
+  | 'agreed' // everything agreed; the player moves when the window opens (`moveOn`)
   | 'completed'
   | 'collapsed' // fee agreed but the player turned the move down, or the window shut
   | 'withdrawn';
@@ -250,6 +253,13 @@ export interface Bid {
   respondOn: ISODate;
   /** Short explanation for the manager. */
   note?: string;
+  /** A loan rather than a permanent move; the player returns after `loanUntil`. */
+  kind?: 'transfer' | 'loan';
+  loanUntil?: ISODate;
+  /** Agreed terms, and the day the player moves. */
+  wage?: number;
+  years?: number;
+  moveOn?: ISODate;
 }
 
 export interface TransferRecord {
@@ -259,7 +269,7 @@ export interface TransferRecord {
   toId: Id | null;
   fee: number;
   /** 'import': signed from a club outside the simulated leagues. */
-  kind: 'transfer' | 'free' | 'released' | 'import';
+  kind: 'transfer' | 'free' | 'released' | 'import' | 'loan' | 'loanReturn';
 }
 
 export interface TransferMarket {

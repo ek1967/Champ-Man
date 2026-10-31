@@ -3,8 +3,8 @@ import { advanceDay, createGame, takeJob } from '../src/game.ts';
 import { currentSeasonOf, squadOf } from '../src/queries.ts';
 import { deserializeGame, serializeGame } from '../src/save.ts';
 import {
-  answerIncomingBid, askingPrice, contractEnd, financesOf, makeBid, offerContract, openWindow, renewContract,
-  setTransferListed, wageDemand,
+  agreedMoveFor, answerIncomingBid, askingPrice, availableBudget, contractEnd, financesOf, makeBid, offerContract,
+  offerLoanOut, openWindow, preContractAllowed, renewContract, requestLoan, sellerBlocks, setTransferListed, wageDemand,
 } from '../src/transfers.ts';
 import type { GameState } from '../src/types.ts';
 import { DEMO_TOP_DIVISION } from '../src/worldgen.ts';
@@ -22,7 +22,8 @@ function until(state: GameState, date: string): void {
 }
 
 describe('transfer windows and contracts', () => {
-  it('opens in summer and January only', () => {
+  it('opens on 1 July and in January only', () => {
+    expect(openWindow('2026-06-20')).toBeNull();
     expect(openWindow('2026-07-01')?.name).toBe('summer');
     expect(openWindow('2027-01-15')?.name).toBe('January');
     expect(openWindow('2026-10-01')).toBeNull();
@@ -36,7 +37,7 @@ describe('transfer windows and contracts', () => {
 });
 
 describe('buying a player', () => {
-  it('goes bid → answer → personal terms → signed', () => {
+  it('goes bid → answer → personal terms → joins on 1 July', () => {
     const { state, clubId } = newCareer('buy');
     // A decent player at a smaller club, not one of their key men.
     const target = Object.values(state.world.players)
@@ -55,6 +56,12 @@ describe('buying a player', () => {
     expect(low.ok).toBe(false);
     const signed = offerContract(state, target.id, { wage: wageDemand(state, target, clubId), years: 3 });
     expect(signed.ok).toBe(true);
+    // Agreed in June: the player stays put until the window opens, but the money is spoken for.
+    expect(bid.status).toBe('agreed');
+    expect(bid.moveOn).toBe('2026-07-01');
+    expect(target.clubId).not.toBe(clubId);
+    expect(availableBudget(state, clubId)).toBe(budgetBefore - bid.fee);
+    until(state, '2026-07-01');
     expect(target.clubId).toBe(clubId);
     expect(financesOf(state, clubId).transferBudget).toBe(budgetBefore - bid.fee);
     expect(bid.status).toBe('completed');
@@ -75,11 +82,83 @@ describe('buying a player', () => {
     if (counter.status === 'countered') expect(counter.asking).toBeGreaterThan(counter.fee);
   });
 
-  it('refuses bids outside the window', () => {
+  it('lets deals be agreed outside a window, completing when the next one opens', () => {
     const { state, clubId } = newCareer('closed');
     until(state, '2026-10-01');
-    const target = Object.values(state.world.players).find((p) => p.clubId && p.clubId !== clubId)!;
-    expect(makeBid(state, target.id, 1_000_000).ok).toBe(false);
+    const target = Object.values(state.world.players)
+      .filter((p) => p.clubId && p.clubId !== clubId && state.world.clubs[p.clubId]!.reputation < 60 && !p.loan)
+      .filter((p) => sellerBlocks(state, p, clubId, askingPrice(state, p)) === null && squadOf(state, p.clubId!).length > 19)
+      .sort((a, b) => b.ca - a.ca)[3]!;
+    expect(makeBid(state, target.id, askingPrice(state, target) * 1.2).ok).toBe(true);
+    until(state, '2026-10-04');
+    const bid = state.transfers.bids.find((b) => b.playerId === target.id)!;
+    expect(bid.status).toBe('accepted');
+    expect(offerContract(state, target.id, { wage: wageDemand(state, target, clubId), years: 3 }).ok).toBe(true);
+    expect(bid.moveOn).toBe('2027-01-01');
+    until(state, '2027-01-02');
+    expect(target.clubId).toBe(clubId);
+  });
+
+  it('allows pre-contracts from January for players whose deals end in June', () => {
+    const { state, clubId } = newCareer('precontract');
+    until(state, '2027-02-10');
+    const target = Object.values(state.world.players).find(
+      (p) => p.clubId && p.clubId !== clubId && !p.loan && state.world.clubs[p.clubId]!.reputation < 70,
+    )!;
+    target.contract!.expires = '2027-06-30';
+    expect(preContractAllowed(state, target)).toBe(true);
+    const r = offerContract(state, target.id, { wage: wageDemand(state, target, clubId), years: 3 });
+    expect(r.ok).toBe(true);
+    expect(agreedMoveFor(state, target.id)?.moveOn).toBe('2027-07-01');
+    until(state, '2027-07-02');
+    expect(target.clubId).toBe(clubId);
+    expect(state.transfers.history.some((h) => h.playerId === target.id && h.fee === 0 && h.toId === clubId)).toBe(true);
+  });
+});
+
+describe('loans', () => {
+  it('borrows a fringe player for the season, then sends them back', () => {
+    const { state, clubId } = newCareer('loan-in');
+    until(state, '2026-07-02');
+    // A young squad player at a big club who would get games with a smaller one.
+    const target = Object.values(state.world.players)
+      .filter((p) => p.clubId && p.clubId !== clubId && !p.loan && (p.positions.GK ?? 0) < 18)
+      .find((p) => {
+        const squad = squadOf(state, p.clubId!).sort((a, b) => b.ca - a.ca);
+        return squad.indexOf(p) >= 19 && squad.length >= 22;
+      })!;
+    const parent = target.clubId;
+    expect(requestLoan(state, target.id, 'season').ok).toBe(true);
+    until(state, '2026-07-05');
+    const bid = state.transfers.bids.find((b) => b.playerId === target.id && b.kind === 'loan')!;
+    if (bid.status === 'rejected') return; // a club may still say no; the rules are covered below
+    expect(target.clubId).toBe(clubId);
+    expect(target.loan?.fromId).toBe(parent);
+    // Can't be bought from the borrowing club.
+    expect(sellerBlocks(state, target, 'someone', 1e9)).toMatch(/loan/);
+    until(state, '2027-07-02');
+    expect(target.loan ?? null).toBeNull();
+    expect([parent, null]).toContain(target.clubId);
+  });
+
+  it('sends one of your players out on loan', () => {
+    const { state, clubId } = newCareer('loan-out');
+    until(state, '2026-07-02');
+    const squad = squadOf(state, clubId).filter((p) => (p.positions.GK ?? 0) < 18).sort((a, b) => a.ca - b.ca);
+    const youngster = squad[0]!;
+    const r = offerLoanOut(state, youngster.id, 'january');
+    expect(r.ok).toBe(true);
+    until(state, '2026-07-05');
+    expect(youngster.clubId).not.toBe(clubId);
+    expect(youngster.loan).toMatchObject({ fromId: clubId, until: '2026-12-31' });
+    until(state, '2027-01-02');
+    expect(youngster.clubId).toBe(clubId);
+  });
+
+  it('has computer clubs loan out prospects', () => {
+    const state = createGame({ seed: 'ai-loans', managerName: 'Test' });
+    until(state, '2026-09-02');
+    expect(state.transfers.history.filter((h) => h.kind === 'loan').length).toBeGreaterThan(5);
   });
 });
 

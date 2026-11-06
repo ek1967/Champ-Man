@@ -328,13 +328,19 @@ export function TacticsScreen({ game }: { game: GameState }) {
       if (current.kind === 'bench') update(assignPlayer(tactics, { bench: current.index }, null));
       return;
     }
+    if (value.startsWith('bench:')) {
+      // A particular bench place: replaces that substitute (who drops out of the squad), or swaps
+      // places with them if this player is starting or already on the bench.
+      update(assignPlayer(tactics, { bench: Number(value.slice(6)) }, player.id));
+      return;
+    }
     if (value === 'bench') {
-      if (current.kind === 'bench') return;
+      if (current.kind === 'bench' || tactics.bench.length >= MAX_BENCH) return;
       if (current.kind === 'slot') {
-        // Swap with the best bench option for that slot isn't obvious; just move to the bench and leave the slot open.
+        // Move to a new place on the bench and leave the slot open.
         const cleared = assignPlayer(tactics, { slot: current.index }, null);
         update(assignPlayer(cleared, { bench: cleared.bench.length }, player.id));
-      } else if (tactics.bench.length < MAX_BENCH) {
+      } else {
         update(assignPlayer(tactics, { bench: tactics.bench.length }, player.id));
       }
       return;
@@ -355,18 +361,28 @@ export function TacticsScreen({ game }: { game: GameState }) {
       label: 'Selection',
       render: (p) => {
         const sel = selectionOf(p.id);
-        const value = sel.kind === 'slot' ? String(sel.index) : sel.kind;
+        const value = sel.kind === 'slot' ? String(sel.index) : sel.kind === 'bench' ? `bench:${sel.index}` : 'none';
         return (
           <select id={`sel-${p.id}`} className={`sel sel-${sel.kind}`} value={value} onChange={(e) => setSelection(p, e.target.value)}>
             <option value="none">—</option>
-            {slots.map((_, i) => (
-              <option key={i} value={String(i)}>
-                {slotName(i)}
-              </option>
-            ))}
-            <option value="bench" disabled={sel.kind !== 'bench' && tactics.bench.length >= MAX_BENCH}>
-              Sub
-            </option>
+            <optgroup label="Starting">
+              {slots.map((_, i) => (
+                <option key={i} value={String(i)}>
+                  {slotName(i)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Substitutes">
+              {tactics.bench.map((id, i) => {
+                const sub = players[id];
+                return (
+                  <option key={id} value={`bench:${i}`}>
+                    {`Sub ${i + 1}${sub && sub.id !== p.id ? `: ${shortName(sub)}` : ''}`}
+                  </option>
+                );
+              })}
+              {tactics.bench.length < MAX_BENCH && sel.kind !== 'bench' && <option value="bench">New sub</option>}
+            </optgroup>
           </select>
         );
       },

@@ -1953,3 +1953,14 @@ table.league tr.split-line td {
 .versus.down {
   color: var(--muted);
 }
+
+/* Older scouting searches fold away but stay available */
+details.earlier {
+  margin: 8px 0 12px;
+}
+details.earlier summary {
+  cursor: pointer;
+  color: var(--link);
+  font-weight: 600;
+  margin-bottom: 8px;
+}

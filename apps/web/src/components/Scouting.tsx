@@ -1,6 +1,6 @@
 import {
   activeAssignments, ageOn, askingPrice, cancelAssignment, estimatedAbility, estimatedPotential, formatMoney, formatShort, type GameState,
-  briefMaxFee, comparisonLine, describeSearch, findPlayers, knowledgeOf, type Position, positionComparison, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
+  briefMaxFee, comparisonLine, describeSearch, findPlayers, type ScoutSearch, scoutReportHistory, knowledgeOf, type Position, positionComparison, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
   scoutingStaff, type ScoutNeed, scoutPlayer, shortName, toggleShortlist,
 } from '@moc/engine';
 import { useState } from 'react';
@@ -45,7 +45,20 @@ type Feedback = { ok: boolean; message: string } | null;
 /** Scout and shortlist buttons, the latest report, and how well the player is known. */
 export function ScoutPanel({ game, player }: { game: GameState; player: Player }) {
   const [feedback, setFeedback] = useState<Feedback>(null);
-  if (!game.manager.clubId || player.clubId === game.manager.clubId || player.retired) return null;
+  if (!game.manager.clubId) return null;
+  if (player.clubId === game.manager.clubId || player.retired) {
+    // Your own players and players who have gone: the scouts' old report, if there is one.
+    const old = game.scouting?.reports[player.id];
+    if (!old) return null;
+    return (
+      <section className="scout-panel">
+        <h2>Scouting</h2>
+        <p className={`report grade-${old.grade}`}>
+          <strong>Grade {old.grade}</strong> · {old.verdict} <span className="muted small">(report {formatShort(old.date)} {old.date.slice(0, 4)})</span>
+        </p>
+      </section>
+    );
+  }
   const k = knowledgeOf(game, player);
   const assignment = activeAssignments(game).find((a) => a.targetId === player.id || a.targetId === player.clubId);
   const report = game.scouting?.reports[player.id];
@@ -102,14 +115,11 @@ export function ScoutClubButton({ game, clubId }: { game: GameState; clubId: str
   );
 }
 
-/** The Scouting tab: staff, current trips, shortlist and reports. */
+/** The Scouting tab: staff, current trips, searches, shortlist and every report (nothing is thrown away). */
 export function ScoutingTab({ game }: { game: GameState }) {
   const staff = scoutingStaff(game);
   const assignments = activeAssignments(game);
-  const shortlist = (game.scouting?.shortlist ?? []).map((id) => game.world.players[id]).filter((p): p is Player => !!p && !p.retired);
-  const reports = Object.entries(game.scouting?.reports ?? {})
-    .sort((a, b) => (a[1].date < b[1].date ? 1 : -1))
-    .slice(0, 25);
+  const shortlist = (game.scouting?.shortlist ?? []).map((id) => game.world.players[id]).filter((p): p is Player => !!p);
   return (
     <>
       <p>
@@ -160,7 +170,7 @@ export function ScoutingTab({ game }: { game: GameState }) {
                 const report = game.scouting?.reports[p.id];
                 return (
                   <tr key={p.id}>
-                    <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
+                    <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> <StatusTag game={game} player={p} /></td>
                     <td><PlayerClub game={game} player={p} short /></td>
                     <td>{mainPosition(p)}</td>
                     <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
@@ -175,22 +185,68 @@ export function ScoutingTab({ game }: { game: GameState }) {
           </table>
         </div>
       )}
-      <h2>Reports</h2>
-      {reports.length === 0 ? (
+      <ReportHistory game={game} />
+    </>
+  );
+}
+
+/** Where a scouted player stands now, if not simply available: signed by you, gone, retired. */
+function StatusTag({ game, player }: { game: GameState; player: Player }) {
+  let text: string | null = null;
+  if (player.abroad && (player.retired || player.abroad.until < game.date)) text = 'No longer available';
+  else if (player.retired) text = 'Retired';
+  else if (player.clubId && player.clubId === game.manager.clubId) text = 'Your player';
+  return text ? <span className="tag">{text}</span> : null;
+}
+
+function SearchResults({ game, search }: { game: GameState; search: ScoutSearch }) {
+  const rows = search.playerIds
+    .map((id, i) => ({ player: game.world.players[id], position: search.positions?.[i] }))
+    .filter((r): r is { player: Player; position: Position | undefined } => !!r.player);
+  return (
+    <div>
+      <h3>
+        {search.label.charAt(0).toUpperCase() + search.label.slice(1)}{' '}
+        <span className="muted small">({formatShort(search.date)} {search.date.slice(0, 4)})</span>
+      </h3>
+      {rows.length === 0 ? <p className="muted">Nobody suitable found.</p> : <PlayerTable game={game} rows={rows} />}
+    </div>
+  );
+}
+
+/** Every report your scouts have written, newest first: where the player was and how good at the time. */
+function ReportHistory({ game }: { game: GameState }) {
+  const [all, setAll] = useState(false);
+  const history = scoutReportHistory(game);
+  const shown = all ? history : history.slice(0, 25);
+  return (
+    <>
+      <h2>Reports {history.length > 0 && <span className="muted small">({history.length})</span>}</h2>
+      {history.length === 0 ? (
         <p className="muted">No reports yet.</p>
       ) : (
         <ul className="plain-list">
-          {reports.map(([id, r]) => {
-            const p = game.world.players[id];
+          {shown.map((entry, i) => {
+            const p = game.world.players[entry.playerId];
             if (!p) return null;
+            const r = entry.report;
             return (
-              <li key={id}>
+              <li key={`${entry.playerId}-${r.date}-${i}`}>
                 <span className={`grade grade-${r.grade}`}>{r.grade}</span> <EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink>{' '}
-                <span className="muted small">{r.verdict} ({formatShort(r.date)})</span>
+                <StatusTag game={game} player={p} />{' '}
+                <span className="muted small">
+                  {entry.where ? `${entry.where}, ${entry.abilityStars}★ · ` : ''}
+                  {r.verdict} ({formatShort(r.date)} {r.date.slice(0, 4)})
+                </span>
               </li>
             );
           })}
         </ul>
+      )}
+      {history.length > 25 && (
+        <button className="btn small ghost" onClick={() => setAll(!all)}>
+          {all ? 'Show the latest 25' : `Show all ${history.length} reports`}
+        </button>
       )}
     </>
   );
@@ -280,23 +336,17 @@ function FindPlayers({ game }: { game: GameState }) {
         the better value of two similar players.
       </p>
       {feedback && <p className={`feedback ${feedback.ok ? 'ok' : 'bad'}`}>{feedback.message}</p>}
-      {searches.slice(0, 3).map((search) => (
-        <div key={`${search.date}-${search.label}`}>
-          <h3>
-            {search.label.charAt(0).toUpperCase() + search.label.slice(1)} <span className="muted small">({formatShort(search.date)})</span>
-          </h3>
-          {search.playerIds.length === 0 ? (
-            <p className="muted">Nobody suitable found.</p>
-          ) : (
-            <PlayerTable
-              game={game}
-              rows={search.playerIds
-                .map((id, i) => ({ player: game.world.players[id], position: search.positions?.[i] }))
-                .filter((r): r is { player: Player; position: Position | undefined } => !!r.player && !r.player.retired)}
-            />
-          )}
-        </div>
+      {searches.slice(0, 3).map((search, i) => (
+        <SearchResults key={`${search.date}-${i}`} game={game} search={search} />
       ))}
+      {searches.length > 3 && (
+        <details className="earlier">
+          <summary>Earlier searches ({searches.length - 3})</summary>
+          {searches.slice(3).map((search, i) => (
+            <SearchResults key={`${search.date}-${i}`} game={game} search={search} />
+          ))}
+        </details>
+      )}
       {found.length > 0 && (
         <>
           <h3>Found abroad</h3>
@@ -355,7 +405,7 @@ function PlayerTable({ game, rows, abroad = false }: { game: GameState; rows: Ar
             const report = game.scouting?.reports[p.id];
             return (
               <tr key={p.id}>
-                <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
+                <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> <StatusTag game={game} player={p} /></td>
                 <td>{abroad ? game.world.nations[p.abroad!.nationId]?.name : <PlayerClub game={game} player={p} short />}</td>
                 <td>{position ?? mainPosition(p)}</td>
                 <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>

@@ -141,10 +141,32 @@ export interface ScoutingState {
   knowledge: Record<Id, number>;
   assignments: ScoutAssignment[];
   shortlist: Id[];
+  /** The latest report on each player. */
   reports: Record<Id, ScoutReport>;
   counter: number;
-  /** Latest searches first. */
+  /** Every search, latest first. Kept for good, so old reports can always be looked up. */
   searches?: ScoutSearch[];
+  /** Every report ever written, latest first, with where the player was and how good at the time. */
+  history?: ScoutReportEntry[];
+}
+
+export interface ScoutReportEntry {
+  playerId: Id;
+  report: ScoutReport;
+  /** Club (or country abroad) the player was at when scouted. */
+  where: string;
+  /** Ability then, as the scout saw it, in stars. */
+  abilityStars: number;
+}
+
+/** Every scout report, latest first. Older saves fall back to the latest report on each player. */
+export function scoutReportHistory(state: GameState): ScoutReportEntry[] {
+  const s = state.scouting;
+  if (!s) return [];
+  if (s.history) return s.history;
+  return Object.entries(s.reports)
+    .map(([playerId, report]) => ({ playerId, report, where: '', abilityStars: 0 }))
+    .sort((a, b) => (a.report.date < b.report.date ? 1 : -1));
 }
 
 export function scouting(state: GameState): ScoutingState {
@@ -383,6 +405,9 @@ function assess(state: GameState, player: Player): ScoutReport {
   const prospect = age <= 21 && potentialStars >= 4 ? ' One for the future.' : '';
   const report = { date: state.date, potentialStars, grade, verdict: `${GRADE_TEXT[grade]}${prospect}` };
   s.reports[player.id] = report;
+  const club = player.clubId ? state.world.clubs[player.clubId]?.shortName : undefined;
+  const where = club ?? (player.abroad ? `Abroad (${state.world.nations[player.abroad.nationId]?.name ?? '?'})` : 'Free agent');
+  (s.history ??= []).unshift({ playerId: player.id, report, where, abilityStars: abilityStars(player.ca) });
   return report;
 }
 
@@ -527,7 +552,6 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
   for (const { p } of picked) assess(state, p);
   const label = describeSearch(state, c);
   (s.searches ??= []).unshift({ date: state.date, criteria: c, label, playerIds: picked.map((x) => x.p.id), positions: picked.map((x) => x.position) });
-  s.searches = s.searches.slice(0, 10);
   addNews(state, {
     category: 'transfer',
     title: picked.length > 0 ? `Scout report: ${picked.length} ${label}` : `Scout report: nobody found`,
@@ -619,6 +643,7 @@ function writeCountryReport(state: GameState, nationId: Id, criteria?: ScoutCrit
     // Their contract with the club abroad (shown on their page; replaced when they sign).
     player.contract = { wage: estimateWage(player.ca), expires: `${yearOf(state.date) + randInt(state.rng, 1, 4)}-06-30` };
     state.world.players[player.id] = player;
+    assess(state, player);
     s.knowledge[player.id] = 85;
     found.push(player);
   }
@@ -626,7 +651,6 @@ function writeCountryReport(state: GameState, nationId: Id, criteria?: ScoutCrit
     (s.searches ??= []).unshift({
       date: state.date, criteria, label: describeSearch(state, criteria), playerIds: found.map((p) => p.id), positions: found.map((p) => mainPosition(p)),
     });
-    s.searches = s.searches.slice(0, 10);
   }
   addNews(state, {
     category: 'transfer',

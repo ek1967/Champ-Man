@@ -5,7 +5,7 @@ import { abilityStars, mainPosition } from '../src/players.ts';
 import { currentSeasonOf, squadOf } from '../src/queries.ts';
 import {
   abilityForStars, attributeView, briefMaxFee, comparisonLine, estimatedAbility, estimatedPotential, findPlayers, knowledgeOf, playersAbroad,
-  positionComparison, scoutClub, scoutingStaff, scoutPlayer, toggleShortlist,
+  positionComparison, scoutClub, scoutingStaff, scoutPlayer, scoutReportHistory, toggleShortlist,
 } from '../src/scouting.ts';
 import { askingPrice, availableBudget } from '../src/transfers.ts';
 import { ageOn } from '../src/dates.ts';
@@ -155,5 +155,32 @@ describe('scouting briefs with a budget and targets', () => {
     expect(c.squad.length).toBeGreaterThan(0);
     for (const m of c.squad) expect(state.world.players[m.id]!.clubId).toBe(clubId);
     expect(comparisonLine(state, target, 'DC')).toMatch(/^At centre-back you have /);
+  });
+});
+
+describe('keeping scout reports', () => {
+  it('keeps every search and every report, including repeat reports and players who have gone', () => {
+    const { state, rival } = career('keep');
+    const target = squadOf(state, rival)[3]!;
+    scoutPlayer(state, target.id);
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    scoutPlayer(state, target.id);
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    const reportsOnTarget = scoutReportHistory(state).filter((e) => e.playerId === target.id);
+    expect(reportsOnTarget).toHaveLength(2);
+    expect(reportsOnTarget[0]!.where).toBe(state.world.clubs[rival]!.shortName);
+
+    for (let n = 0; n < 12; n++) {
+      findPlayers(state, { position: 'any', need: n % 2 ? 'backup' : 'first', where: 'league', maxFee: 1_000_000_000 });
+      for (let i = 0; i < 6; i++) advanceDay(state);
+    }
+    expect(state.scouting!.searches!.length).toBe(12);
+
+    // Players found abroad stay in the history after the trail goes cold.
+    findPlayers(state, { position: 'ST', need: 'first', where: 'ita', maxFee: 1_000_000_000 });
+    while (state.date < '2027-03-01') advanceDay(state);
+    const abroad = scoutReportHistory(state).filter((e) => e.where.startsWith('Abroad'));
+    expect(abroad.length).toBeGreaterThan(0);
+    expect(state.world.players[abroad[0]!.playerId]!.retired).toBe(true);
   });
 });

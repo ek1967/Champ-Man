@@ -302,3 +302,9 @@ you have Tierney 3.1★ (in your side), Ralston 2.2★; this player is about 2.6
 stars to one decimal place, since half stars are too coarse to compare two players. Search
 results show the gap to the starter the player would replace; player pages show the comparison
 in the scouting panel.
+
+Scout reports are never thrown away: every search is kept (the latest three are shown, older ones
+fold away under "Earlier searches"), every report is kept in a history with the player's club and
+ability at the time (repeat reports on the same player included, and players found abroad), and
+players who have since retired, joined you or gone off the market stay in lists with a tag saying
+so. Player pages keep showing the scouts' last report after a player joins you or retires.

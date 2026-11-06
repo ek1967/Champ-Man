@@ -287,3 +287,18 @@ with the long-run harness (now with `--seed` to compare several worlds):
 Eight seasons of England stay flat (147 → 148); England + Scotland and the demo world (three
 seeds) pass the stability check; calibration passes. In Scotland Celtic, with €80M in the bank,
 win most titles, with Rangers the main challengers.
+
+## 020 — Scouting briefs with a budget, star targets and comparisons
+A brief now has a fee limit (by default the money the manager has free to spend) and optional
+targets for current and potential ability in stars. Scouts only recommend players whose clubs
+would sell within the fee, and of two similar players they prefer the cheaper (value for money
+counts for more when looking for a backup). Ability and potential targets are judged as the scout
+sees them, so a poor scout can be a little out. Trips abroad follow the same brief: the scout looks
+for a lesser player rather than one the club can't afford, and comes back empty-handed rather
+than break the brief.
+
+Every report compares the player with the manager's own players in the position ("At left-back
+you have Tierney 3.1★ (in your side), Ralston 2.2★; this player is about 2.6★ there"), using
+stars to one decimal place, since half stars are too coarse to compare two players. Search
+results show the gap to the starter the player would replace; player pages show the comparison
+in the scouting panel.

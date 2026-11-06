@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_ATTRIBUTES } from '../src/attributes.ts';
 import { advanceDay, createGame, takeJob } from '../src/game.ts';
-import { abilityStars } from '../src/players.ts';
+import { abilityStars, mainPosition } from '../src/players.ts';
 import { currentSeasonOf, squadOf } from '../src/queries.ts';
 import {
-  attributeView, estimatedAbility, estimatedPotential, findPlayers, knowledgeOf, playersAbroad, scoutClub, scoutingStaff, scoutPlayer,
-  toggleShortlist,
+  abilityForStars, attributeView, briefMaxFee, comparisonLine, estimatedAbility, estimatedPotential, findPlayers, knowledgeOf, playersAbroad,
+  positionComparison, scoutClub, scoutingStaff, scoutPlayer, toggleShortlist,
 } from '../src/scouting.ts';
+import { askingPrice, availableBudget } from '../src/transfers.ts';
 import { ageOn } from '../src/dates.ts';
 import { DEMO_TOP_DIVISION } from '../src/worldgen.ts';
 
@@ -119,5 +120,40 @@ describe('searching for players', () => {
       expect(p.positions.ST).toBe(20);
       expect(ageOn(p.dateOfBirth, state.date)).toBeLessThanOrEqual(21);
     }
+  });
+});
+
+describe('scouting briefs with a budget and targets', () => {
+  it('only recommends players within the fee, defaulting to the money free to spend', () => {
+    const { state, clubId } = career('brief-fee');
+    findPlayers(state, { position: 'any', need: 'first', where: 'all', maxFee: 3_000_000 });
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    const search = state.scouting!.searches![0]!;
+    for (const id of search.playerIds) expect(askingPrice(state, state.world.players[id]!)).toBeLessThanOrEqual(3_000_000);
+    expect(briefMaxFee(state, { position: 'any', need: 'first', where: 'all' })).toBe(Math.max(250_000, availableBudget(state, clubId)));
+  });
+
+  it("meets ability and potential targets, give or take the scout's judgement", () => {
+    const { state } = career('brief-stars');
+    findPlayers(state, { position: 'any', need: 'future', where: 'all', minPotential: 3, maxFee: 1_000_000_000 });
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    for (const id of state.scouting!.searches![0]!.playerIds) {
+      expect(state.world.players[id]!.pa).toBeGreaterThanOrEqual(abilityForStars(3) - 25);
+    }
+    findPlayers(state, { position: 'DC', need: 'first', where: 'esp', minAbility: 2, maxFee: 5_000_000 });
+    for (let i = 0; i < 15; i++) advanceDay(state);
+    for (const p of playersAbroad(state)) {
+      expect(p.ca).toBeGreaterThanOrEqual(abilityForStars(2));
+      expect(askingPrice(state, p)).toBeLessThanOrEqual(5_000_000);
+    }
+  });
+
+  it('compares a player with your own at the position', () => {
+    const { state, clubId, rival } = career('compare');
+    const target = squadOf(state, rival).find((p) => mainPosition(p) === 'DC')!;
+    const c = positionComparison(state, target, 'DC')!;
+    expect(c.squad.length).toBeGreaterThan(0);
+    for (const m of c.squad) expect(state.world.players[m.id]!.clubId).toBe(clubId);
+    expect(comparisonLine(state, target, 'DC')).toMatch(/^At centre-back you have /);
   });
 });

@@ -43,8 +43,10 @@ Phases 0–2 are done, the Phase 3 screens have a first version, and the real Pr
 - **Scouting**: players outside your club are seen through estimates (ability marked ≈,
   potential and attributes as ranges) until scouts watch them; scout a player or a whole squad,
   get graded reports, keep a shortlist. **Find players**: brief a scout with a position, what you
-  need (first-team ready, squad backup, one for the future) and where to look (your league, England,
-  Scotland, everywhere, or abroad in Spain, Italy, Brazil and other countries)
+  need (first-team ready, squad backup, one for the future), a fee limit (your free budget by
+  default), minimum ability and potential, and where to look (your league, England,
+  Scotland, everywhere, or abroad in Spain, Italy, Brazil and other countries). Reports compare
+  each player with your own in that position
 - **Scottish Premiership 2026-27**, playable, with the split after 33 rounds, and the Scottish
   Championship in the background with its play-off against the Premiership's 11th-placed club.
   Real squads come from Wikipedia and Wikidata (`npm run data:scotland`); ratings are estimates

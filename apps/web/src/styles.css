@@ -1940,3 +1940,16 @@ table.league tr.split-line td {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Scouting: how a player compares with your best in the position */
+.versus {
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+.versus.up {
+  color: var(--win);
+  font-weight: 600;
+}
+.versus.down {
+  color: var(--muted);
+}

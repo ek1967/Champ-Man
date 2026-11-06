@@ -8,11 +8,11 @@ import type { AttributeKey } from './attributes.ts';
 import { addDays, ageOn, formatShort, type ISODate, yearOf } from './dates.ts';
 import { addNews, clubLink, playerLink } from './news.ts';
 import type { Position } from './attributes.ts';
-import { abilityStars, estimateWage, generatePlayer, mainPosition, positionRating, roundMoney, shortName } from './players.ts';
+import { abilityStars, estimateValue, estimateWage, generatePlayer, mainPosition, positionRating, roundMoney, shortName } from './players.ts';
 import { getClub, squadOf } from './queries.ts';
 import { createRng, hashString, normal, random, randInt, shuffle } from './rng.ts';
 import { autoTactics, FORMATIONS } from './tactics.ts';
-import { ABROAD, askingPrice, attractCeiling, financesOf, formatMoney, sellerName, wageDemand, willingToJoin } from './transfers.ts';
+import { ABROAD, askingPrice, attractCeiling, availableBudget, formatMoney, sellerName, wageDemand, willingToJoin } from './transfers.ts';
 import type { GameState, Id, Player } from './types.ts';
 
 /** Countries scouts can travel to (the other countries planned for the game, plus France and Belgium). */
@@ -32,6 +32,72 @@ export interface ScoutCriteria {
   need: ScoutNeed;
   /** 'league' (the manager's own), 'all' (every league in the game), a nation with leagues in the game, or a country abroad. */
   where: string;
+  /** Most the club should pay in fees; the money free to spend when not given. */
+  maxFee?: number;
+  /** Ability and potential the player should have, in stars (0.5–5). */
+  minAbility?: number;
+  minPotential?: number;
+}
+
+/** Stars to one decimal place (2.3★), for comparing players more finely than the half-star display. */
+export function preciseStars(ability: number): number {
+  return Math.round(Math.max(0.5, Math.min(5, (ability - 60) / 25)) * 10) / 10;
+}
+
+/** Current Ability for a star rating (the inverse of abilityStars). */
+export function abilityForStars(stars: number): number {
+  return 60 + stars * 25;
+}
+
+/** The most a brief allows in fees: its own limit, or the money the manager has free. */
+export function briefMaxFee(state: GameState, c: ScoutCriteria): number {
+  if (c.maxFee !== undefined) return c.maxFee;
+  const clubId = state.manager.clubId;
+  return clubId ? Math.max(250_000, availableBudget(state, clubId)) : 0;
+}
+
+export interface PositionComparison {
+  position: Position;
+  /** The player's rating at the position (as the scouts see it), in stars. */
+  stars: number;
+  exact: boolean;
+  /** The manager's players best suited to the position, best first. */
+  squad: Array<{ id: Id; name: string; stars: number; inSide: boolean }>;
+}
+
+/**
+ * How a player compares with the manager's own players in a position (their main one unless
+ * given): the scouts' view of them against the manager's best options there.
+ */
+export function positionComparison(state: GameState, player: Player, position: Position = mainPosition(player)): PositionComparison | null {
+  const clubId = state.manager.clubId;
+  if (!clubId) return null;
+  const squad = squadOf(state, clubId).filter((p) => p.id !== player.id);
+  const tactics = state.manager.tactics ?? autoTactics(squad, state.date);
+  const inSide = new Set(tactics.lineup.filter((id): id is Id => !!id));
+  const mine = squad
+    .map((p) => ({ p, rating: positionRating(p, position) }))
+    .filter((x) => (x.p.positions[position] ?? 0) >= 12)
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 4)
+    .map(({ p, rating }) => ({ id: p.id, name: shortName(p), stars: preciseStars(rating), inSide: inSide.has(p.id) }));
+  const factor = player.ca > 0 ? positionRating(player, position) / player.ca : 1;
+  // As well as the scouts know the player: exact when fully scouted, otherwise their estimate.
+  const known = knowledgeOf(state, player) >= 100;
+  const offset = known ? 0 : (estimatedAbilityValue(state, player) - player.ca);
+  const stars = preciseStars((player.ca + offset) * factor);
+  return { position, stars, exact: known, squad: mine };
+}
+
+/** "At left-back you have Tierney 3★ (in your side), Ralston 2★; this player is 3.5★ there." */
+export function comparisonLine(state: GameState, player: Player, position?: Position): string {
+  const c = positionComparison(state, player, position);
+  if (!c) return '';
+  const where = POSITION_WORDS[c.position][0];
+  const theirs = `${c.exact ? '' : 'about '}${c.stars}★`;
+  if (c.squad.length === 0) return `You have nobody who plays ${where}; this player is ${theirs} there.`;
+  const list = c.squad.map((m) => `${m.name} ${m.stars}★${m.inSide ? ' (in your side)' : ''}`).join(', ');
+  return `At ${where} you have ${list}; this player is ${theirs} there.`;
 }
 
 export const SCOUT_NEED_LABELS: Record<ScoutNeed, string> = {
@@ -46,6 +112,8 @@ export interface ScoutSearch {
   criteria: ScoutCriteria;
   label: string;
   playerIds: Id[];
+  /** The position each player was found for (same order). */
+  positions?: Position[];
 }
 
 export interface ScoutAssignment {
@@ -109,12 +177,17 @@ function noise(state: GameState, player: Player, purpose: string): number {
   return random(createRng(hashString(`${state.seed}:${player.id}:${purpose}`)));
 }
 
+/** The scouts' estimate of a player's Current Ability (exact for players they know fully). */
+function estimatedAbilityValue(state: GameState, player: Player): number {
+  const k = knowledgeOf(state, player);
+  if (k >= 100) return player.ca;
+  return player.ca + (noise(state, player, 'ca') - 0.5) * 2 * (1 - k / 100) * 22;
+}
+
 /** Estimated ability in stars, and whether it's exact. */
 export function estimatedAbility(state: GameState, player: Player): { stars: number; exact: boolean } {
   const k = knowledgeOf(state, player);
-  if (k >= 100) return { stars: abilityStars(player.ca), exact: true };
-  const offset = (noise(state, player, 'ca') - 0.5) * 2 * (1 - k / 100) * 22;
-  return { stars: abilityStars(player.ca + offset), exact: false };
+  return { stars: abilityStars(estimatedAbilityValue(state, player)), exact: k >= 100 };
 }
 
 /** Potential as a star range: narrow when well known, wide when not. */
@@ -185,7 +258,12 @@ const POSITION_WORDS: Record<Position, [string, string]> = {
 /** "left-backs, first-team ready, in Scotland". */
 export function describeSearch(state: GameState, c: ScoutCriteria): string {
   const what = c.position === 'any' ? 'players for your weakest positions' : POSITION_WORDS[c.position][1];
-  return `${what} (${SCOUT_NEED_LABELS[c.need]}) ${whereLabel(state, c.where)}`;
+  const targets = [
+    c.minAbility ? `${c.minAbility}★+ now` : '',
+    c.minPotential ? `${c.minPotential}★+ potential` : '',
+    c.maxFee !== undefined ? `up to ${formatMoney(c.maxFee)}` : '',
+  ].filter(Boolean);
+  return `${what} (${[SCOUT_NEED_LABELS[c.need], ...targets].join(', ')}) ${whereLabel(state, c.where)}`;
 }
 
 function whereLabel(state: GameState, where: string): string {
@@ -321,6 +399,7 @@ function writeReport(state: GameState, player: Player): void {
       `${playerLink(player)}, ${age}, ${mainPosition(player)}${where}.`,
       `Ability ${abilityStars(player.ca)}★ · Potential about ${potentialStars}★`,
       `Verdict: ${verdict}`,
+      comparisonLine(state, player),
       club || player.abroad ? `${club ? club.shortName : 'Their club'} would want around ${formatMoney(askingPrice(state, player))}.` : 'Available on a free transfer.',
       state.manager.clubId ? `Expected wage demand: ${formatMoney(wageDemand(state, player, state.manager.clubId))} a week.` : '',
       willing.ok ? '' : `Note: the player ${willing.reason}.`,
@@ -401,7 +480,9 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
   const level = bestXiLevel(state);
   const positions = searchPositions(state, c);
   const starters = new Map(positions.map((p) => [p, starterRatingAt(state, p)]));
-  const budget = financesOf(state, clubId).transferBudget;
+  const maxFee = briefMaxFee(state, c);
+  const minCa = c.minAbility ? abilityForStars(c.minAbility) - 12 : 0;
+  const minPa = c.minPotential ? abilityForStars(c.minPotential) - 12 : 0;
   const fuzz = (p: Player) => normal(createRng(hashString(`${state.seed}:${p.id}:search:${state.date}`)), 0, (21 - judgement) * 0.6);
   const scored: Array<{ p: Player; score: number; position: Position }> = [];
   for (const p of Object.values(state.world.players)) {
@@ -419,20 +500,25 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
     if (!best) continue;
     const starter = starters.get(best.position) ?? 0;
     const seen = best.rating + fuzz(p);
+    // The scout's view of ability and potential against the brief (half a star either side rounds in).
+    if (p.ca + fuzz(p) < minCa || p.pa + fuzz(p) * 2 < minPa) continue;
+    const price = askingPrice(state, p);
+    if (price > maxFee) continue;
     let score: number;
     if (c.need === 'first') {
       if (age > 31 || seen < starter + 1) continue;
       score = seen - starter - Math.max(0, age - 28);
     } else if (c.need === 'backup') {
       if (age > 33 || seen < starter - 14 || seen >= starter + 1) continue;
-      score = seen - starter + 14 - Math.log10(1 + askingPrice(state, p) / 1_000_000) * 3;
+      score = seen - starter + 14;
     } else {
       const potential = p.pa + fuzz(p) * 2;
       if (age > 21 || potential < level - 6) continue;
       score = potential - level + (21 - age) * 2;
     }
-    if (askingPrice(state, p) > Math.max(budget, 1) * 1.5) continue;
     if (!willingToJoin(state, p, clubId).ok) continue;
+    // Value for money: of two similar players, the cheaper is recommended first.
+    score -= (price / Math.max(1, maxFee)) * (c.need === 'backup' ? 8 : 5);
     scored.push({ p, score, position: best.position });
   }
   // Scouts don't see everyone: pick from the best dozen.
@@ -440,7 +526,7 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
   const picked = shuffle(state.rng, shortlist).slice(0, 5).sort((a, b) => b.score - a.score);
   for (const { p } of picked) assess(state, p);
   const label = describeSearch(state, c);
-  (s.searches ??= []).unshift({ date: state.date, criteria: c, label, playerIds: picked.map((x) => x.p.id) });
+  (s.searches ??= []).unshift({ date: state.date, criteria: c, label, playerIds: picked.map((x) => x.p.id), positions: picked.map((x) => x.position) });
   s.searches = s.searches.slice(0, 10);
   addNews(state, {
     category: 'transfer',
@@ -449,14 +535,14 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
       ? [
           `Your scout has been looking for ${label} and recommends:`,
           picked
-            .map(({ p }) => {
+            .map(({ p, position }) => {
               const club = getClub(state, p.clubId!);
-              return `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}) at ${clubLink(club)}: grade ${s.reports[p.id]?.grade}, about ${formatMoney(askingPrice(state, p))}`;
+              return `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}) at ${clubLink(club)}: grade ${s.reports[p.id]?.grade}, about ${formatMoney(askingPrice(state, p))}. ${comparisonLine(state, p, position)}`;
             })
-            .join('\n'),
+            .join('\n\n'),
           'They are on the Scouting screen too.',
         ].join('\n\n')
-      : `Your scout looked for ${label} but found nobody suitable who would join and you could afford. Try another position, another kind of player or somewhere else.`,
+      : `Your scout looked for ${label} but found nobody suitable who would join at that price. Try a higher fee, lower targets, another position or somewhere else.`,
     important: true,
   });
 }
@@ -496,20 +582,38 @@ function writeCountryReport(state: GameState, nationId: Id, criteria?: ScoutCrit
   }
   const found: Player[] = [];
   const until = addDays(state.date, ABROAD_AVAILABLE_DAYS);
+  const maxFee = criteria ? briefMaxFee(state, criteria) : Infinity;
+  const minCa = criteria?.minAbility ? abilityForStars(criteria.minAbility) : 0;
+  const minPa = criteria?.minPotential ? abilityForStars(criteria.minPotential) : 0;
   for (const t of targets) {
-    s.counter++;
-    const player = generatePlayer(state.rng, {
-      id: `abr-${s.counter}`,
-      position: t.position,
-      ca: Math.min(t.ca, ceiling, 190),
-      age: t.age,
-      nationId,
-      namePool: nation.namePool,
-      clubId: null,
-      today: state.date,
-    });
-    // A prospect the scout recommends has the potential to reach the side's level.
-    if (t.future) player.pa = Math.max(player.pa, Math.round(level + randInt(state.rng, -4, 12)));
+    // Within the brief: at least the ability asked for, and cheap enough (scouts look for a lesser
+    // player rather than one the club can't afford).
+    let ca = Math.max(Math.min(t.ca, ceiling, 190), minCa);
+    let player: Player | null = null;
+    for (let attempt = 0; attempt < 6 && ca >= minCa; attempt++, ca -= 5) {
+      s.counter++;
+      const candidate = generatePlayer(state.rng, {
+        id: `abr-${s.counter}`,
+        position: t.position,
+        ca,
+        age: t.age,
+        nationId,
+        namePool: nation.namePool,
+        clubId: null,
+        today: state.date,
+      });
+      // A prospect the scout recommends has the potential to reach the side's level, and any target set.
+      if (t.future) candidate.pa = Math.max(candidate.pa, Math.round(level + randInt(state.rng, -4, 12)));
+      if (minPa > candidate.pa) {
+        if (t.age > 23) continue;
+        candidate.pa = minPa + randInt(state.rng, 0, 8);
+      }
+      candidate.value = estimateValue(candidate.ca, candidate.pa, t.age);
+      if (Math.max(100_000, roundMoney(candidate.value * 1.25)) > maxFee) continue;
+      player = candidate;
+      break;
+    }
+    if (!player) continue;
     player.abroad = { nationId, until, price: Math.max(100_000, roundMoney(player.value * 1.25)) };
     player.squadNumber = null;
     // Their contract with the club abroad (shown on their page; replaced when they sign).
@@ -518,16 +622,24 @@ function writeCountryReport(state: GameState, nationId: Id, criteria?: ScoutCrit
     s.knowledge[player.id] = 85;
     found.push(player);
   }
+  if (criteria) {
+    (s.searches ??= []).unshift({
+      date: state.date, criteria, label: describeSearch(state, criteria), playerIds: found.map((p) => p.id), positions: found.map((p) => mainPosition(p)),
+    });
+    s.searches = s.searches.slice(0, 10);
+  }
   addNews(state, {
     category: 'transfer',
-    title: `Scout report: ${found.length} players in ${nation.name}`,
-    body: [
-      `Your scout is back from ${nation.name} with ${found.length} players who could interest you:`,
-      found
-        .map((p) => `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}, ${gradeFor(state, p)}) · their club wants about ${formatMoney(askingPrice(state, p))}`)
-        .join('\n'),
-      `Make offers from their pages. They are available until ${formatShort(until)}; deals go through when the window is open.`,
-    ].join('\n\n'),
+    title: found.length > 0 ? `Scout report: ${found.length} players in ${nation.name}` : `Scout report: nobody found in ${nation.name}`,
+    body: found.length > 0
+      ? [
+          `Your scout is back from ${nation.name} with ${found.length} players who could interest you:`,
+          found
+            .map((p) => `${playerLink(p)} (${mainPosition(p)}, ${ageOn(p.dateOfBirth, state.date)}, ${gradeFor(state, p)}) · their club wants about ${formatMoney(askingPrice(state, p))}. ${comparisonLine(state, p)}`)
+            .join('\n\n'),
+          `Make offers from their pages. They are available until ${formatShort(until)}; deals go through when the window is open.`,
+        ].join('\n\n')
+      : `Your scout found nobody in ${nation.name} who fits the brief at that price. Try a higher fee or lower targets.`,
     important: true,
   });
 }

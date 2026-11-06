@@ -1,6 +1,6 @@
 import {
   activeAssignments, ageOn, askingPrice, cancelAssignment, estimatedAbility, estimatedPotential, formatMoney, formatShort, type GameState,
-  describeSearch, findPlayers, knowledgeOf, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
+  briefMaxFee, comparisonLine, describeSearch, findPlayers, knowledgeOf, type Position, positionComparison, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
   scoutingStaff, type ScoutNeed, scoutPlayer, shortName, toggleShortlist,
 } from '@moc/engine';
 import { useState } from 'react';
@@ -61,6 +61,7 @@ export function ScoutPanel({ game, player }: { game: GameState; player: Player }
           {k >= 100 ? 'Fully scouted' : `${k}% known`}
         </span>
       </div>
+      <p className="small">{comparisonLine(game, player)}</p>
       {report && (
         <p className={`report grade-${report.grade}`}>
           <strong>Grade {report.grade}</strong> · {report.verdict} <span className="muted small">(report {formatShort(report.date)})</span>
@@ -208,6 +209,10 @@ function FindPlayers({ game }: { game: GameState }) {
   const [position, setPosition] = useState<ScoutCriteria['position']>('any');
   const [need, setNeed] = useState<ScoutNeed>('first');
   const [where, setWhere] = useState('all');
+  const free = briefMaxFee(game, { position, need, where });
+  const [maxFee, setMaxFee] = useState((free / 1_000_000).toFixed(1));
+  const [minAbility, setMinAbility] = useState(0);
+  const [minPotential, setMinPotential] = useState(0);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const searches = game.scouting?.searches ?? [];
   const found = playersAbroad(game);
@@ -222,7 +227,13 @@ function FindPlayers({ game }: { game: GameState }) {
         className="money-form"
         onSubmit={(e) => {
           e.preventDefault();
-          setFeedback(act((g) => findPlayers(g, { position, need, where })));
+          const fee = Math.round(Number(maxFee) * 1_000_000);
+          setFeedback(act((g) => findPlayers(g, {
+            position, need, where,
+            ...(fee > 0 ? { maxFee: fee } : {}),
+            ...(minAbility > 0 ? { minAbility } : {}),
+            ...(minPotential > 0 ? { minPotential } : {}),
+          })));
         }}
       >
         <label className="money-field" htmlFor="scout-position">
@@ -254,8 +265,20 @@ function FindPlayers({ game }: { game: GameState }) {
             </optgroup>
           </select>
         </label>
+        <label className="money-field" htmlFor="scout-fee">
+          <span>Fee up to</span>
+          <span className="money-input">
+            €<input id="scout-fee" type="number" min="0.1" step="0.1" inputMode="decimal" value={maxFee} onChange={(e) => setMaxFee(e.target.value)} />M
+          </span>
+        </label>
+        <StarSelect id="scout-ability" label="Ability at least" value={minAbility} onChange={setMinAbility} />
+        <StarSelect id="scout-potential" label="Potential at least" value={minPotential} onChange={setMinPotential} />
         <button className="btn" type="submit">Send a scout</button>
       </form>
+      <p className="muted small">
+        You have {formatMoney(free)} free to spend. Scouts only recommend players their clubs would sell for that much or less, and prefer
+        the better value of two similar players.
+      </p>
       {feedback && <p className={`feedback ${feedback.ok ? 'ok' : 'bad'}`}>{feedback.message}</p>}
       {searches.slice(0, 3).map((search) => (
         <div key={`${search.date}-${search.label}`}>
@@ -265,41 +288,80 @@ function FindPlayers({ game }: { game: GameState }) {
           {search.playerIds.length === 0 ? (
             <p className="muted">Nobody suitable found.</p>
           ) : (
-            <PlayerTable game={game} players={search.playerIds.map((id) => game.world.players[id]).filter((p): p is Player => !!p && !p.retired)} />
+            <PlayerTable
+              game={game}
+              rows={search.playerIds
+                .map((id, i) => ({ player: game.world.players[id], position: search.positions?.[i] }))
+                .filter((r): r is { player: Player; position: Position | undefined } => !!r.player && !r.player.retired)}
+            />
           )}
         </div>
       ))}
       {found.length > 0 && (
         <>
           <h3>Found abroad</h3>
-          <PlayerTable game={game} players={found} abroad />
+          <PlayerTable game={game} rows={found.map((player) => ({ player, position: undefined }))} abroad />
         </>
       )}
     </>
   );
 }
 
-function PlayerTable({ game, players, abroad = false }: { game: GameState; players: Player[]; abroad?: boolean }) {
+function StarSelect(props: { id: string; label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <label className="money-field" htmlFor={props.id}>
+      <span>{props.label}</span>
+      <select id={props.id} value={props.value} onChange={(e) => props.onChange(Number(e.target.value))}>
+        {[0, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5].map((s) => (
+          <option key={s} value={s}>{s === 0 ? 'Any' : `${s}★`}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * How a player compares with the starter they would replace at a position (the weakest of your
+ * players there in the side, or your best there if none is): "+0.3★ on Tierney".
+ */
+export function VersusBest({ game, player, position }: { game: GameState; player: Player; position?: Position }) {
+  const c = positionComparison(game, player, position);
+  if (!c) return null;
+  const starters = c.squad.filter((m) => m.inSide);
+  const best = starters.length > 0 ? starters[starters.length - 1] : c.squad[0];
+  if (!best) return <span className="tag ok" title={comparisonLine(game, player, position)}>Nobody there</span>;
+  const diff = c.stars - best.stars;
+  const gap = Math.round(Math.abs(diff) * 10) / 10;
+  const text = gap === 0 ? `level with ${best.name}` : `${diff > 0 ? '+' : '−'}${gap}★ on ${best.name}`;
+  return (
+    <span className={`versus ${gap === 0 ? '' : diff > 0 ? 'up' : 'down'}`} title={comparisonLine(game, player, position)}>
+      {c.exact ? '' : '≈ '}{text}
+    </span>
+  );
+}
+
+function PlayerTable({ game, rows, abroad = false }: { game: GameState; rows: Array<{ player: Player; position: Position | undefined }>; abroad?: boolean }) {
   return (
     <div className="table-wrap">
       <table className="data">
         <thead>
           <tr>
             <th>Player</th><th>{abroad ? 'Country' : 'Club'}</th><th>Pos</th><th className="right">Age</th><th>Ability</th><th>Potential</th>
-            <th className="right">Price</th><th>{abroad ? 'Until' : 'Grade'}</th>
+            <th>Vs your starter</th><th className="right">Price</th><th>{abroad ? 'Until' : 'Grade'}</th>
           </tr>
         </thead>
         <tbody>
-          {players.map((p) => {
+          {rows.map(({ player: p, position }) => {
             const report = game.scouting?.reports[p.id];
             return (
               <tr key={p.id}>
                 <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink></td>
                 <td>{abroad ? game.world.nations[p.abroad!.nationId]?.name : <PlayerClub game={game} player={p} short />}</td>
-                <td>{mainPosition(p)}</td>
+                <td>{position ?? mainPosition(p)}</td>
                 <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
                 <td><AbilityEstimate game={game} player={p} /></td>
                 <td><PotentialEstimate game={game} player={p} /></td>
+                <td><VersusBest game={game} player={p} position={position} /></td>
                 <td className="right">{formatMoney(askingPrice(game, p))}</td>
                 <td>{abroad ? formatShort(p.abroad!.until) : report ? <span className={`grade grade-${report.grade}`}>{report.grade}</span> : '–'}</td>
               </tr>

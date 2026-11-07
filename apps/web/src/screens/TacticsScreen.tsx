@@ -167,6 +167,9 @@ export function PitchBoard(props: {
   date: string;
   selected?: number | null;
   onSelect?: (slot: number) => void;
+  /** Live energy (0–100) during a match, in place of pre-match fitness. */
+  energy?: Record<string, number>;
+  emptyLabel?: string;
 }) {
   return (
     <div className="pitch" role="group" aria-label="Team shape">
@@ -188,14 +191,14 @@ export function PitchBoard(props: {
             className={`slot ${props.selected === i ? 'is-selected' : ''} ${status ? 'is-unavailable' : ''} fit-${fit?.tone ?? 'none'}`}
             style={{ left: `${slot.x}%`, bottom: `${slot.y}%` }}
             onClick={() => props.onSelect?.(i)}
-            title={player ? `${shortName(player)}: ${fit?.label}${status ? ` · ${status}` : ''}` : 'Empty: filled automatically on match day'}
+            title={player ? `${shortName(player)}: ${fit?.label}${status ? ` · ${status}` : ''}` : props.emptyLabel ?? 'Empty: filled automatically on match day'}
           >
             <span className="slot-pos">{slot.position}</span>
             <span className="slot-name">{player ? shortName(player) : 'Empty'}</span>
             {player && (
               <span className="slot-meta">
                 <Stars value={positionStars(player, slot.position)} label="Ability in this position" small />
-                <ConditionBar value={player.condition} compact />
+                <ConditionBar value={props.energy?.[player.id] ?? player.condition} compact />
               </span>
             )}
           </button>

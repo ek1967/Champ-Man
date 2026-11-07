@@ -11,7 +11,7 @@ import { addDays, type ISODate } from './dates.ts';
 import { shortName } from './players.ts';
 import { chance, forkRng, normal, random, randInt, type Rng, weightedPick } from './rng.ts';
 import {
-  FORMATIONS, MAX_SUBSTITUTIONS, type Mentality, normalizeTactics, type PlayerInstructions, playerInstructions,
+  type FormationId, FORMATIONS, MAX_SUBSTITUTIONS, type Mentality, normalizeTactics, type PlayerInstructions, playerInstructions,
   selectionRating, type Tactics, type TeamInstructions,
 } from './tactics.ts';
 import type { Club, GoalEvent, Id, Player, TeamMatchStats } from './types.ts';
@@ -51,7 +51,7 @@ export interface MatchEvent {
   side: Side | null;
   kind:
     | 'kickoff' | 'halftime' | 'fulltime' | 'goal' | 'chance' | 'save' | 'miss' | 'blocked' | 'corner'
-    | 'foul' | 'yellow' | 'red' | 'injury' | 'sub' | 'offside' | 'play';
+    | 'foul' | 'yellow' | 'red' | 'injury' | 'sub' | 'offside' | 'play' | 'tactic';
   text: string;
   /** Goals, cards, injuries and substitutions: shown highlighted and kept in "key events only" mode. */
   key: boolean;
@@ -652,6 +652,70 @@ export function setInstructions(live: LiveMatch, side: Side, instructions: TeamI
 export function movePlayer(live: LiveMatch, side: Side, id: Id, position: Position): void {
   const slot = live[side].onPitch.find((x) => x.id === id);
   if (slot) slot.position = position;
+}
+
+/**
+ * A side's players in its formation's slots, as they stand now: slot i holds whoever is playing that
+ * position, or null if nobody is (after a red card, say).
+ */
+export function liveLineup(live: LiveMatch, side: Side): Array<Id | null> {
+  const used = new Set<Id>();
+  return FORMATIONS[live[side].tactics.formation].map((slot) => {
+    const here = live[side].onPitch.find((x) => x.position === slot.position && !used.has(x.id));
+    if (!here) return null;
+    used.add(here.id);
+    return here.id;
+  });
+}
+
+/** Two players on the pitch trade positions. Returns false if either isn't on the pitch. */
+export function swapLivePositions(ctx: MatchContext, live: LiveMatch, side: Side, aId: Id, bId: Id): boolean {
+  if (live.period === 'full' || aId === bId) return false;
+  const a = live[side].onPitch.find((x) => x.id === aId);
+  const b = live[side].onPitch.find((x) => x.id === bId);
+  if (!a || !b) return false;
+  [a.position, b.position] = [b.position, a.position];
+  push(ctx, live, { side, kind: 'tactic', key: false, text: `${name(ctx, aId)} moves to ${a.position}, ${name(ctx, bId)} to ${b.position}.` });
+  return true;
+}
+
+/**
+ * Switches formation during the match. The keeper stays in goal and everyone else takes the new
+ * position they know best, staying put where the old and new shapes share a position.
+ */
+export function changeLiveFormation(ctx: MatchContext, live: LiveMatch, side: Side, formation: FormationId): boolean {
+  const state = live[side];
+  if (live.period === 'full' || !FORMATIONS[formation]) return false;
+  if (formation === state.tactics.formation) return true;
+  const open = FORMATIONS[formation].map((slot) => slot.position);
+  const placed = new Map<Id, Position>();
+  const take = (id: Id, index: number) => {
+    placed.set(id, open[index] as Position);
+    open.splice(index, 1);
+  };
+  const keeper = state.onPitch.find((x) => x.position === 'GK');
+  if (keeper && open.includes('GK')) take(keeper.id, open.indexOf('GK'));
+  // Greedy: the best (player, position) pairs first, with a nudge towards where they already are.
+  const options: Array<{ id: Id; position: Position; score: number }> = [];
+  for (const x of state.onPitch) {
+    if (placed.has(x.id)) continue;
+    const player = ctx.players[x.id];
+    for (const position of new Set(open)) {
+      if (position === 'GK') continue;
+      options.push({ id: x.id, position, score: (player?.positions[position] ?? 0) + (x.position === position ? 3 : 0) });
+    }
+  }
+  options.sort((a, b) => b.score - a.score);
+  for (const o of options) {
+    if (placed.has(o.id)) continue;
+    const index = open.indexOf(o.position);
+    if (index >= 0) take(o.id, index);
+  }
+  for (const x of state.onPitch) x.position = placed.get(x.id) ?? x.position;
+  // The starting line-up stays as it was; only the shape changes.
+  state.tactics = { ...state.tactics, formation };
+  push(ctx, live, { side, kind: 'tactic', key: true, text: `${teamName(ctx, live, side)} switch to ${formation}.` });
+  return true;
 }
 
 /** The computer manager: changes tired or injured players, and chases or protects a result late on. */

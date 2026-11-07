@@ -1,7 +1,7 @@
 import {
   autoTactics, completeMatch, continueGame, type GameState, humanFixtureOn, type LiveMatch, type MatchEvent,
   matchContext, playFixtures, playToEnd, setInstructions, squadOf, startMatch, stepMatch, type StopReason,
-  substitute, type Tactics, type TeamInstructions,
+  substitute, swapLivePositions, changeLiveFormation, type FormationId, type Tactics, type TeamInstructions,
 } from '@moc/engine';
 import { useSyncExternalStore } from 'react';
 import { maybeCloudSave, saveToCloud } from './cloud.ts';
@@ -131,6 +131,20 @@ export function substituteLive(outId: string, inId: string): boolean {
   if (!game || !live) return false;
   const side = live.home.human ? 'home' : 'away';
   const ok = substitute(matchContext(game), live, side, outId, inId);
+  emit();
+  return ok;
+}
+
+export function swapLive(aId: string, bId: string): boolean {
+  if (!game || !live) return false;
+  const ok = swapLivePositions(matchContext(game), live, live.home.human ? 'home' : 'away', aId, bId);
+  emit();
+  return ok;
+}
+
+export function formationLive(formation: FormationId): boolean {
+  if (!game || !live) return false;
+  const ok = changeLiveFormation(matchContext(game), live, live.home.human ? 'home' : 'away', formation);
   emit();
   return ok;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { completeMatch, createGame, matchContext, startMatch, takeJob } from '../src/game.ts';
-import { kickOff, type LiveMatch, playToEnd, stepMatch, substitute } from '../src/match.ts';
+import { changeLiveFormation, kickOff, liveLineup, type LiveMatch, playToEnd, stepMatch, substitute, swapLivePositions } from '../src/match.ts';
 import { currentSeasonOf, seasonFixtures, squadOf } from '../src/queries.ts';
 import { createRng } from '../src/rng.ts';
 import { autoTactics, DEFAULT_INSTRUCTIONS, FORMATIONS, type TeamInstructions } from '../src/tactics.ts';
@@ -68,6 +68,34 @@ describe('match engine', () => {
     expect(made).toBe(5);
     expect(live.home.onPitch).toHaveLength(11);
     expect(substitute(ctx, live, 'home', live.home.onPitch[1]!.id, 'not-on-bench')).toBe(false);
+  });
+
+  it('lets a manager swap positions and change formation during the match', () => {
+    const live = kickOff(ctx, {
+      fixtureId: 'x', date: state.date,
+      home: { clubId: homeId, human: true, tactics: { ...autoTactics(squadOf(state, homeId), state.date), formation: '4-4-2' } },
+      away: { clubId: awayId, human: true, tactics: autoTactics(squadOf(state, awayId), state.date) },
+      rng: createRng(3), commentary: true,
+    });
+    for (let i = 0; i < 20; i++) stepMatch(ctx, live);
+    const starters = [...live.home.tactics.lineup];
+    const [a, b] = [live.home.onPitch[1]!, live.home.onPitch[5]!];
+    const [posA, posB] = [a.position, b.position];
+    expect(swapLivePositions(ctx, live, 'home', a.id, b.id)).toBe(true);
+    expect([a.position, b.position]).toEqual([posB, posA]);
+    expect(swapLivePositions(ctx, live, 'home', a.id, 'not-playing')).toBe(false);
+
+    const keeper = live.home.onPitch.find((x) => x.position === 'GK')!.id;
+    expect(changeLiveFormation(ctx, live, 'home', '3-5-2')).toBe(true);
+    expect(live.home.tactics.formation).toBe('3-5-2');
+    // Every slot of the new shape is filled, the keeper is still in goal, and nobody left the pitch.
+    expect(liveLineup(live, 'home').every((id) => id !== null)).toBe(true);
+    expect(live.home.onPitch.find((x) => x.id === keeper)?.position).toBe('GK');
+    expect(live.home.onPitch).toHaveLength(11);
+    expect(live.home.tactics.lineup).toEqual(starters);
+    expect(live.events.some((e) => e.kind === 'tactic')).toBe(true);
+    playToEnd(ctx, live);
+    expect(live.period).toBe('full');
   });
 
   it('responds to mentality: attacking sides score and concede more', () => {

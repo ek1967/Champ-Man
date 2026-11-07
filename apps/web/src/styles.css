@@ -1306,6 +1306,10 @@ tr.is-sub td:first-child {
 }
 .control-side.right {
   justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .btn.main-action {
   min-width: 190px;
@@ -1889,7 +1893,20 @@ tr.group-row td {
     box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.12);
   }
   .screen.match {
-    padding-bottom: 84px;
+    padding-bottom: 132px;
+  }
+  .match-controls {
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .match-controls .control-side.right {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    flex-wrap: nowrap;
+  }
+  .match-controls .control-side.right .btn {
+    flex: 1;
+    padding: 8px 6px;
   }
   .match-controls .field span {
     display: none;
@@ -2053,4 +2070,54 @@ details.earlier summary {
   background: var(--draw);
   color: #fff;
   border: 2px dashed var(--loss);
+}
+
+/* ---------- Live match: your team ---------- */
+
+.live-team {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .live-team {
+    grid-template-columns: 1fr;
+  }
+}
+.live-team-pitch .field {
+  margin-bottom: 8px;
+}
+.change-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.live-players tr.pickable {
+  cursor: pointer;
+}
+.live-players tr.pickable:hover td {
+  background: var(--panel-alt);
+}
+.live-players tr.is-picked td {
+  background: var(--mine);
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  cursor: pointer;
+  text-align: left;
+}
+.link-button:hover {
+  text-decoration: underline;
 }

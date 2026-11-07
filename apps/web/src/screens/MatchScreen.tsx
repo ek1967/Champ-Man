@@ -1,14 +1,15 @@
 import {
-  displayMinute, FORMATIONS, type GameState, humanFixtureOn, type LiveMatch, livePossession, matchTactics,
-  MAX_SUBSTITUTIONS, readyTactics, shortName, type Side, squadOf, type TeamMatchStats,
+  displayMinute, FORMATION_IDS, type FormationId, type GameState, humanFixtureOn, type LiveMatch, liveLineup, livePossession,
+  matchTactics, MAX_SUBSTITUTIONS, readyTactics, shortName, type Side, squadOf, type TeamMatchStats,
 } from '@moc/engine';
 import { useEffect, useRef, useState } from 'react';
 import { ClubName } from '../components/ClubName.tsx';
+import { FitChip, PositionTags } from '../components/Positions.tsx';
 import { Tabs } from '../components/Tabs.tsx';
 import { RouteLink } from '../components/EntityLink.tsx';
 import { navigate } from '../state/nav.ts';
 import {
-  ensureTactics, finishLive, getLiveMatch, instructLive, kickOffLive, playLiveToEnd, stepLive, substituteLive,
+  ensureTactics, finishLive, formationLive, getLiveMatch, instructLive, kickOffLive, playLiveToEnd, stepLive, substituteLive, swapLive,
 } from '../state/store.ts';
 import { Condition, InstructionsForm, PitchBoard } from './TacticsScreen.tsx';
 
@@ -132,8 +133,8 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
   const [speed, setSpeed] = useState<Speed>(readSpeed);
   const [paused, setPaused] = useState(false);
   const [tab, setTab] = useState<'commentary' | 'stats' | 'teams' | 'scores'>('commentary');
-  const [subOut, setSubOut] = useState<string>('');
-  const [subIn, setSubIn] = useState<string>('');
+  const [picked, setPicked] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const mySide: Side = live.home.human ? 'home' : 'away';
   const theirSide: Side = mySide === 'home' ? 'away' : 'home';
   const me = live[mySide];
@@ -218,6 +219,38 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
 
   const benchPlayers = me.bench.map((id) => game.world.players[id]).filter((p) => p !== undefined);
   const subsLeft = MAX_SUBSTITUTIONS - me.subsMade;
+  const myLineup = liveLineup(live, mySide);
+  const onPitch = (id: string) => me.onPitch.some((x) => x.id === id);
+  const energy = Object.fromEntries(Object.values(live.players).map((lp) => [lp.id, Math.round(lp.energy * 100)]));
+  const nameOf = (id: string) => {
+    const p = game.world.players[id];
+    return p ? shortName(p) : '';
+  };
+
+  // Tap one player, then another: two on the pitch swap positions; a player and a substitute is a change.
+  const pick = (id: string | null) => {
+    if (!id || finished) return;
+    setNote(null);
+    if (!picked || picked === id) {
+      setPicked(picked === id ? null : id);
+      // The clock stops while you make changes.
+      if (!picked) setPaused(true);
+      return;
+    }
+    const first = picked;
+    if (onPitch(first) && onPitch(id)) {
+      swapLive(first, id);
+      setNote(`${nameOf(first)} and ${nameOf(id)} have swapped positions.`);
+    } else if (onPitch(first) !== onPitch(id)) {
+      const [out, sub] = onPitch(first) ? [first, id] : [id, first];
+      if (subsLeft <= 0) setNote('You have used all your substitutions.');
+      else if (substituteLive(out, sub)) setNote(`${nameOf(sub)} comes on for ${nameOf(out)}.`);
+    } else {
+      setPicked(id);
+      return;
+    }
+    setPicked(null);
+  };
 
   return (
     <div className="screen match">
@@ -246,6 +279,17 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
           {mainLabel}
         </button>
         <div className="control-side right">
+          {!finished && (
+            <button
+              className="btn"
+              onClick={() => {
+                setPaused(true);
+                setTab('teams');
+              }}
+            >
+              Make changes
+            </button>
+          )}
           {!finished && (
             <button
               className="btn"
@@ -286,86 +330,120 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
 
       {tab === 'teams' && (
         <div className="teams-tab">
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Pos</th>
-                  <th>Player</th>
-                  <th className="right">Energy</th>
-                  <th className="right">Rating</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {me.onPitch.map(({ id, position }) => {
-                  const p = game.world.players[id];
-                  const lp = live.players[id];
-                  if (!p || !lp) return null;
-                  return (
-                    <tr key={id} className={subOut === id ? 'is-mine' : ''}>
-                      <td className="strong">{position}</td>
-                      <td>
-                        {shortName(p)}
-                        {lp.yellow > 0 && <span className="card yellow" title="Booked" />}
-                        {lp.injured && <span className="tag danger">Injured</span>}
-                        {lp.goals > 0 && <span className="muted"> ⚽×{lp.goals}</span>}
-                      </td>
-                      <td className="right">
-                        <Condition value={Math.round(lp.energy * 100)} />
-                      </td>
-                      <td className="right">{lp.rating.toFixed(1)}</td>
-                      <td className="right">
-                        {!finished && subsLeft > 0 && (
-                          <button className="btn small" onClick={() => setSubOut(id)}>
-                            Take off
-                          </button>
-                        )}
-                      </td>
+          <div className="live-team">
+            <section className="live-team-pitch">
+              <label className="field inline">
+                <span>Formation</span>
+                <select
+                  id="live-formation"
+                  value={me.tactics.formation}
+                  disabled={finished}
+                  onChange={(e) => {
+                    setPaused(true);
+                    formationLive(e.target.value as FormationId);
+                    setNote(`Switched to ${e.target.value}: players moved to the positions they know best.`);
+                  }}
+                >
+                  {FORMATION_IDS.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <PitchBoard
+                formation={me.tactics.formation}
+                lineup={myLineup}
+                players={game.world.players}
+                date={game.date}
+                energy={energy}
+                selected={picked ? myLineup.indexOf(picked) : null}
+                onSelect={(i) => pick(myLineup[i] ?? null)}
+                emptyLabel="Nobody here (sent off)"
+              />
+            </section>
+            <section className="live-team-lists">
+              {!finished && (
+                <p className="change-hint" aria-live="polite">
+                  {picked
+                    ? `${nameOf(picked)} selected: tap ${onPitch(picked) ? `a team-mate to swap positions${subsLeft > 0 ? ' or a substitute to bring on' : ''}` : 'the player to take off'}.`
+                    : note ?? 'Tap a player, then a team-mate to swap positions, or a substitute to bring on.'}
+                  {picked && (
+                    <button className="btn small" onClick={() => setPicked(null)}>
+                      Cancel
+                    </button>
+                  )}
+                </p>
+              )}
+              <div className="table-wrap">
+                <table className="data live-players">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Player</th>
+                      <th className="right">Energy</th>
+                      <th className="right">Rating</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {me.onPitch.map(({ id, position }) => {
+                      const p = game.world.players[id];
+                      const lp = live.players[id];
+                      if (!p || !lp) return null;
+                      return (
+                        <tr key={id} className={`pickable ${picked === id ? 'is-picked' : ''}`} onClick={() => pick(id)}>
+                          <td><FitChip player={p} position={position} /></td>
+                          <td>
+                            <button type="button" className="link-button" onClick={(e) => { e.stopPropagation(); pick(id); }}>
+                              {shortName(p)}
+                            </button>
+                            {lp.yellow > 0 && <span className="card yellow" title="Booked" />}
+                            {lp.injured && <span className="tag danger">Injured</span>}
+                            {lp.goals > 0 && <span className="muted"> ⚽×{lp.goals}</span>}
+                          </td>
+                          <td className="right">
+                            <Condition value={Math.round(lp.energy * 100)} />
+                          </td>
+                          <td className="right">{lp.rating.toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <h3>
+                Substitutes <span className="muted small">({subsLeft} of {MAX_SUBSTITUTIONS} changes left)</span>
+              </h3>
+              {benchPlayers.length === 0 ? (
+                <p className="muted small">Nobody left on the bench.</p>
+              ) : (
+                <div className="table-wrap">
+                  <table className="data live-players">
+                    <tbody>
+                      {benchPlayers.map((p) => (
+                        <tr key={p.id} className={`pickable ${picked === p.id ? 'is-picked' : ''}`} onClick={() => pick(p.id)}>
+                          <td><PositionTags player={p} limit={2} /></td>
+                          <td>
+                            <button type="button" className="link-button" onClick={(e) => { e.stopPropagation(); pick(p.id); }}>
+                              {shortName(p)}
+                            </button>
+                          </td>
+                          <td className="right">
+                            <Condition value={p.condition} />
+                          </td>
+                          <td className="right">
+                            {picked && onPitch(picked) && (
+                              <FitChip player={p} position={me.onPitch.find((x) => x.id === picked)!.position} />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
-          {!finished && subsLeft > 0 && (
-            <div className="sub-panel">
-              <label className="field inline">
-                <span>Off</span>
-                <select id="sub-out" value={subOut} onChange={(e) => setSubOut(e.target.value)}>
-                  <option value="">Choose a player</option>
-                  {me.onPitch.map(({ id, position }) => (
-                    <option key={id} value={id}>
-                      {position} {shortName(game.world.players[id]!)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field inline">
-                <span>On</span>
-                <select id="sub-in" value={subIn} onChange={(e) => setSubIn(e.target.value)}>
-                  <option value="">Choose a substitute</option>
-                  {benchPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {shortName(p)} ({Object.entries(p.positions).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0]})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="btn primary"
-                disabled={!subOut || !subIn}
-                onClick={() => {
-                  if (substituteLive(subOut, subIn)) {
-                    setSubOut('');
-                    setSubIn('');
-                  }
-                }}
-              >
-                Make substitution
-              </button>
-            </div>
-          )}
           {!finished && (
             <>
               <h3>Team instructions</h3>
@@ -375,12 +453,8 @@ function LiveView({ game, live }: { game: GameState; live: LiveMatch }) {
           <h3>{game.world.clubs[live[theirSide].clubId]?.shortName} ({live[theirSide].tactics.formation})</h3>
           <PitchBoard
             formation={live[theirSide].tactics.formation}
-            lineup={FORMATIONS[live[theirSide].tactics.formation].map((slot, i) => {
-              const original = live[theirSide].tactics.lineup[i] ?? null;
-              const still = live[theirSide].onPitch.find((x) => x.id === original);
-              if (still) return still.id;
-              return live[theirSide].onPitch.find((x) => x.position === slot.position && !live[theirSide].tactics.lineup.includes(x.id))?.id ?? null;
-            })}
+            lineup={liveLineup(live, theirSide)}
+            energy={energy}
             players={game.world.players}
             date={game.date}
           />

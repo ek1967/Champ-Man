@@ -11,7 +11,7 @@ import { DevelopmentSummary } from '../components/Development.tsx';
 import { ClubName, PlayerClub } from '../components/ClubName.tsx';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { money, wage } from '../components/format.ts';
-import { positionsLabel } from './SquadScreen.tsx';
+import { PositionPitch, PositionTags } from '../components/Positions.tsx';
 
 /** Attributes as the manager knows them: exact for scouted players, a range otherwise. */
 function AttributeBlock({ title, keys, game, player }: { title: string; keys: readonly AttributeKey[]; game: GameState; player: Player }) {
@@ -55,7 +55,7 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
           <h1>{name}</h1>
           {player.knownAs && <p className="muted small">{player.firstName} {player.lastName}</p>}
           <p>
-            {positionsLabel(player)} · <PlayerClub game={game} player={player} /> ·{' '}
+            <PositionTags player={player} /> · <PlayerClub game={game} player={player} /> ·{' '}
             {nation && (
               <EntityLink type="nation" id={nation.id}>
                 {nation.name}
@@ -63,6 +63,7 @@ export function PlayerScreen({ game, id }: { game: GameState; id: string }) {
             )}
           </p>
         </div>
+        <PositionPitch player={player} />
       </header>
 
       <div className="facts">

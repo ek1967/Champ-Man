@@ -2,6 +2,7 @@ import {
   ageOn, awaitingManager, estimatedAbility, answerIncomingBid, type Bid, financesOf, formatMoney, formatShort, type GameState,
   mainPosition, type Player, POSITION_GROUP, recentTransfers, shortName, wageBill,
 } from '@moc/engine';
+import { PositionTags } from '../components/Positions.tsx';
 import { useMemo, useState } from 'react';
 import { ClubName, PlayerClub } from '../components/ClubName.tsx';
 import { EntityLink, RouteLink } from '../components/EntityLink.tsx';
@@ -109,7 +110,7 @@ function Search({ game }: { game: GameState }) {
       render: (p) => <PlayerClub game={game} player={p} short />,
       sortValue: (p) => (p.clubId ? game.world.clubs[p.clubId]?.shortName ?? '' : p.abroad ? 'zz abroad' : ''),
     },
-    { id: 'pos', label: 'Pos', render: (p) => mainPosition(p), sortValue: (p) => mainPosition(p) },
+    { id: 'pos', label: 'Pos', render: (p) => <PositionTags player={p} limit={2} />, sortValue: (p) => mainPosition(p) },
     { id: 'age', label: 'Age', render: (p) => ageOn(p.dateOfBirth, game.date), sortValue: (p) => ageOn(p.dateOfBirth, game.date), align: 'right' },
     { id: 'ability', label: 'Ability', render: (p) => <AbilityEstimate game={game} player={p} />, sortValue: (p) => sortableAbility(game, p) },
     { id: 'potential', label: 'Potential', render: (p) => <PotentialEstimate game={game} player={p} />, sortValue: (p) => sortablePotential(game, p) },

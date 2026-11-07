@@ -43,7 +43,9 @@ function preMatchChecks(game: GameState): Check[] {
     const p = id ? players[id] : undefined;
     if (!p) return;
     if (p.condition < 80) checks.push({ tone: 'warn', text: `${shortName(p)} is only ${p.condition}% fit.` });
-    if (fitLabel(p, slot.position).tone === 'poor') checks.push({ tone: 'warn', text: `${shortName(p)} is out of position at ${slot.position}.` });
+    const fit = fitLabel(p, slot.position).tone;
+    if (fit === 'awkward') checks.push({ tone: 'warn', text: `${shortName(p)} is out of position at ${slot.position}.` });
+    else if (fit === 'unconvincing') checks.push({ tone: 'warn', text: `${shortName(p)} is unconvincing at ${slot.position}.` });
   });
 
   if (ready.bench.length < 9) checks.push({ tone: 'info', text: `Only ${ready.bench.length} substitutes are available.` });

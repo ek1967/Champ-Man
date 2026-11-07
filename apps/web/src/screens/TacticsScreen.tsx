@@ -3,8 +3,9 @@ import {
   DEFAULT_PLAYER_INSTRUCTIONS, FORMATION_IDS, FORMATIONS, type FormationId, type GameState, INSTRUCTION_OPTIONS,
   isAvailable, mainPosition, MAX_BENCH, normalizeTactics, PLAYER_INSTRUCTION_OPTIONS, type Player,
   type PlayerInstructions, type Position, POSITION_PROFILES, POSITIONS, positionStars, selectionRating, shortName,
-  squadOf, type Tactics, type TeamInstructions,
+  squadOf, type Tactics, type TeamInstructions, POSITION_FIT_LABELS, type PositionFit, positionFit,
 } from '@moc/engine';
+import { FitLegend, PositionTags } from '../components/Positions.tsx';
 import { useState } from 'react';
 import { EntityLink } from '../components/EntityLink.tsx';
 import { ConditionBar, FormChips, Stars } from '../components/Ratings.tsx';
@@ -105,12 +106,9 @@ export const optionLabel = (s: string) => {
 };
 
 /** How comfortable a player is in a position, in words. */
-export function fitLabel(player: Player, position: Position): { label: string; tone: 'good' | 'ok' | 'poor' } {
-  const f = player.positions[position] ?? 0;
-  if (f >= 18) return { label: 'Natural', tone: 'good' };
-  if (f >= 14) return { label: 'Good', tone: 'good' };
-  if (f >= 9) return { label: 'Can play', tone: 'ok' };
-  return { label: 'Out of position', tone: 'poor' };
+export function fitLabel(player: Player, position: Position): { label: string; tone: PositionFit } {
+  const tone = positionFit(player, position);
+  return { label: POSITION_FIT_LABELS[tone], tone };
 }
 
 export function statusOf(player: Player, date: string): string | null {
@@ -124,11 +122,6 @@ export function Condition({ value }: { value: number }) {
   return <ConditionBar value={value} />;
 }
 
-/** Positions a player can play well, best first: 'DC, DM'. */
-function positionsLabel(player: Player): string {
-  const main = mainPosition(player);
-  return [main, ...POSITIONS.filter((p) => p !== main && (player.positions[p] ?? 0) >= 15)].join(', ');
-}
 
 function seasonLine(game: GameState, player: Player) {
   const club = player.clubId ? game.world.clubs[player.clubId] : undefined;
@@ -231,7 +224,7 @@ function PlayerCard(props: { game: GameState; player: Player; position: Position
             </EntityLink>
           </h3>
           <p className="muted small">
-            {positionsLabel(player)} · {ageOn(player.dateOfBirth, game.date)} · {nation?.code}
+            <PositionTags player={player} /> · {ageOn(player.dateOfBirth, game.date)} · {nation?.code}
           </p>
         </div>
         <span className={`fit ${fit.tone}`}>
@@ -401,7 +394,7 @@ export function TacticsScreen({ game }: { game: GameState }) {
       ),
       sortValue: (p) => p.knownAs ?? p.lastName,
     },
-    { id: 'pos', label: 'Pos', render: positionsLabel, sortValue: (p) => POSITIONS.indexOf(mainPosition(p)) },
+    { id: 'pos', label: 'Pos', render: (p) => <PositionTags player={p} />, sortValue: (p) => POSITIONS.indexOf(mainPosition(p)) },
     { id: 'ability', label: 'Ability', render: (p) => <Stars value={abilityStars(p.ca)} />, sortValue: (p) => p.ca },
     { id: 'potential', label: 'Potential', render: (p) => <PotentialEstimate game={game} player={p} />, sortValue: (p) => sortablePotential(game, p) },
     {
@@ -508,10 +501,8 @@ export function TacticsScreen({ game }: { game: GameState }) {
             selected={selectedSlot}
             onSelect={(i) => setSelectedSlot(i === selectedSlot ? null : i)}
           />
-          <p className="legend-line">
-            <span className="fit good">●</span> natural <span className="fit ok">●</span> can play <span className="fit poor">●</span> out of position ·
-            stars show ability in that position
-          </p>
+          <FitLegend />
+          <p className="legend-line">Shirts show how well each player knows the position; stars show ability there.</p>
         </section>
 
         <section className="tactics-side">

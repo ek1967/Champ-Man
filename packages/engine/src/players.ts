@@ -201,3 +201,22 @@ export function averageForm(player: Player): number | null {
   if (player.form.length === 0) return null;
   return player.form.reduce((a, b) => a + b, 0) / player.form.length;
 }
+
+/** How well a player plays a position, in the classic four bands. */
+export type PositionFit = 'natural' | 'accomplished' | 'unconvincing' | 'awkward';
+
+export const POSITION_FIT_LABELS: Record<PositionFit, string> = {
+  natural: 'Natural',
+  accomplished: 'Accomplished',
+  unconvincing: 'Unconvincing',
+  awkward: 'Awkward',
+};
+
+/** Natural 18–20, accomplished 15–17, unconvincing 10–14, awkward below 10 (or never played there). */
+export function positionFit(player: Player, position: Position): PositionFit {
+  const f = player.positions[position] ?? 0;
+  if (f >= 18) return 'natural';
+  if (f >= 15) return 'accomplished';
+  if (f >= 10) return 'unconvincing';
+  return 'awkward';
+}

@@ -1,6 +1,7 @@
 import {
   ageOn, attributeBand, attributeView, developmentTrend, type GameState, mainPosition, type Player, type Position, POSITIONS, squadOf,
 } from '@moc/engine';
+import { PositionTags } from '../components/Positions.tsx';
 import { FormChips } from '../components/Ratings.tsx';
 import { AbilityEstimate, PotentialEstimate, sortableAbility, sortablePotential } from '../components/Scouting.tsx';
 import { Trend } from '../components/Development.tsx';
@@ -16,12 +17,6 @@ type View = 'general' | 'attributes' | 'contracts';
 
 const POSITION_INDEX = new Map<Position, number>(POSITIONS.map((p, i) => [p, i]));
 
-/** 'DC, DM': positions the player is comfortable in (familiarity 15+), main one first. */
-export function positionsLabel(player: Player): string {
-  const main = mainPosition(player);
-  const others = POSITIONS.filter((p) => p !== main && (player.positions[p] ?? 0) >= 15);
-  return [main, ...others].join(', ');
-}
 
 function seasonStats(game: GameState, player: Player) {
   const club = player.clubId ? game.world.clubs[player.clubId] : undefined;
@@ -58,7 +53,7 @@ export function SquadScreen({ game, clubId }: { game: GameState; clubId: string 
     {
       id: 'pos',
       label: 'Position',
-      render: positionsLabel,
+      render: (p) => <PositionTags player={p} />,
       sortValue: (p) => POSITION_INDEX.get(mainPosition(p)) ?? 0,
     },
     { id: 'ability', label: 'Ability', render: (p) => <AbilityEstimate game={game} player={p} />, sortValue: (p) => sortableAbility(game, p) },

@@ -748,8 +748,13 @@ table.fixtures td.score {
 
 .player-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
+}
+.player-head .position-pitch {
+  margin-left: auto;
+  max-width: 15em;
 }
 .shirt {
   width: 52px;
@@ -927,16 +932,6 @@ table.fixtures td.score {
   font-size: 0.68rem;
   font-weight: 700;
   border: 2px solid transparent;
-}
-.slot.fit-ok .slot-pos {
-  border-color: var(--accent);
-}
-.slot.fit-poor .slot-pos {
-  border-color: var(--loss);
-}
-.slot.is-unavailable .slot-pos {
-  background: var(--loss);
-  color: #fff;
 }
 .slot.is-selected .slot-pos {
   outline: 3px solid var(--accent);
@@ -1976,4 +1971,86 @@ details.earlier summary {
 }
 .save-option p {
   margin: 0;
+}
+
+/* Position fit: the classic four colours (dark green, light green, yellow, red) */
+:root {
+  --fit-natural: #14703a;
+  --fit-natural-ink: #ffffff;
+  --fit-accomplished: #7cc576;
+  --fit-accomplished-ink: #10301a;
+  --fit-unconvincing: #f0c419;
+  --fit-unconvincing-ink: #3d3000;
+  --fit-awkward: #c0392b;
+  --fit-awkward-ink: #ffffff;
+}
+.fit-chip {
+  display: inline-block;
+  min-width: 2.6em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.5;
+}
+.fit-chip.natural { background: var(--fit-natural); color: var(--fit-natural-ink); }
+.fit-chip.accomplished { background: var(--fit-accomplished); color: var(--fit-accomplished-ink); }
+.fit-chip.unconvincing { background: var(--fit-unconvincing); color: var(--fit-unconvincing-ink); }
+.fit-chip.awkward { background: var(--fit-awkward); color: var(--fit-awkward-ink); opacity: 0.85; }
+.fit-tags {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  vertical-align: middle;
+}
+.position-pitch {
+  margin: 0;
+}
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 3.2em);
+  gap: 4px;
+  padding: 8px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: max-content;
+}
+.position-grid .fit-chip {
+  min-width: 0;
+}
+.fit-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.fit-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+.fit-dot.natural { background: var(--fit-natural); }
+.fit-dot.accomplished { background: var(--fit-accomplished); }
+.fit-dot.unconvincing { background: var(--fit-unconvincing); }
+.fit-dot.awkward { background: var(--fit-awkward); }
+.fit.natural { color: var(--fit-natural); }
+.fit.accomplished { color: #3f9a3c; }
+.fit.unconvincing { color: #b38900; }
+.fit.awkward { color: var(--fit-awkward); }
+.slot.fit-natural .slot-pos { background: var(--fit-natural); color: var(--fit-natural-ink); border-color: #fff; }
+.slot.fit-accomplished .slot-pos { background: var(--fit-accomplished); color: var(--fit-accomplished-ink); border-color: #fff; }
+.slot.fit-unconvincing .slot-pos { background: var(--fit-unconvincing); color: var(--fit-unconvincing-ink); border-color: #fff; }
+.slot.fit-awkward .slot-pos { background: var(--fit-awkward); color: var(--fit-awkward-ink); border-color: #fff; }
+
+/* Injured or suspended players stand out from every fit colour. */
+.slot.is-unavailable .slot-pos {
+  background: var(--draw);
+  color: #fff;
+  border: 2px dashed var(--loss);
 }

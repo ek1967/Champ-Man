@@ -3,6 +3,7 @@ import {
   briefMaxFee, comparisonLine, describeSearch, findPlayers, type ScoutSearch, scoutReportHistory, knowledgeOf, type Position, positionComparison, mainPosition, nationsInGame, type Player, playersAbroad, scoutClub, type ScoutCriteria, scoutingCountries,
   scoutingStaff, type ScoutNeed, scoutPlayer, shortName, toggleShortlist,
 } from '@moc/engine';
+import { FitChip, PositionTags } from './Positions.tsx';
 import { useState } from 'react';
 import { act } from '../state/store.ts';
 import { ClubName, PlayerClub } from './ClubName.tsx';
@@ -172,7 +173,7 @@ export function ScoutingTab({ game }: { game: GameState }) {
                   <tr key={p.id}>
                     <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> <StatusTag game={game} player={p} /></td>
                     <td><PlayerClub game={game} player={p} short /></td>
-                    <td>{mainPosition(p)}</td>
+                    <td><PositionTags player={p} limit={2} /></td>
                     <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
                     <td><AbilityEstimate game={game} player={p} /></td>
                     <td><PotentialEstimate game={game} player={p} /></td>
@@ -407,7 +408,7 @@ function PlayerTable({ game, rows, abroad = false }: { game: GameState; rows: Ar
               <tr key={p.id}>
                 <td><EntityLink type="player" id={p.id}>{shortName(p)}</EntityLink> <StatusTag game={game} player={p} /></td>
                 <td>{abroad ? game.world.nations[p.abroad!.nationId]?.name : <PlayerClub game={game} player={p} short />}</td>
-                <td>{position ?? mainPosition(p)}</td>
+                <td>{position ? <FitChip player={p} position={position} /> : <PositionTags player={p} limit={2} />}</td>
                 <td className="right">{ageOn(p.dateOfBirth, game.date)}</td>
                 <td><AbilityEstimate game={game} player={p} /></td>
                 <td><PotentialEstimate game={game} player={p} /></td>

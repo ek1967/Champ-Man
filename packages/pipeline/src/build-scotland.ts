@@ -307,12 +307,14 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
     built.forEach((b, i) => {
       let ca = abilities[i]!;
       let position = b.position;
+      let also: Position[] = [];
       const o = SCOTTISH_OVERRIDES.findIndex((x) => x.club === club.id && x.name.toLowerCase() === b.row.name.toLowerCase());
       if (o >= 0) {
         usedOverrides.add(o);
         const override = SCOTTISH_OVERRIDES[o]!;
         if (override.ca) ca = override.ca;
         if (override.position && (POSITIONS as readonly string[]).includes(override.position)) position = override.position as Position;
+        also = (override.also ?? []).filter((p): p is Position => (POSITIONS as readonly string[]).includes(p));
         b.flags.push('corrected by hand');
       }
       // Attributes and secondary positions are generated to fit the position and ability.
@@ -329,7 +331,8 @@ async function realSquads(used: Map<string, Nation>): Promise<{ players: PackPla
         // Other positions named in the sources are well known to the player.
         positions: {
           ...shape.positions,
-          ...Object.fromEntries((position === b.position ? b.secondary : []).map((p) => [p, Math.max(shape.positions[p] ?? 0, 17)])),
+          ...Object.fromEntries([...(position === b.position ? b.secondary : []), ...also].map((p) => [p, Math.max(shape.positions[p] ?? 0, 17)])),
+          [position]: 20,
         },
         foot: shape.foot,
         attributes: shape.attributes,

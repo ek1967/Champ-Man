@@ -1,6 +1,6 @@
 import type { Attributes, HiddenAttributes, Position } from './attributes.ts';
 import type { ISODate } from './dates.ts';
-import { generateHidden, estimateValue, estimateWage } from './players.ts';
+import { generateHidden, estimateValue, estimateWage, rolePositions } from './players.ts';
 import { createRng, hashString, normal, type Rng } from './rng.ts';
 import type { Club, Competition, Nation, Player, World } from './types.ts';
 import { assignSquadNumbers } from './worldgen.ts';
@@ -104,6 +104,7 @@ export function worldFromPack(pack: WorldPack, seed: string, today: ISODate): Wo
       growthCarry: 0,
     };
     if (source.knownAs) player.knownAs = source.knownAs;
+    player.positions = rolePositions(player);
     world.players[player.id] = player;
     if (player.squadNumber === null) needsNumbers.add(source.clubId);
   }

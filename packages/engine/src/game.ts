@@ -21,7 +21,7 @@ import { learnFromMatch, scoutingDay } from './scouting.ts';
 import { financesOf, transferDay } from './transfers.ts';
 import { createDemoWorld } from './worldgen.ts';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const GAME_START_DATE: ISODate = '2026-06-15';
 
 export interface NewGameOptions {

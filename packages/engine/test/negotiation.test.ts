@@ -132,7 +132,8 @@ describe('offers for your players', () => {
   it('brings loan requests for young fringe players, which you can accept', () => {
     const { state, clubId } = newCareer('loan-in');
     let request: Bid | undefined;
-    for (let i = 0; i < 150 && !request; i++) {
+    // Requests are a daily chance, so allow most of a season for one to arrive.
+    for (let i = 0; i < 250 && !request; i++) {
       advanceDay(state);
       request = state.transfers.bids.find((b) => b.kind === 'loan' && awaitingManager(state, b));
     }

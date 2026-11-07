@@ -16,7 +16,7 @@ each club's level, age, squad number and senior caps; correct them in
 |---|---|---|---|---|---|---|---|
 | 8 | Benjamin Nygren | AMC | 24 | SWE | 129 | 3 |  |
 | 9 | Kasper Høgh | ST | 25 | DEN | 129 | 3 |  |
-| 11 | Camilo Durán | ST | 24 | COL | 127 | 2.5 |  |
+| 11 | Camilo Durán | ST | 24 | COL | 127 | 2.5 | corrected by hand |
 | 17 | Sebastian Tounekti | AML | 23 | TUN | 127 | 2.5 |  |
 | 18 | Oliver Sørensen | MC | 24 | DEN | 127 | 2.5 |  |
 | 1 | Viljami Sinisalo | GK | 24 | FIN | 126 | 2.5 |  |
@@ -42,7 +42,7 @@ each club's level, age, squad number and senior caps; correct them in
 | 35 | Joël van den Berg | MC | 19 | NED | 106 | 2 |  |
 | 29 | Shim Mheuka | ST | 18 | ENG | 100 | 1.5 |  |
 | 51 | Colby Donovan | DR | 19 | SCO | 100 | 1.5 | corrected by hand |
-| 12 | Landon Emenalo | MC | 18 | ENG | 99 | 1.5 |  |
+| 12 | Landon Emenalo | DL | 18 | ENG | 99 | 1.5 | corrected by hand |
 
 ## Rangers (best XI target 122)
 

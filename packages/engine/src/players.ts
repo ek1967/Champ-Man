@@ -4,7 +4,7 @@ import {
 } from './attributes.ts';
 import { addDays, ageOn, type ISODate, makeDate, yearOf } from './dates.ts';
 import { NAME_POOLS } from './names.ts';
-import { chance, normal, pick, type Rng, randInt } from './rng.ts';
+import { chance, hashString, normal, pick, type Rng, randInt } from './rng.ts';
 import type { Id, Player } from './types.ts';
 
 const PACE_KEYS = new Set(['pace', 'acceleration', 'agility']);
@@ -151,7 +151,76 @@ export function generatePlayer(rng: Rng, spec: NewPlayerSpec): Player {
     growthCarry: 0,
   };
   if (knownAs) player.knownAs = knownAs;
+  player.positions = rolePositions(player);
   return player;
+}
+
+/**
+ * How well a player usually knows the positions around his own, before footedness, attributes and
+ * versatility move it up or down: a left back is nearly at home at left wing-back, can do a job at
+ * left midfield or centre-back, and is lost up front.
+ */
+const NEIGHBOURS: Record<Position, Partial<Record<Position, number>>> = {
+  GK: {},
+  DC: { DM: 11, DL: 10, DR: 10 },
+  DL: { WBL: 17, ML: 13, DC: 11, DR: 11 },
+  DR: { WBR: 17, MR: 13, DC: 11, DL: 11 },
+  WBL: { DL: 16, ML: 15, AML: 11, WBR: 11 },
+  WBR: { DR: 16, MR: 15, AMR: 11, WBL: 11 },
+  DM: { MC: 16, DC: 12 },
+  MC: { DM: 14, AMC: 14, ML: 10, MR: 10 },
+  ML: { AML: 16, WBL: 13, MR: 12, MC: 11 },
+  MR: { AMR: 16, WBR: 13, ML: 12, MC: 11 },
+  AML: { ML: 16, AMR: 14, AMC: 11, ST: 11 },
+  AMR: { MR: 16, AML: 14, AMC: 11, ST: 11 },
+  AMC: { MC: 13, ST: 13, AML: 12, AMR: 12 },
+  ST: { AMC: 12, AML: 11, AMR: 11 },
+};
+
+const LEFT_SIDE = new Set<Position>(['DL', 'WBL', 'ML']);
+const RIGHT_SIDE = new Set<Position>(['DR', 'WBR', 'MR']);
+
+/** Weighted average of the attributes a position needs. */
+function profileScore(player: Pick<Player, 'attributes'>, position: Position): number {
+  let total = 0;
+  let weight = 0;
+  for (const [key, w] of Object.entries(POSITION_PROFILES[position])) {
+    total += (player.attributes[key as keyof Attributes] ?? 10) * (w ?? 0);
+    weight += w ?? 0;
+  }
+  return weight > 0 ? total / weight : 10;
+}
+
+/**
+ * Fills in how well a player can cover the positions next to his main one, so most players are
+ * accomplished or unconvincing somewhere besides their best position. Never lowers what a player
+ * already knows, and gives the same answer every time for the same player, so it is safe to run again.
+ */
+export function rolePositions(player: Pick<Player, 'id' | 'positions' | 'foot' | 'attributes' | 'hidden'>): Partial<Record<Position, number>> {
+  const positions = { ...player.positions };
+  let main: Position = 'MC';
+  let best = -1;
+  for (const pos of POSITIONS) {
+    const value = positions[pos] ?? 0;
+    if (value > best) {
+      main = pos;
+      best = value;
+    }
+  }
+  const versatility = ((player.hidden?.versatility ?? 10) - 10) / 4;
+  const home = profileScore(player, main);
+  for (const [pos, base] of Object.entries(NEIGHBOURS[main]) as Array<[Position, number]>) {
+    const jitter = (hashString(`position:${player.id}:${pos}`) % 5) - 2;
+    // Footedness matters for full backs and wide midfielders, less so for inverted wingers.
+    let foot = 0;
+    if (player.foot === 'L') foot = LEFT_SIDE.has(pos) ? 1 : RIGHT_SIDE.has(pos) ? -1 : 0;
+    if (player.foot === 'R') foot = RIGHT_SIDE.has(pos) ? 1 : LEFT_SIDE.has(pos) ? -1 : 0;
+    // A quick, tricky striker makes a better winger than a target man does.
+    const suits = Math.max(-3, Math.min(2, Math.round((profileScore(player, pos) - home + 1.5) * 0.6)));
+    const value = Math.max(1, Math.min(18, Math.round(base + jitter + versatility + foot + suits)));
+    positions[pos] = Math.max(positions[pos] ?? 0, value);
+  }
+  return positions;
 }
 
 export function displayName(player: Player): string {

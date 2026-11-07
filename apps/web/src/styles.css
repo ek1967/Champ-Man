@@ -1964,3 +1964,16 @@ details.earlier summary {
   font-weight: 600;
   margin-bottom: 8px;
 }
+
+/* Start screen: browser and cloud copies of a career */
+.save-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.save-option p {
+  margin: 0;
+}

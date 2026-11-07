@@ -83,6 +83,11 @@ export async function exportCareer(state: GameState): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/** Reads a downloaded save file (from "Download save") back into a game. */
+export async function readSaveFile(file: File): Promise<GameState> {
+  return deserializeGame(await file.text());
+}
+
 /** Hands the current save to Claude (only possible when the game runs as a Claude page). */
 export async function sendCareerToClaude(state: GameState): Promise<string> {
   const blob = new Blob([serializeGame(state)], { type: 'application/json' });

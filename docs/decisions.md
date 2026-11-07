@@ -308,3 +308,16 @@ fold away under "Earlier searches"), every report is kept in a history with the 
 ability at the time (repeat reports on the same player included, and players found abroad), and
 players who have since retired, joined you or gone off the market stay in lists with a tag saying
 so. Player pages keep showing the scouts' last report after a player joins you or retires.
+
+## 021 — Cloud saves and loading save files
+The browser save (IndexedDB) can be cleared without warning: Safari on iPad removes a site's
+stored data after a few days without a visit, and the game runs as an embedded page, which Safari
+treats more strictly. So, when the game runs as the published Claude page, the career is also
+saved to the cloud under the viewer's own account: the save is uploaded as a JSON asset of the
+page (a few megabytes), and a private document at `data/users/<viewer>/career` points at the
+latest one and records the manager, club and dates. The previous upload is deleted after each
+save. It saves automatically at most once a game week and a minute and a half, when the app is
+switched away from or closed, and on "Save & main menu", and there is a "Save to cloud" button.
+The start screen offers whichever copy is newer, browser or cloud. "Download save" files can now
+be opened again from the start screen ("Load a save file"), so they are real backups. Where the
+page runtime isn't there (local development) cloud saves are hidden.

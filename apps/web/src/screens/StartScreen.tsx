@@ -6,7 +6,8 @@ import { ClubSwatch } from '../components/ClubName.tsx';
 import { Tabs } from '../components/Tabs.tsx';
 import { reputationLabel } from '../components/format.ts';
 import { resetNavigation } from '../state/nav.ts';
-import { deleteCareer, loadCareer, loadCareerSummary, type SaveSummary, saveCareer } from '../state/persistence.ts';
+import { type CloudSummary, cloudSummary, loadFromCloud } from '../state/cloud.ts';
+import { deleteCareer, loadCareer, loadCareerSummary, readSaveFile, type SaveSummary, saveCareer } from '../state/persistence.ts';
 import { setGame } from '../state/store.ts';
 
 function randomSeed(): string {
@@ -52,21 +53,35 @@ export function StartScreen() {
   const [worldChoice, setWorldChoice] = useState<'real' | 'demo'>('real');
   const [leagueId, setLeagueId] = useState<string | null>(null);
 
+  const [cloud, setCloud] = useState<CloudSummary | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
   useEffect(() => {
     void loadCareerSummary().then(setSummary);
     void loadRealPack().then(setRealPack);
+    void cloudSummary().then(setCloud);
   }, []);
 
-  async function resume() {
+  /** Opens a career and keeps a browser copy of it. */
+  async function open(load: () => Promise<GameState | null>, label: string) {
+    setBusy(label);
+    setError(null);
     try {
-      const state = await loadCareer();
+      const state = await load();
       if (!state) return;
+      await saveCareer(state);
       resetNavigation();
       setGame(state);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
     }
   }
+
+  const resume = () => open(loadCareer, 'browser');
+  // Which copy is further on, when both exist.
+  const cloudIsNewer = !!cloud && (!summary || cloud.savedAt > summary.savedAt);
 
   function buildWorld() {
     const pack = worldChoice === 'real' && realPack ? realPack : undefined;
@@ -153,18 +168,49 @@ export function StartScreen() {
         </h1>
         <p className="muted">A fast, text-first football management game.</p>
 
-        {summary && (
+        {(summary || cloud) && (
           <section className="start-section">
             <h2>Continue career</h2>
-            <p>
-              {summary.managerName}
-              {summary.clubName ? `, ${summary.clubName}` : ''} — {summary.date}
-            </p>
-            <button className="btn primary" onClick={() => void resume()}>
-              Continue career
-            </button>
+            {summary && (
+              <div className="save-option">
+                <p>
+                  <strong>On this device:</strong> {summary.managerName}
+                  {summary.clubName ? `, ${summary.clubName}` : ''} · {summary.date}
+                </p>
+                <button className={`btn ${cloudIsNewer ? '' : 'primary'}`} disabled={!!busy} onClick={() => void resume()}>
+                  {busy === 'browser' ? 'Opening…' : 'Continue career'}
+                </button>
+              </div>
+            )}
+            {cloud && (
+              <div className="save-option">
+                <p>
+                  <strong>Cloud save:</strong> {cloud.managerName}
+                  {cloud.clubName ? `, ${cloud.clubName}` : ''} · {cloud.date}
+                  <span className="muted small"> (saved {new Date(cloud.savedAt).toLocaleString()})</span>
+                </p>
+                <button className={`btn ${cloudIsNewer ? 'primary' : ''}`} disabled={!!busy} onClick={() => void open(loadFromCloud, 'cloud')}>
+                  {busy === 'cloud' ? 'Downloading…' : 'Continue from the cloud'}
+                </button>
+              </div>
+            )}
           </section>
         )}
+        <section className="start-section">
+          <h2>Load a save file</h2>
+          <p className="note">Open a file made with "Download save", from this device or another one.</p>
+          <input
+            id="load-file"
+            type="file"
+            accept=".json,application/json"
+            disabled={!!busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void open(() => readSaveFile(file), 'file');
+              e.target.value = '';
+            }}
+          />
+        </section>
 
         <section className="start-section">
           <h2>New career</h2>

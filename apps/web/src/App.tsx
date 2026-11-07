@@ -8,6 +8,7 @@ import { ClubSwatch } from './components/ClubName.tsx';
 import { EntityLink } from './components/EntityLink.tsx';
 import { ordinal } from './components/format.ts';
 import { back, forward, navigate, type Route, useRoute } from './state/nav.ts';
+import { saveToCloud, useCloudStatus } from './state/cloud.ts';
 import { exportCareer, saveCareer, sendCareerToClaude } from './state/persistence.ts';
 import { continueOnce, getLiveMatch, setGame, useGame } from './state/store.ts';
 import { ClubScreen, FixturesScreen, NationScreen } from './screens/ClubScreen.tsx';
@@ -229,6 +230,7 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
       </ul>
       <h2 className="nav-heading">Game</h2>
       <ul>
+        <CloudSaveItem game={game} />
         <li>
           <button className="nav-item" onClick={() => void exportCareer(game)}>
             Download save
@@ -254,7 +256,7 @@ function SideNav({ game, route }: { game: GameState; route: Route }) {
           <button
             className="nav-item"
             onClick={() => {
-              void saveCareer(game).then(() => setGame(null));
+              void Promise.all([saveCareer(game), saveToCloud(game)]).then(() => setGame(null));
             }}
           >
             Save & main menu
@@ -291,4 +293,36 @@ function Screen({ game, route }: { game: GameState; route: Route }) {
     case 'match':
       return <MatchScreen game={game} />;
   }
+}
+
+/** "Save to cloud", with when it last happened (or why it can't here). */
+function CloudSaveItem({ game }: { game: GameState }) {
+  const cloud = useCloudStatus();
+  if (cloud.kind === 'unavailable' || cloud.kind === 'checking') return null;
+  const last = cloud.last;
+  return (
+    <li>
+      <button className="nav-item" disabled={cloud.kind === 'saving'} onClick={() => void saveToCloud(game)}>
+        {cloud.kind === 'saving' ? 'Saving to cloud…' : 'Save to cloud'}
+      </button>
+      {cloud.kind === 'error' ? (
+        <p className="nav-status">{cloud.message}</p>
+      ) : (
+        last && (
+          <p className="nav-status ok">
+            Cloud: {formatShort(last.date)} {last.date.slice(0, 4)} · saved {timeAgo(last.savedAt)}
+          </p>
+        )
+      )}
+    </li>
+  );
+}
+
+function timeAgo(iso: string): string {
+  const minutes = Math.round((Date.now() - Date.parse(iso)) / 60_000);
+  if (!(minutes >= 0)) return '';
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
 }

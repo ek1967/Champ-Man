@@ -4,6 +4,7 @@ import {
   substitute, type Tactics, type TeamInstructions,
 } from '@moc/engine';
 import { useSyncExternalStore } from 'react';
+import { maybeCloudSave, saveToCloud } from './cloud.ts';
 import { saveCareer } from './persistence.ts';
 
 /**
@@ -43,8 +44,19 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined;
 function scheduleAutosave(): void {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    if (game) void saveCareer(game);
+    if (!game) return;
+    void saveCareer(game);
+    maybeCloudSave(game);
   }, 400);
+}
+
+// Leaving the page (switching app on an iPad, closing the tab): save everywhere straight away.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden' || !game) return;
+    void saveCareer(game);
+    void saveToCloud(game);
+  });
 }
 
 export function continueOnce(): StopReason | null {

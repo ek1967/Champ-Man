@@ -321,3 +321,9 @@ switched away from or closed, and on "Save & main menu", and there is a "Save to
 The start screen offers whichever copy is newer, browser or cloud. "Download save" files can now
 be opened again from the start screen ("Load a save file"), so they are real backups. Where the
 page runtime isn't there (local development) cloud saves are hidden.
+
+Positions in searches and signings: a player counts for a position only if they really play it
+(familiarity 15 or more, accomplished or natural). Before, a player was rated anywhere at 55% of
+their ability, so a good striker could come back from a goalkeeper search as a "backup keeper",
+any young player came back from a "one for the future" search whatever the position, and
+computer clubs could sign an outfield player to fill a goalkeeping gap.

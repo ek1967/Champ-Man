@@ -467,6 +467,9 @@ function weakestPositions(state: GameState): Position[] {
     .map((x) => x.position);
 }
 
+/** Familiarity (1–20) from which a player counts as playing a position: accomplished or natural. */
+export const PLAYS_POSITION = 15;
+
 /** Rating of the manager's current first choice at a position (their best player there if it isn't in the side). */
 function starterRatingAt(state: GameState, position: Position): number {
   const clubId = state.manager.clubId!;
@@ -519,6 +522,8 @@ function writeSearchReport(state: GameState, c: ScoutCriteria): void {
     const age = ageOn(p.dateOfBirth, state.date);
     let best: { position: Position; rating: number } | null = null;
     for (const position of positions) {
+      // Only players who really play there: a striker's ability doesn't make him a goalkeeper.
+      if ((p.positions[position] ?? 0) < PLAYS_POSITION) continue;
       const rating = positionRating(p, position);
       if (!best || rating > best.rating) best = { position, rating };
     }

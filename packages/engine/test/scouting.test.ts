@@ -184,3 +184,18 @@ describe('keeping scout reports', () => {
     expect(state.world.players[abroad[0]!.playerId]!.retired).toBe(true);
   });
 });
+
+describe('scouting for a position', () => {
+  it('only brings back players who play there, for every kind of brief', () => {
+    const { state } = career('keepers');
+    for (const need of ['first', 'backup', 'future'] as const) {
+      findPlayers(state, { position: 'GK', need, where: 'all', maxFee: 1_000_000_000 });
+      for (let i = 0; i < 8; i++) advanceDay(state);
+      const search = state.scouting!.searches![0]!;
+      for (const id of search.playerIds) expect(state.world.players[id]!.positions.GK ?? 0).toBeGreaterThanOrEqual(15);
+    }
+    findPlayers(state, { position: 'DL', need: 'future', where: 'all', maxFee: 1_000_000_000 });
+    for (let i = 0; i < 8; i++) advanceDay(state);
+    for (const id of state.scouting!.searches![0]!.playerIds) expect(state.world.players[id]!.positions.DL ?? 0).toBeGreaterThanOrEqual(15);
+  });
+});

@@ -766,7 +766,8 @@ function aiSigning(state: GameState): void {
     if (p.clubId === buyer.id || p.clubId === humanId || p.retired || p.loan || p.abroad) return false;
     if (agreedIds.has(p.id)) return false;
     if (ageOn(p.dateOfBirth, state.date) > 31 || p.ca > ceiling) return false;
-    if (positionRating(p, need.position) < need.rating + 5) return false;
+    // Someone who really plays the position, and is clearly better there than the current starter.
+    if ((p.positions[need.position] ?? 0) < 15 || positionRating(p, need.position) < need.rating + 5) return false;
     if (p.clubId && (squads.get(p.clubId)?.length ?? 0) <= MIN_SQUAD) return false;
     if (p.clubId && isKeeper(p) && (squads.get(p.clubId) ?? []).filter(isKeeper).length <= 2) return false;
     if (!willingToJoin(state, p, buyer.id).ok) return false;

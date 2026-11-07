@@ -1,3 +1,4 @@
+import { initEconomy } from './finance.ts';
 import { SAVE_VERSION } from './game.ts';
 import type { GameState } from './types.ts';
 
@@ -43,6 +44,8 @@ function migrate(state: GameState): GameState {
     }
     state.version = 5;
   }
+  // Saves from before club finances: set up income and cash in the bank from the squads as they are now.
+  if (!state.economy) initEconomy(state);
   return state;
 }
 

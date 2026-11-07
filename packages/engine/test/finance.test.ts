@@ -73,3 +73,22 @@ describe('club finances', () => {
     expect(financesOf(state, club.id).cash).toBeLessThanOrEqual(cash!);
   });
 });
+
+describe('older saves', () => {
+  it('get club finances when loaded', async () => {
+    const { serializeGame, deserializeGame } = await import('../src/save.ts');
+    const state = createGame({ seed: 'old-save', managerName: 'Test' });
+    // A save from before club finances: no economy, no cash or income on any club.
+    delete state.economy;
+    for (const f of Object.values(state.finances)) {
+      delete f.cash;
+      delete f.ownIncome;
+    }
+    const loaded = deserializeGame(serializeGame(state));
+    expect(loaded.economy).toBeDefined();
+    for (const club of Object.values(loaded.world.clubs)) {
+      expect(financesOf(loaded, club.id).cash).toBeGreaterThan(0);
+      expect(seasonIncome(loaded, club.id).total).toBeGreaterThan(0);
+    }
+  });
+});
